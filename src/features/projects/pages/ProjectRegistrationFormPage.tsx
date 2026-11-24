@@ -203,7 +203,24 @@ export function ProjectRegistrationFormPage() {
 
 function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof useStudentJourney>['project']> }) {
   const source = project.proposalSource ?? 'STUDENT_PROPOSAL'
-  return <section className="rounded-xl border border-status-success-border bg-status-success-bg p-5 text-sm text-status-success-text"><p className="text-xs font-bold uppercase tracking-wider">Nguồn đề tài</p>{source === 'PUBLISHED_TOPIC' ? <p className="mt-2 text-xs"><strong>Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}</p> : <p className="mt-2 text-xs"><strong>Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.</p>}<p className="mt-2 text-xs">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p></section>
+  return (
+    <section className="rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 text-sm text-ink shadow-xs">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <p className="text-xs font-bold uppercase tracking-wider text-status-success-text">Nguồn đề tài</p>
+      </div>
+      {source === 'PUBLISHED_TOPIC' ? (
+        <p className="mt-2 text-xs text-ink-soft">
+          <strong className="text-ink">Đề tài đã công bố</strong> · {project.selectedTopic ? `${project.selectedTopic.code} · ${project.selectedTopic.title}` : 'Chưa tải được thông tin chi tiết của đề tài đã chọn.'}
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-ink-soft">
+          <strong className="text-ink">Đề xuất của sinh viên</strong> · Hồ sơ này được khởi tạo từ đề xuất của nhóm.
+        </p>
+      )}
+      <p className="mt-1.5 text-xs text-ink-muted">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p>
+    </section>
+  )
 }
 
 /** Soft, client-side pre-check only — the backend is the sole enforcer (422
@@ -213,8 +230,9 @@ function SimilarityResult({ result }: { result: TopicSimilarityResultDto | null 
   if (!result) return null
   if (!result.exactMatch && result.similar.length === 0) {
     return (
-      <p role="status" className="mt-3 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs text-status-success-text">
-        Chưa phát hiện tên đề tài trùng khớp trực tiếp trong danh mục hiện tại.
+      <p role="status" className="mt-3 flex items-start gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-xs text-ink shadow-2xs">
+        <span className="material-symbols-outlined text-[16px] shrink-0 text-status-success-text" aria-hidden="true">check_circle</span>
+        <span>Chưa phát hiện tên đề tài trùng khớp trực tiếp trong danh mục hiện tại.</span>
       </p>
     )
   }

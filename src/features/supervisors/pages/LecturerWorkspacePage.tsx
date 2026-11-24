@@ -9,6 +9,8 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
@@ -21,6 +23,7 @@ type ProjectStatusFilter = 'ALL' | 'ACTIVE' | 'FINALSUBMISSION' | 'COMPLETED' | 
 type ProjectRoleFilter = 'ALL' | 'PRIMARY' | 'MENTOR' | 'CO'
 type ProjectSort = 'default' | 'attention' | 'title'
 type RequestStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
+type RequestSort = 'pending-first' | 'newest' | 'oldest'
 
 type PendingDecision =
   | { kind: 'supervision'; requestId: number; decision: 'accept' | 'reject'; title: string; subtitle: string }
@@ -60,6 +63,7 @@ export function LecturerWorkspacePage() {
 
   const [requestSearch, setRequestSearch] = useState('')
   const [requestStatus, setRequestStatus] = useState<RequestStatusFilter>('ALL')
+  const [requestSort, setRequestSort] = useState<RequestSort>('pending-first')
 
   const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null)
   const [decisionNote, setDecisionNote] = useState('')
@@ -111,11 +115,26 @@ export function LecturerWorkspacePage() {
     return list
   }, [assignedProjects, inbox.projects, inbox.teams, projectRole, projectSearch, projectSort, projectStatus, projectSummaries])
 
+  const projectStatusCounts = useMemo(() => {
+    const counts = { ALL: assignedProjects.length, ACTIVE: 0, FINALSUBMISSION: 0, COMPLETED: 0 }
+    for (const assignments of assignedProjects) {
+      const primary = assignments.find(item => item.isPrimary && !item.endedAt) ?? assignments.find(item => !item.endedAt) ?? assignments[0]
+      const normalized = inbox.projects?.[primary.projectId]?.status?.replaceAll('_', '').toUpperCase() ?? ''
+      if (normalized === 'ACTIVE') counts.ACTIVE += 1
+      else if (normalized === 'FINALSUBMISSION') counts.FINALSUBMISSION += 1
+      else if (normalized === 'COMPLETED' || normalized === 'ARCHIVED') counts.COMPLETED += 1
+    }
+    return counts
+  }, [assignedProjects, inbox.projects])
+
   const filteredRequests = useMemo(() => {
     const q = requestSearch.trim().toLowerCase()
     return [...inbox.requests]
       .filter((req) => {
-        if (requestStatus !== 'ALL' && req.status !== requestStatus) return false
+        if (requestStatus !== 'ALL') {
+          if (requestStatus === 'ACCEPTED' && req.status !== 'ACCEPTED' && req.status !== 'APPROVED') return false
+          if (requestStatus !== 'ACCEPTED' && req.status !== requestStatus) return false
+        }
         if (!q) return true
         const project = inbox.projects?.[req.projectId]
         const team = project ? inbox.teams?.[project.teamId] : null
@@ -124,8 +143,20 @@ export function LecturerWorkspacePage() {
           || (team?.name ?? '').toLowerCase().includes(q)
           || (req.requestMessage ?? '').toLowerCase().includes(q)
       })
-      .sort((a, b) => Number(b.status === 'PENDING') - Number(a.status === 'PENDING'))
-  }, [inbox.projects, inbox.requests, inbox.teams, requestSearch, requestStatus])
+      .sort((a, b) => {
+        if (requestSort === 'pending-first') {
+          const pendingDiff = Number(b.status === 'PENDING') - Number(a.status === 'PENDING')
+          if (pendingDiff !== 0) return pendingDiff
+        }
+        const ta = Date.parse(a.requestedAt ?? '') || 0
+        const tb = Date.parse(b.requestedAt ?? '') || 0
+        return requestSort === 'oldest' ? ta - tb : tb - ta
+      })
+  }, [inbox.projects, inbox.requests, inbox.teams, requestSearch, requestSort, requestStatus])
+
+  const projectPager = useClientPagination(filteredProjects, 10)
+  const requestPager = useClientPagination(filteredRequests, 10)
+  const leaderChangePager = useClientPagination(leaderChangeRequests, 10)
 
   const requestCounts = useMemo(() => {
     const c = { ALL: inbox.requests.length, PENDING: 0, ACCEPTED: 0, REJECTED: 0 }
@@ -210,7 +241,7 @@ export function LecturerWorkspacePage() {
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">grading</span>
             Đánh giá đồ án
           </Link>
-          <Button variant="secondary" icon="refresh" disabled={inbox.loading} onClick={() => void inbox.refresh()}>Tải lại</Button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={inbox.loading} onClick={() => void inbox.refresh()} />
         </div>
       }
     >
@@ -276,10 +307,10 @@ export function LecturerWorkspacePage() {
               onTabChange={(value) => setProjectStatus(value as ProjectStatusFilter)}
               tabsLabel="Lọc theo trạng thái đồ án"
               tabs={[
-                { value: 'ALL', label: 'Tất cả', count: assignedProjects.length },
-                { value: 'ACTIVE', label: 'Đang thực hiện' },
-                { value: 'FINALSUBMISSION', label: 'Bàn giao cuối kỳ' },
-                { value: 'COMPLETED', label: 'Hoàn thành / Lưu trữ' },
+                { value: 'ALL', label: 'Tất cả', count: projectStatusCounts.ALL },
+                { value: 'ACTIVE', label: 'Đang thực hiện', count: projectStatusCounts.ACTIVE },
+                { value: 'FINALSUBMISSION', label: 'Bàn giao cuối kỳ', count: projectStatusCounts.FINALSUBMISSION },
+                { value: 'COMPLETED', label: 'Hoàn thành / Lưu trữ', count: projectStatusCounts.COMPLETED },
               ]}
               controls={
                 <label className="ft-select-wrap">
@@ -323,7 +354,7 @@ export function LecturerWorkspacePage() {
             />
           ) : null}
 
-          <ul className="lecturer-project-list">{filteredProjects.map((assignments) => {
+          <ul className="lecturer-project-list">{projectPager.paginatedItems.map((assignments) => {
             const assignment = assignments.find(item => item.isPrimary && !item.endedAt) ?? assignments.find(item => !item.endedAt) ?? assignments[0]
             const project = inbox.projects?.[assignment.projectId]
             const team = project ? inbox.teams?.[project.teamId] : null
@@ -343,7 +374,7 @@ export function LecturerWorkspacePage() {
                     {project?.code && <span className="font-mono text-xs text-ink-muted">· {project.code}</span>}
                   </div>
                   <h3 className="break-words font-semibold text-ink text-lg">{project?.title ?? 'Đồ án được phân công'}</h3>
-                  <p className="mt-1 text-xs text-ink-muted">Nhóm sinh viên: <strong className="text-ink-soft">{team?.name ?? project?.teamName ?? 'Chưa tải được nhóm'}</strong>{team ? ` · ${team.members.length} thành viên` : ''}</p>
+                  <p className="mt-1 text-xs text-ink-muted">Nhóm sinh viên: <strong className="text-ink-soft">{team?.name ?? project?.teamName ?? 'Chưa tải được nhóm'}</strong>{team?.members ? ` · ${team.members.length} thành viên` : ''}</p>
                 </div>
                 <StatusBadge
                   tone={statusTone(normalizedStatus)}
@@ -353,7 +384,7 @@ export function LecturerWorkspacePage() {
               <p className="mt-3 text-xs text-ink-muted">
                 {assignments.length > 1 ? `${assignments.length} phạm vi hướng dẫn · ` : 'Phân công: '}{assignedDateFormatted}{endedDateFormatted && assignments.every(item => item.endedAt) ? ` · Kết thúc: ${endedDateFormatted}` : ''}
               </p>
-              {team && team.members.length > 0 ? <details className="lecturer-roster">
+              {team?.members && team.members.length > 0 ? <details className="lecturer-roster">
                 <summary>Thành viên nhóm được phân công</summary>
                 <ul>{team.members.map(member => <li key={member.userId}>
                   <Avatar name={member.fullName} toneSeed={member.userId} size="xs" shape="circle" />
@@ -372,6 +403,16 @@ export function LecturerWorkspacePage() {
               </nav> : null}
             </li>
           })}</ul>
+          {projectPager.showPagination && (
+            <Pagination
+              page={projectPager.page}
+              pages={projectPager.pages}
+              total={projectPager.total}
+              pageSize={projectPager.pageSize}
+              onPage={projectPager.setPage}
+              onPageSizeChange={projectPager.setPageSize}
+            />
+          )}
         </section>
       )}
 
@@ -400,10 +441,19 @@ export function LecturerWorkspacePage() {
                 { value: 'ACCEPTED', label: 'Đã chấp nhận', count: requestCounts.ACCEPTED },
                 { value: 'REJECTED', label: 'Đã từ chối', count: requestCounts.REJECTED },
               ]}
+              sort={{
+                value: requestSort,
+                onChange: (value) => setRequestSort(value as RequestSort),
+                options: [
+                  { value: 'pending-first', label: 'Chờ xử lý trước' },
+                  { value: 'newest', label: 'Mới nhất' },
+                  { value: 'oldest', label: 'Cũ nhất' },
+                ],
+              }}
               activeChips={requestActiveChips}
               onRemoveChip={(id) => { if (id === 'search') setRequestSearch(''); if (id === 'status') setRequestStatus('ALL') }}
-              onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL') }}
-              hasActiveFilters={requestActiveChips.length > 0}
+              onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}
+              hasActiveFilters={requestActiveChips.length > 0 || requestSort !== 'pending-first'}
               resultSummary={requestActiveChips.length > 0 ? `Hiển thị ${filteredRequests.length} / ${inbox.requests.length} yêu cầu` : undefined}
             />
           )}
@@ -414,11 +464,11 @@ export function LecturerWorkspacePage() {
             <WorkspaceEmptyState
               title="Không tìm thấy yêu cầu phù hợp"
               message="Thử bỏ bộ lọc để xem toàn bộ yêu cầu hướng dẫn."
-              action={<Button variant="secondary" onClick={() => { setRequestSearch(''); setRequestStatus('ALL') }}>Xóa bộ lọc</Button>}
+              action={<Button variant="secondary" onClick={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}>Xóa bộ lọc</Button>}
             />
           ) : null}
 
-          <ul className="divide-y divide-hairline">{filteredRequests.map((request) => {
+          <ul className="divide-y divide-hairline">{requestPager.paginatedItems.map((request) => {
             const project = inbox.projects?.[request.projectId]
             const team = project ? inbox.teams?.[project.teamId] : null
             const majorNames = new Map((project?.majors ?? []).map((major) => [major.majorId, major.majorName]))
@@ -458,7 +508,7 @@ export function LecturerWorkspacePage() {
                   </div>
                 ) : null}
                 {request.requestMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-card border border-hairline rounded-md p-2.5">Lời nhắn của nhóm: {request.requestMessage}</p> : null}
-                {request.responseMessage ? <p className="mt-3 leading-relaxed text-ink-muted text-xs bg-status-success-bg border border-status-success-border rounded-md p-2.5">Phản hồi: {request.responseMessage}</p> : null}
+                {request.responseMessage ? <p className="mt-3 rounded-md border border-hairline border-l-4 border-l-status-success-text bg-card p-2.5 text-xs leading-relaxed text-ink-soft">Phản hồi: {request.responseMessage}</p> : null}
                 {isPending ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button disabled={decisionBusy} onClick={() => openSupervisionDecision(request.id, 'accept')}>Nhận hướng dẫn</Button>
@@ -468,6 +518,16 @@ export function LecturerWorkspacePage() {
               </details>
             </li>
           })}</ul>
+          {requestPager.showPagination && (
+            <Pagination
+              page={requestPager.page}
+              pages={requestPager.pages}
+              total={requestPager.total}
+              pageSize={requestPager.pageSize}
+              onPage={requestPager.setPage}
+              onPageSizeChange={requestPager.setPageSize}
+            />
+          )}
         </section>
       )}
 
@@ -479,7 +539,7 @@ export function LecturerWorkspacePage() {
           </div>
           {leaderChangeRequests.length === 0 ? <p className="mt-3 text-sm text-ink-muted">Chưa có đề nghị đổi trưởng nhóm cần xử lý.</p> : null}
           <ul className="divide-y divide-hairline">
-            {leaderChangeRequests.map((request) => {
+            {leaderChangePager.paginatedItems.map((request) => {
               const team = inbox.teams?.[request.teamId]
               const current = team?.members.find((member) => member.userId === request.currentLeaderUserId)
               const target = team?.members.find((member) => member.userId === request.newLeaderUserId)
@@ -489,15 +549,15 @@ export function LecturerWorkspacePage() {
                     <strong className="text-ink">{team?.name ?? 'Nhóm sinh viên'}</strong>
                     <StatusBadge tone="warning" label={displayLabel(request.status)} />
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="flex items-center gap-2.5">
+                  <div className="mt-3 grid items-stretch gap-3 sm:grid-cols-2">
+                    <div className="flex h-full items-center gap-2.5 rounded-lg border border-hairline bg-canvas/50 p-3">
                       <Avatar name={current?.fullName ?? 'TN'} toneSeed={request.currentLeaderUserId} size="sm" shape="circle" />
                       <div>
                         <span className="block text-xs text-ink-muted">Trưởng nhóm hiện tại</span>
                         <b className="text-ink">{current?.fullName ?? 'Trưởng nhóm hiện tại'}</b>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex h-full items-center gap-2.5 rounded-lg border border-hairline bg-canvas/50 p-3">
                       <Avatar name={target?.fullName ?? 'TN'} toneSeed={request.newLeaderUserId} size="sm" shape="circle" />
                       <div>
                         <span className="block text-xs text-ink-muted">Trưởng nhóm đề xuất</span>
@@ -515,6 +575,16 @@ export function LecturerWorkspacePage() {
               )
             })}
           </ul>
+          {leaderChangePager.showPagination && (
+            <Pagination
+              page={leaderChangePager.page}
+              pages={leaderChangePager.pages}
+              total={leaderChangePager.total}
+              pageSize={leaderChangePager.pageSize}
+              onPage={leaderChangePager.setPage}
+              onPageSizeChange={leaderChangePager.setPageSize}
+            />
+          )}
         </section>
       )}
 

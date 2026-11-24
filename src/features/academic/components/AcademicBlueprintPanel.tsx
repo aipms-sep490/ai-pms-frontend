@@ -102,7 +102,12 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
       )}
 
       {error && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{error}</div>}
-      {notice && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">{notice}</div>}
+      {notice && (
+        <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-3 py-2 text-xs text-ink">
+          <span className="material-symbols-outlined shrink-0 text-[16px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span role="status">{notice}</span>
+        </div>
+      )}
 
       <div className="divide-y divide-slate-100">
         {blueprints.map(bp => (
@@ -179,9 +184,9 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
               Bảo toàn mục đã tùy chỉnh ({dryRun.preservedCustomizedItems.length}): {dryRun.preservedCustomizedItems.join(', ')}
             </div>
           )}
-          <div className="grid gap-2 md:grid-cols-3">
+          <div className="grid items-stretch gap-2 md:grid-cols-3">
             {dryRun.gates.map(g => (
-              <div key={g.code} className="rounded border border-slate-200 bg-white p-2">
+              <div key={g.code} className="flex h-full flex-col justify-between rounded border border-slate-200 bg-white p-2">
                 <div className="font-medium text-slate-900">{g.code} — {g.title} ({g.action})</div>
                 <div className="text-slate-600">Nộp: {g.submissionDueAt.slice(0, 10)} · Chấm: {g.reviewWindowEndAt.slice(0, 10)} · Sửa: {g.revisionDueAt.slice(0, 10)}</div>
               </div>

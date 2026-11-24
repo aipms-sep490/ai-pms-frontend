@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
+import { Pagination } from '../../components/ui/Pagination'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { HttpError } from '../../services/http/http-client'
@@ -19,6 +20,7 @@ import {
 } from './notifications-api'
 
 type NotificationCategory = 'ALL' | 'PROJECT' | 'MEETING' | 'EVALUATION' | 'SYSTEM'
+type NotificationSort = 'newest' | 'oldest' | 'unread-first'
 
 const CATEGORY_LABELS: Record<NotificationCategory, string> = {
   ALL: 'Mọi nhóm thông báo',
@@ -44,9 +46,11 @@ function classifyNotification(item: NotificationItem): Exclude<NotificationCateg
 
 export function NotificationsPage() {
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [filter, setFilter] = useState<'all' | 'unread' | 'actionable'>('all')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<NotificationCategory>('ALL')
+  const [sortBy, setSortBy] = useState<NotificationSort>('newest')
   const [data, setData] = useState<NotificationPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -75,7 +79,9 @@ export function NotificationsPage() {
     const id = ++request.current
     setLoading(true)
     try {
-      const result = await getNotifications(page, serverFilter)
+      const result = pageSize === 10
+        ? await getNotifications(page, serverFilter)
+        : await getNotifications(page, serverFilter, pageSize)
       if (id !== request.current) return
       if (page > Math.max(1, result.totalPages)) {
         setPage(Math.max(1, result.totalPages))
@@ -96,7 +102,7 @@ export function NotificationsPage() {
     } finally {
       if (id === request.current) setLoading(false)
     }
-  }, [page, serverFilter])
+  }, [page, pageSize, serverFilter])
 
   useEffect(() => {
     const pending = request
@@ -127,7 +133,7 @@ export function NotificationsPage() {
   const visibleItems = useMemo(() => {
     const raw = data?.items ?? []
     const query = search.trim().toLowerCase()
-    return raw.filter(item => {
+    const filtered = raw.filter(item => {
       if (filter === 'actionable') {
         const hasLink = Boolean(resolveNotificationLink(item, roles))
         if (item.isRead && !hasLink) return false
@@ -140,7 +146,14 @@ export function NotificationsPage() {
       }
       return true
     })
-  }, [category, data?.items, filter, roles, search])
+    if (sortBy === 'oldest') {
+      return [...filtered].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+    }
+    if (sortBy === 'unread-first') {
+      return [...filtered].sort((a, b) => Number(a.isRead) - Number(b.isRead) || Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    }
+    return filtered
+  }, [category, data?.items, filter, roles, search, sortBy])
 
   const activeChips = useMemo<ActiveFilterChip[]>(() => {
     const chips: ActiveFilterChip[] = []
@@ -170,11 +183,17 @@ export function NotificationsPage() {
       description={pageDescription}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" icon="refresh" disabled={busy || loading} onClick={() => void load()}>
-            Làm mới
-          </Button>
           <Button
             variant="secondary"
+            size="sm"
+            icon="refresh"
+            aria-label="Làm mới"
+            disabled={busy || loading}
+            onClick={() => void load()}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
             icon="done_all"
             disabled={busy || loading || (unreadCount === null ? !data?.items.some(item => !item.isRead) : unreadCount === 0)}
             onClick={() => void mutate(markAllNotificationsRead).catch(() => {})}
@@ -228,6 +247,15 @@ export function NotificationsPage() {
                 </select>
               </label>
             }
+            sort={{
+              value: sortBy,
+              onChange: (value) => setSortBy(value as NotificationSort),
+              options: [
+                { value: 'newest', label: 'Mới nhất trước' },
+                { value: 'unread-first', label: 'Chưa đọc trước' },
+                { value: 'oldest', label: 'Cũ nhất trước' },
+              ],
+            }}
             activeChips={activeChips}
             onRemoveChip={(id) => {
               if (id === 'search') setSearch('')
@@ -237,9 +265,10 @@ export function NotificationsPage() {
             onClearAll={() => {
               setSearch('')
               setCategory('ALL')
+              setSortBy('newest')
               if (filter === 'actionable') setFilter('all')
             }}
-            hasActiveFilters={activeChips.length > 0}
+            hasActiveFilters={activeChips.length > 0 || sortBy !== 'newest'}
             resultSummary={
               data && hasClientFilter
                 ? `Hiển thị ${visibleItems.length} / ${data.items.length} thông báo trên trang này`
@@ -314,16 +343,21 @@ export function NotificationsPage() {
           )
         ) : null}
 
-        {!loading && data && data.totalCount > data.pageSize && (
-          <nav aria-label="Trang thông báo" className="notification-pagination">
-            <button type="button" className="notification-action" disabled={busy || page <= 1} onClick={() => setPage(value => value - 1)}>
-              Trang trước
-            </button>
-            <span>Trang {page} / {data.totalPages}</span>
-            <button type="button" className="notification-action" disabled={busy || page >= data.totalPages} onClick={() => setPage(value => value + 1)}>
-              Trang sau
-            </button>
-          </nav>
+        {!loading && data && (data.totalPages > 1 || data.totalCount > data.pageSize) && (
+          <div className="border-t border-hairline px-5 pb-3">
+            <Pagination
+              page={page}
+              pages={data.totalPages}
+              total={data.totalCount}
+              pageSize={pageSize}
+              busy={busy || loading}
+              onPage={setPage}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize)
+                setPage(1)
+              }}
+            />
+          </div>
         )}
       </section>
     </WorkspacePage>

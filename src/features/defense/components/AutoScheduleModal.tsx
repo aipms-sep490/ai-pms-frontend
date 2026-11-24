@@ -162,11 +162,11 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
         {step === 'PREVIEW' && (
           <div className="mt-5 space-y-4 text-xs">
             {/* Summary Banner */}
-            <div className="flex items-start gap-3 rounded-xl border border-status-success-border bg-status-success-bg p-4 text-status-success-text">
-              <span className="text-xl">✅</span>
+            <div className="flex items-start gap-3 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-ink shadow-xs">
+              <span className="material-symbols-outlined mt-0.5 text-[20px] text-status-success-text" aria-hidden="true">check_circle</span>
               <div>
-                <h4 className="text-sm font-bold">Xếp lịch hoàn tất: 45/48 đồ án được phân bổ</h4>
-                <p className="mt-0.5 text-xs text-status-success-text">
+                <h4 className="text-sm font-bold text-ink">Xếp lịch hoàn tất: 45/48 đồ án được phân bổ</h4>
+                <p className="mt-0.5 text-xs text-ink-soft">
                   Tất cả các ca đều nằm gọn trong khung giờ hành chính và không có giảng viên nào bị trùng lịch.
                 </p>
               </div>

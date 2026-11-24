@@ -123,8 +123,9 @@ export const RescheduleRequestModal: React.FC<RescheduleRequestModalProps> = ({
               <strong>❌ Xung đột lịch:</strong> Giảng viên phản biện của nhóm đã có lịch chấm hội đồng khác trong khung giờ này. Vui lòng chọn ca khác.
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg p-2.5 text-xs text-status-success-text">
-              <span>✓ Khung giờ hợp lệ: Hội đồng và nhóm sinh viên đều rảnh trong ca này.</span>
+            <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-2.5 text-xs text-ink">
+              <span className="material-symbols-outlined text-[16px] text-status-success-text" aria-hidden="true">check_circle</span>
+              <span>Khung giờ hợp lệ: Hội đồng và nhóm sinh viên đều rảnh trong ca này.</span>
             </div>
           )}
 

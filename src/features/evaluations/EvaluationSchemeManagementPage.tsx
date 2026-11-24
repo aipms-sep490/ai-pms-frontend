@@ -350,7 +350,12 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluation_scheme')} onRetry={capabilities.retry} />
     {conflict && <SchemeConflictReview conflict={conflict} periods={periods} rubrics={rubrics} project={project} busy={busy || loading} canManage={canManage} onReload={() => void load()} onUseServer={useServer} onKeepDraft={keepDraft} />}
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></div>}
-    {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
+    {notice && (
+      <div role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+        <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <span>{notice}</span>
+      </div>
+    )}
     <p className="workspace-note p-4 text-sm">Bản nháp cần ngưỡng đạt và trọng số từ quy định đã được duyệt. Việc công bố kỹ thuật không thay cho phê duyệt học thuật; không dùng tỷ lệ minh họa của tài liệu làm quy định chính thức.</p>
     <div className="workspace-master-detail">
       <section className="rounded-xl border border-hairline bg-card p-4"><h2 className="font-semibold text-ink">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-ink-muted">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" disabled={busy || loading} onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-hairline hover:bg-canvas'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-ink-muted">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>

@@ -213,15 +213,18 @@ export function DepartmentStudentDetailPage() {
             <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
             Danh sách sinh viên Khoa
           </Link>
-          <Button variant="secondary" icon="refresh" disabled={loading || saving} onClick={() => void load()}>
-            Tải lại
-          </Button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />
         </div>
       }
     >
       {confirmationDialog}
       {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-4 py-3 text-sm text-status-error-text">{error}</p>}
-      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg px-4 py-3 text-sm text-status-success-text">{notice}</p>}
+      {notice && (
+        <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-4 py-3 text-sm text-ink">
+          <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <p role="status">{notice}</p>
+        </div>
+      )}
 
       {loading ? (
         <ListLoading label="Đang tải hồ sơ sinh viên…" />
@@ -232,8 +235,8 @@ export function DepartmentStudentDetailPage() {
           action={<Link className="font-medium text-primary hover:underline" to="/department/students">Quay lại danh sách sinh viên</Link>}
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className="workspace-surface space-y-3 p-5" aria-labelledby="student-identity-heading">
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
+          <section className="workspace-surface flex h-full flex-col justify-between space-y-3 p-5" aria-labelledby="student-identity-heading">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="student-identity-heading" className="font-heading text-base font-semibold">1. Danh tính & Tài khoản (Chỉ đọc)</h2>
               <StatusBadge tone={accountStatusTone[summary.status] ?? 'neutral'} label={accountStatusLabel[summary.status] ?? summary.status} />
@@ -251,7 +254,7 @@ export function DepartmentStudentDetailPage() {
             </p>
           </section>
 
-          <section className="workspace-surface space-y-3 p-5" aria-labelledby="student-academic-heading">
+          <section className="workspace-surface flex h-full flex-col justify-between space-y-3 p-5" aria-labelledby="student-academic-heading">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="student-academic-heading" className="font-heading text-base font-semibold">2. Thông tin học vụ Khoa</h2>
               <StatusBadge tone={profileTone[summary.academicProfileStatus] ?? 'neutral'} label={academicProfileStatus(summary.academicProfileStatus)} />
@@ -325,7 +328,7 @@ export function DepartmentStudentDetailPage() {
             </div>
           </section>
 
-          <section className="workspace-surface space-y-3 p-5" aria-labelledby="student-qualification-heading">
+          <section className="workspace-surface flex h-full flex-col justify-between space-y-3 p-5" aria-labelledby="student-qualification-heading">
             <h2 id="student-qualification-heading" className="font-heading text-base font-semibold">3. Điều kiện tham gia đồ án & Chứng chỉ</h2>
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="text-xs text-ink-muted">Trạng thái điều kiện</dt><dd className="font-medium">{qualificationLabels[summary.qualificationStatus] ?? summary.qualificationStatus}</dd></div>
@@ -341,7 +344,7 @@ export function DepartmentStudentDetailPage() {
             )}
           </section>
 
-          <section className="workspace-surface space-y-3 p-5" aria-labelledby="student-team-heading">
+          <section className="workspace-surface flex h-full flex-col justify-between space-y-3 p-5" aria-labelledby="student-team-heading">
             <h2 id="student-team-heading" className="font-heading text-base font-semibold">4. Nhóm & Đồ án hiện tại</h2>
             {summary.teamCode ? (
               <dl className="grid gap-3 text-sm sm:grid-cols-2">

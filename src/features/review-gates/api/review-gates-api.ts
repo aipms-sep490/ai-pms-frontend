@@ -121,7 +121,7 @@ export async function submitRevision(
   return httpPostForm<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/evidence/file`, body)
 }
 
-export async function getAssignedReviewPage(page = 1, pageSize = 20): Promise<PagedResult<AssignedReviewItem>> {
+export async function getAssignedReviewPage(page = 1, pageSize = 10): Promise<PagedResult<AssignedReviewItem>> {
   if (env.reviewGatesMockEnabled) {
     const items = await reviewGatesMockAdapter.getAssignedReviews()
     return { items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize, totalCount: items.length, totalPages: Math.ceil(items.length / pageSize) }

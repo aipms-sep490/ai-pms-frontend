@@ -22,10 +22,10 @@ export function TaskReviewCallout({
 
   if (task.status === 'DONE') {
     return (
-      <div className="mb-6 rounded-xl border border-status-success-border bg-status-success-bg p-4 text-status-success-text">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-lg" aria-hidden="true">verified</span>
-          <span className="text-sm font-semibold">Công việc đang được ghi nhận hoàn thành. Kiểm tra thêm cảnh báo ảnh hưởng từ công việc tiền nhiệm, nếu có.</span>
+      <div className="mb-6 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-ink shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="material-symbols-outlined shrink-0 text-lg text-status-success-text" aria-hidden="true">verified</span>
+          <span className="text-sm font-semibold text-ink">Công việc đang được ghi nhận hoàn thành. Kiểm tra thêm cảnh báo ảnh hưởng từ công việc tiền nhiệm, nếu có.</span>
         </div>
       </div>
     )

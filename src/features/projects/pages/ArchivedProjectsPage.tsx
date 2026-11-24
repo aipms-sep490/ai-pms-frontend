@@ -7,9 +7,11 @@ import { getPortfolioDashboard, type PortfolioDashboard } from '../../dashboard/
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { buttonClassName } from '../../../components/ui/button-styles'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 
 type SortKey = 'code' | 'title'
 
@@ -63,6 +65,8 @@ export function ArchivedProjectsPage() {
     return [...list].sort((a, b) => sortBy === 'title' ? a.title.localeCompare(b.title, 'vi') : a.code.localeCompare(b.code, 'vi'))
   }, [data?.projects.items, deptFilter, search, sortBy])
 
+  const pagination = useClientPagination(filteredItems, 10)
+
   const activeChips = [
     ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
     ...(deptFilter !== 'ALL' ? [{ id: 'dept', label: 'Bộ môn', value: deptFilter }] : []),
@@ -79,7 +83,7 @@ export function ArchivedProjectsPage() {
       description="Tra cứu các đồ án đã đưa vào kho. Nội dung chỉ được xem và hiển thị theo quyền của tài khoản hiện tại."
       backTo={scope === 'admin' ? '/admin/portfolio' : '/department/portfolio'}
       backLabel="Quay lại danh mục"
-      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}
     >
       {loading && (
         <p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">
@@ -145,24 +149,37 @@ export function ArchivedProjectsPage() {
                 <Button variant="secondary" className="mt-3" onClick={clearFilters}>Xóa bộ lọc</Button>
               </div>
             ) : (
-              <ul className="divide-y divide-hairline">
-                {filteredItems.map((project) => (
-                  <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-ink">{project.code} · {project.title}</p>
-                        <StatusBadge tone="neutral" label={displayLabel(project.status)} />
+              <>
+                <ul className="divide-y divide-hairline">
+                  {pagination.paginatedItems.map((project) => (
+                    <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-ink">{project.code} · {project.title}</p>
+                          <StatusBadge tone="neutral" label={displayLabel(project.status)} />
+                        </div>
+                        <p className="mt-1 text-xs text-ink-muted">
+                          {[project.departmentName, project.supervisor?.name ? `GVHD: ${project.supervisor.name}` : null].filter(Boolean).join(' · ') || 'Hồ sơ lưu trữ chỉ xem'}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-ink-muted">
-                        {[project.departmentName, project.supervisor?.name ? `GVHD: ${project.supervisor.name}` : null].filter(Boolean).join(' · ') || 'Hồ sơ lưu trữ chỉ xem'}
-                      </p>
-                    </div>
-                    <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm', className: 'min-h-11' })}>
-                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                      <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm', className: 'min-h-11' })}>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {pagination.showPagination && (
+                  <Pagination
+                    page={pagination.page}
+                    pages={pagination.pages}
+                    total={pagination.total}
+                    pageSize={pagination.pageSize}
+                    onPage={pagination.setPage}
+                    onPageSizeChange={pagination.setPageSize}
+                    className="mt-4"
+                  />
+                )}
+              </>
             )}
           </div>
         </section>

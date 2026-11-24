@@ -68,7 +68,7 @@ export function AccountRoleAssignments({ user, roles, rolesState, accessToken, o
           onClick={() => void change(role)}>{busyRole === role.id ? 'Đang lưu…' : assigned ? `Thu hồi ${displayLabel(role.code)}` : `Gán ${displayLabel(role.code)}`}</Button>
       </li>
     })}</ul>}
-    {message && <p className="admin-notice" role={uncertain ? 'alert' : 'status'}>{message}</p>}
+    {message && <p className={uncertain ? 'admin-error' : 'admin-notice'} role={uncertain ? 'alert' : 'status'}>{!uncertain && <span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span>}<span>{message}</span></p>}
     {uncertain && <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>Tải lại vai trò</Button>}
     {confirmationDialog}
   </section>

@@ -31,17 +31,17 @@ beforeEach(() => {
   govApi.getReportingCycles.mockResolvedValue({
     items: [{ id: 1, reportType: 'WEEKLY', latePolicy: 'FLAG', periodStart: '2026-10-01T00:00:00Z', periodEnd: '2026-10-07T00:00:00Z', deadline: '2026-10-08T00:00:00Z', concurrencyToken: 't1' }],
     totalCount: 1,
-    pageSize: 20,
+    pageSize: 10,
   })
   govApi.getProjectActionItems.mockResolvedValue({
     items: [{ id: 2, title: 'Chốt đặc tả API', status: 'TODO', sourceType: 'MEETING', dueAt: '2026-10-12T00:00:00Z' }],
     totalCount: 1,
-    pageSize: 20,
+    pageSize: 10,
   })
   govApi.getProjectEvidence.mockImplementation((_id: number, query: { page: number }) => Promise.resolve({
     items: [{ id: 100 + query.page, sourceType: 'TASK', classification: 'DELIVERABLE', verificationStatus: 'VERIFIED', submittedAt: '2026-10-05T00:00:00Z', notes: `Minh chứng trang ${query.page}` }],
     totalCount: 25,
-    pageSize: 20,
+    pageSize: 10,
   }))
   meetingsApi.getMeetings.mockResolvedValue({ items: [], totalCount: 0, pageSize: 100 })
   reportsApi.getProgressReports.mockResolvedValue({ items: [], totalCount: 0, pageSize: 100 })
@@ -65,7 +65,7 @@ describe('ProjectGovernancePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
     await waitFor(() => {
-      expect(govApi.getProjectEvidence).toHaveBeenLastCalledWith(9, { page: 2, pageSize: 20 })
+      expect(govApi.getProjectEvidence).toHaveBeenLastCalledWith(9, { page: 2, pageSize: 10 })
       expect(govApi.getReportingCycles).toHaveBeenLastCalledWith(9, undefined, 1)
       expect(govApi.getProjectActionItems).toHaveBeenLastCalledWith(9, undefined, 1)
     })

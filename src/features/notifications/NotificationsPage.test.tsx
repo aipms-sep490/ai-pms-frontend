@@ -11,7 +11,7 @@ vi.mock('./notifications-api', () => api)
 
 const unread = { id: 5, notificationType: 'PROJECT_UPDATED', title: 'Project status updated', content: 'Check the project.', relatedEntityType: 'PROJECT', relatedEntityId: 9, createdAt: '2026-09-27T10:00:00Z', isRead: false, readAt: null }
 const translatedTitle = 'Hồ sơ đồ án vừa được cập nhật'
-const page = { items: [unread], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 }
+const page = { items: [unread], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 }
 const render = (ui: ReactElement) => baseRender(ui, { wrapper: MemoryRouter })
 function Location() { return <output aria-label="Đường dẫn hiện tại">{useLocation().pathname}</output> }
 
@@ -92,7 +92,7 @@ describe('NotificationsPage', () => {
   it('groups notifications into Hôm nay and Trước đó', async () => {
     const todayItem = { ...unread, id: 10, createdAt: new Date().toISOString() }
     const olderItem = { ...unread, id: 11, createdAt: '2026-01-01T00:00:00Z' }
-    api.getNotifications.mockResolvedValue({ items: [todayItem, olderItem], page: 1, pageSize: 20, totalCount: 2, totalPages: 1 })
+    api.getNotifications.mockResolvedValue({ items: [todayItem, olderItem], page: 1, pageSize: 10, totalCount: 2, totalPages: 1 })
     render(<NotificationsPage />)
     expect(await screen.findByText('Hôm nay')).toBeTruthy()
     expect(screen.getByText('Trước đó')).toBeTruthy()

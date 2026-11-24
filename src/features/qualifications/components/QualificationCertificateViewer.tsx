@@ -41,7 +41,12 @@ export function QualificationCertificateViewer({ qualificationId }: { qualificat
     {open && <Modal open title="Chứng chỉ của sinh viên" onClose={close} busy={busy}>
       {busy && <p role="status" className="text-sm text-ink-muted">Đang xử lý chứng chỉ…</p>}
       {error && <div role="alert" className="space-y-2 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text"><p>{error}</p><Button variant="secondary" disabled={busy} onClick={() => void read()}>Tải lại chứng chỉ</Button></div>}
-      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
+      {notice && (
+        <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
+          <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <p role="status">{notice}</p>
+        </div>
+      )}
       {data && <div className="space-y-3 text-sm text-ink"><p className="break-all font-semibold">{data.fileName}</p><p className="text-ink-muted">{data.contentType} · {Math.ceil(data.sizeBytes / 1024)} KB</p>{data.checksumSha256 && <p className="break-all font-mono text-xs text-ink-muted">SHA-256: {data.checksumSha256}</p>}<Button className="min-h-11" disabled={busy} onClick={() => void download()}>Tải chứng chỉ</Button></div>}
     </Modal>}
   </>

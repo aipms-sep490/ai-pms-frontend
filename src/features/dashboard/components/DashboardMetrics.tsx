@@ -10,7 +10,7 @@ export function DashboardMetrics({ metrics }: DashboardMetricsProps) {
   return (
     <section
       aria-label="Các chỉ số tiến độ và vận hành"
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      className="grid grid-cols-1 items-stretch sm:grid-cols-2 lg:grid-cols-4 gap-4"
     >
       {metrics.map((metric) => (
         <TelemetryCard

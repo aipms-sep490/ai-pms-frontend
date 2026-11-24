@@ -4,7 +4,7 @@ import { useAuthSession } from '../../auth/context/useAuthSession'
 import { useAcademicWorkflow } from '../../../app/context/useAcademicWorkflow'
 import { detail, list, type Filters, type Page, type Supervisor } from '../api/supervisor-api'
 
-const initialPage: Page<Supervisor> = { items: [], page: 1, pageSize: 20, totalCount: 0 }
+const initialPage: Page<Supervisor> = { items: [], page: 1, pageSize: 12, totalCount: 0 }
 
 export function useSupervisors(id?: number) {
   const { session } = useAuthSession()
@@ -13,7 +13,7 @@ export function useSupervisors(id?: number) {
   const departmentIds = (academicWorkflow.academic?.departments ?? []).map(department => department.id).filter(id => Number.isSafeInteger(id) && id > 0).join(',')
   const [directory, setDirectory] = useState<Page<Supervisor>>(initialPage)
   const [current, setCurrent] = useState<Supervisor | null>(null)
-  const [filters, setFilters] = useState<Filters>({ page: 1, pageSize: 20 })
+  const [filters, setFilters] = useState<Filters>({ page: 1, pageSize: 12 })
   const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState(!!session)
   const requestVersion = useRef(0)

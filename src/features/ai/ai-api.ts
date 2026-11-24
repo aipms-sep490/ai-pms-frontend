@@ -47,7 +47,7 @@ export interface AiRunDto {
   reportSummary?: ReportAiSummary | null
   progressAnalysis?: ProjectProgressAnalysis | null
 }
-export const getProjectAiRuns = (projectId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
+export const getProjectAiRuns = (projectId: number, page = 1, pageSize = 10, signal?: AbortSignal) =>
   httpGet<PagedResult<AiRunDto>>(`/projects/${projectId}/ai/runs?page=${page}&pageSize=${pageSize}`, signal)
 export const getAiRun = (projectId: number, runId: number, signal?: AbortSignal) =>
   httpGet<AiRunDto>(`/projects/${projectId}/ai/runs/${runId}`, signal)

@@ -34,7 +34,7 @@ export function useSupervisorProgressReview(projectId: number) {
     void services.task.getOverdueBlockedTasks(projectId)
       .then(data => { if (!controller.signal.aborted) setAttention({ state: 'ready', data }) })
       .catch(reason => { if (!controller.signal.aborted) setAttention({ state: 'error', message: errorMessage(reason, 'công việc cần lưu ý') }) })
-    void getProgressReports(projectId, { page: 1, pageSize: 20 }, controller.signal)
+    void getProgressReports(projectId, { page: 1, pageSize: 10 }, controller.signal)
       .then(data => { if (!controller.signal.aborted) setReports({ state: 'ready', data }) })
       .catch(reason => { if (!controller.signal.aborted) setReports({ state: 'error', message: errorMessage(reason, 'báo cáo tiến độ') }) })
     return () => controller.abort()

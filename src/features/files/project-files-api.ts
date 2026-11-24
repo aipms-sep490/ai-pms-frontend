@@ -31,7 +31,7 @@ export interface ProjectFileFilters {
 
 function queryOf(filters: ProjectFileFilters) {
   const query = new URLSearchParams()
-  for (const [key, value] of Object.entries({ page: 1, pageSize: 20, ...filters })) {
+  for (const [key, value] of Object.entries({ page: 1, pageSize: 12, ...filters })) {
     if (value !== undefined && value !== '') query.set(key, String(value))
   }
   return query.toString()

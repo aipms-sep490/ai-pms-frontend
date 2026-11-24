@@ -12,10 +12,10 @@ afterEach(() => vi.clearAllMocks())
 describe('useSupervisors department directory', () => {
   it('reads only the department in the server workflow context', async () => {
     mocks.academic.mockReturnValue({ status: 'ready', academic: { departments: [{ id: 2, name: 'SE' }] } })
-    mocks.list.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    mocks.list.mockResolvedValue({ items: [], page: 1, pageSize: 12, totalCount: 0 })
     const { result } = renderHook(() => useSupervisors())
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(mocks.list).toHaveBeenCalledWith('staff-token', { page: 1, pageSize: 20, departmentId: 2 })
+    expect(mocks.list).toHaveBeenCalledWith('staff-token', { page: 1, pageSize: 12, departmentId: 2 })
   })
 
   it('does not request the global directory when the department scope is missing', async () => {
@@ -39,11 +39,11 @@ describe('useSupervisors department directory', () => {
     mocks.academic.mockReturnValue({ status: 'ready', academic: { departments: [{ id: 2, name: 'SE' }] } })
     let finishOld: ((value: unknown) => void) | undefined
     mocks.list.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
-    mocks.list.mockResolvedValueOnce({ items: [{ id: 2, fullName: 'Current result' }], page: 1, pageSize: 20, totalCount: 1 })
+    mocks.list.mockResolvedValueOnce({ items: [{ id: 2, fullName: 'Current result' }], page: 1, pageSize: 12, totalCount: 1 })
     const { result } = renderHook(() => useSupervisors())
-    act(() => result.current.setFilters({ page: 1, pageSize: 20, search: 'current' }))
+    act(() => result.current.setFilters({ page: 1, pageSize: 12, search: 'current' }))
     await waitFor(() => expect(result.current.items[0]?.fullName).toBe('Current result'))
-    await act(async () => { finishOld?.({ items: [{ id: 1, fullName: 'Old result' }], page: 1, pageSize: 20, totalCount: 1 }) })
+    await act(async () => { finishOld?.({ items: [{ id: 1, fullName: 'Old result' }], page: 1, pageSize: 12, totalCount: 1 }) })
     expect(result.current.items[0]?.fullName).toBe('Current result')
   })
 })

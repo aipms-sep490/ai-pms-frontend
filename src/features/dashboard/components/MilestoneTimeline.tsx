@@ -24,7 +24,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <ol className="grid grid-cols-1 md:grid-cols-6 gap-3 list-none p-0 m-0">
+        <ol className="grid grid-cols-1 items-stretch md:grid-cols-6 gap-3 list-none p-0 m-0">
           {milestones.map((m) => {
             const isCompleted = m.status === 'completed'
             const isActive = m.status === 'active'
@@ -32,9 +32,9 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
             return (
               <li
                 key={m.id}
-                className={`p-3 rounded-lg border transition-all flex flex-col justify-between gap-2 ${
+                className={`p-3 rounded-lg border transition-all flex h-full flex-col justify-between gap-2 ${
                   isCompleted
-                    ? 'bg-status-success-bg border-status-success-border'
+                    ? 'bg-card border-hairline border-l-4 border-l-status-success-text'
                     : isActive
                     ? 'bg-primary-subtle border-primary/20 ring-2 ring-primary/20 shadow-xs'
                     : 'bg-canvas border-hairline opacity-80'
@@ -44,7 +44,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                   <span
                     className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded ${
                       isCompleted
-                        ? 'bg-status-success-bg text-status-success-text'
+                        ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
                         : isActive
                         ? 'bg-primary text-white shadow-2xs'
                         : 'bg-canvas border border-hairline text-ink-muted'

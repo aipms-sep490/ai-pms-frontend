@@ -223,16 +223,17 @@ export function FilterToolbar({
 
           {sort && sort.options.length > 0 && (
             <div className="ft-sort-wrap">
-              <label htmlFor={sortSelectId} className="ft-sort-label">
+              <label htmlFor={sortSelectId} className="ft-sort-label" title={sort.label ?? 'Sắp xếp'}>
                 <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
                   swap_vert
                 </span>
-                <span>{sort.label ?? 'Sắp xếp'}</span>
+                <span className="sr-only">{sort.label ?? 'Sắp xếp'}</span>
               </label>
               <select
                 id={sortSelectId}
                 className="ft-sort-select"
                 value={sort.value}
+                title={sort.label ?? 'Sắp xếp'}
                 onChange={(event) => sort.onChange(event.target.value)}
               >
                 {sort.options.map((option) => (
@@ -247,15 +248,16 @@ export function FilterToolbar({
           {advancedControls && (
             <button
               type="button"
-              className={`ft-btn ${advancedOpen || advancedActiveCount > 0 ? 'is-active' : ''}`}
+              className={`ft-btn ft-btn-icon ${advancedOpen || advancedActiveCount > 0 ? 'is-active' : ''}`}
               aria-expanded={advancedOpen}
               aria-controls={advancedRegionId}
+              aria-label={advancedLabel}
+              title={advancedLabel}
               onClick={() => setAdvancedOpen((open) => !open)}
             >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+              <span className="material-symbols-outlined text-[17px]" aria-hidden="true">
                 tune
               </span>
-              <span>{advancedLabel}</span>
               {advancedActiveCount > 0 && (
                 <span className="ft-badge" aria-label={`${advancedActiveCount} bộ lọc nâng cao đang bật`}>
                   {advancedActiveCount}
@@ -267,13 +269,14 @@ export function FilterToolbar({
           {showClearAll && (
             <button
               type="button"
-              className="ft-btn ft-btn-clear"
+              className="ft-btn ft-btn-clear ft-btn-icon"
+              aria-label={clearAllLabel}
+              title={clearAllLabel}
               onClick={handleClearAll}
             >
-              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
+              <span className="material-symbols-outlined text-[17px]" aria-hidden="true">
                 filter_alt_off
               </span>
-              <span>{clearAllLabel}</span>
             </button>
           )}
 

@@ -22,8 +22,8 @@ export interface NotificationPage {
 
 const base = '/v1/notifications'
 
-export function getNotifications(page = 1, isRead?: boolean): Promise<NotificationPage> {
-  const query = new URLSearchParams({ page: String(page), pageSize: '20' })
+export function getNotifications(page = 1, isRead?: boolean, pageSize = 10): Promise<NotificationPage> {
+  const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
   if (isRead !== undefined) query.set('isRead', String(isRead))
   return httpGet<NotificationPage>(`${base}?${query}`)
 }

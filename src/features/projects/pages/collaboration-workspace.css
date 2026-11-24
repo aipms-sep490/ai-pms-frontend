@@ -29,7 +29,8 @@
 .cw-page-heading h1 { font-family: var(--font-heading); font-size: clamp(26px, 2.1vw, 32px); line-height: 1.2; letter-spacing: -.8px; font-weight: 750; margin: 0; color: var(--color-ink); }
 .cw-page-description { margin: 8px 0 0; color: var(--cw-muted); font-size: 14px; line-height: 1.6; }
 .cw-heading-actions { display: flex; flex-shrink: 0; gap: 10px; }
-.cw-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 16px; border: 1px solid var(--cw-line); border-radius: 8px; color: var(--cw-ink); background: var(--color-card); font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); transition: all 180ms cubic-bezier(.16,1,.3,1); }
+.cw-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 14px; border: 1px solid var(--cw-line); border-radius: 8px; color: var(--cw-ink); background: var(--color-card); font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); transition: all 180ms cubic-bezier(.16,1,.3,1); }
+.cw-button-icon { width: 40px; min-width: 40px; padding: 0; color: var(--color-ink-soft); }
 .cw-button:hover { background: var(--color-primary-subtle); border-color: var(--color-primary); color: var(--cw-accent); }
 .cw-button:active { transform: scale(0.98); }
 .cw-button-primary { color: white; background: var(--cw-accent); border-color: var(--cw-accent); box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--color-primary) 30%, transparent); }
@@ -70,7 +71,13 @@
 .cw-text-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; min-height: 36px; padding: 6px 10px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-primary-subtle); color: var(--cw-accent); font-size: 12.5px; font-weight: 600; line-height: 1.5; text-decoration: none; transition: background-color 140ms ease, border-color 140ms ease; }
 .cw-text-link:hover { background: var(--color-primary-subtle); border-color: var(--color-primary); color: var(--color-primary-hover); text-decoration: none; }
 .cw-text-link .material-symbols-outlined { flex: 0 0 18px; width: 18px; font-size: 18px; text-decoration: none; }
-.cw-context-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.cw-context-links { display: flex; flex-wrap: wrap; gap: 10px 14px; padding: 0 24px 20px; }
+.cw-context-links--stack { flex-direction: column; padding: 0 20px 18px; }
+.cw-context-links--stack .cw-text-link { width: 100%; justify-content: space-between; }
+.cw-secondary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.cw-panel--stretch { display: flex; flex-direction: column; height: 100%; }
+.cw-panel-body-fill { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+@media (max-width: 767px) { .cw-secondary-grid { grid-template-columns: 1fr; } }
 .cw-panel ul { list-style: none; padding: 0; margin: 0; }
 .cw-member-table-heading, .cw-member-row { display: grid; grid-template-columns: minmax(0, 1fr) 112px 140px; column-gap: 16px; }
 .cw-member-table-heading { padding: 10px 24px; border-top: 1px solid var(--cw-line); border-bottom: 1px solid var(--cw-line); background: var(--color-canvas); color: var(--cw-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -232,7 +239,7 @@
 
 /* One bounded surface per content group; rows inside remain flat. */
 .collaboration-workspace .cw-panel { border: 1px solid var(--color-hairline); border-radius: 14px; box-shadow: 0 2px 6px -1px color-mix(in oklab, var(--color-brand-navy) 5%, transparent); }
-.collaboration-workspace .cw-project-line { border: 1px solid var(--color-hairline); border-radius: 14px; background: var(--color-primary-subtle); padding: 24px; box-shadow: none; }
+.collaboration-workspace .cw-project-line { border: 1px solid var(--color-hairline); border-left: 3px solid var(--color-primary); border-radius: 14px; background: var(--color-card); padding: 18px 22px; box-shadow: 0 2px 6px -1px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
 .collaboration-workspace .cw-panel .cw-panel { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
 .cw-project-title > div { min-width: 0; }
 .cw-project-title strong { text-wrap: pretty; }

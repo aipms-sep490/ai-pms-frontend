@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Avatar } from '../../../components/ui/Avatar'
+import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import type { PagedResult, TeamInvitationCandidateDto, TeamInvitationDto } from '../../../types/backend'
 import { dateTimeLabel } from '../../execution/execution-utils'
 
@@ -79,6 +82,11 @@ export function TeamInvitationsPanel({
       return true
     })
   }, [receivedInvitations, inviteStatusFilter, inviteSearch])
+
+  const sentPagination = useClientPagination(filteredSent, 10)
+  const receivedPagination = useClientPagination(filteredReceived, 10)
+  const clearInviteFilters = () => { setInviteSearch(''); setInviteStatusFilter('') }
+  const hasInviteFilters = Boolean(inviteSearch.trim() || inviteStatusFilter)
 
   const handleSend = async (candidate: TeamInvitationCandidateDto) => {
     if (!onSendInvitation) return
@@ -209,32 +217,40 @@ export function TeamInvitationsPanel({
               <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 Danh sách lời mời của nhóm
               </h5>
-              {sentInvitations.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="search"
-                    value={inviteSearch}
-                    onChange={(e) => setInviteSearch(e.target.value)}
-                    placeholder="Lọc lời mời…"
-                    aria-label="Lọc lời mời đã gửi"
-                    className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
-                  />
-                  <select
-                    aria-label="Trạng thái lời mời đã gửi"
-                    value={inviteStatusFilter}
-                    onChange={(e) => setInviteStatusFilter(e.target.value)}
-                    className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
-                  >
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="PENDING">Đang chờ phản hồi</option>
-                    <option value="ACCEPTED">Đã chấp nhận</option>
-                    <option value="REJECTED">Đã từ chối</option>
-                    <option value="CANCELLED">Đã hủy</option>
-                    <option value="EXPIRED">Đã hết hạn</option>
-                  </select>
-                </div>
-              )}
             </div>
+            {sentInvitations.length > 0 && (
+              <FilterToolbar
+                embedded
+                debounceMs={0}
+                className="mb-3"
+                ariaLabel="Bộ lọc lời mời đã gửi"
+                search={inviteSearch}
+                onSearchChange={setInviteSearch}
+                searchLabel="Lọc lời mời đã gửi"
+                searchPlaceholder="Lọc lời mời…"
+                controls={
+                  <label className="ft-select-wrap">
+                    <span className="sr-only">Trạng thái lời mời đã gửi</span>
+                    <select
+                      aria-label="Trạng thái lời mời đã gửi"
+                      value={inviteStatusFilter}
+                      onChange={(e) => setInviteStatusFilter(e.target.value)}
+                      className="ft-select"
+                    >
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="PENDING">Đang chờ phản hồi</option>
+                      <option value="ACCEPTED">Đã chấp nhận</option>
+                      <option value="REJECTED">Đã từ chối</option>
+                      <option value="CANCELLED">Đã hủy</option>
+                      <option value="EXPIRED">Đã hết hạn</option>
+                    </select>
+                  </label>
+                }
+                hasActiveFilters={hasInviteFilters}
+                onClearAll={clearInviteFilters}
+                resultSummary={hasInviteFilters ? `${filteredSent.length} / ${sentInvitations.length} lời mời` : undefined}
+              />
+            )}
             {sentInvitations.length === 0 ? (
               <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
                 Chưa có lời mời nào được gửi đi.
@@ -244,59 +260,72 @@ export function TeamInvitationsPanel({
                 Không có lời mời nào phù hợp bộ lọc hiện tại.
               </div>
             ) : (
-              <div className="divide-y divide-hairline">
-                {filteredSent.map((inv) => {
-                  const targetUser = inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'
-                  const inviterName = inv.invitedByName || personName(inv.invitedBy)
+              <>
+                <div className="divide-y divide-hairline">
+                  {sentPagination.paginatedItems.map((inv) => {
+                    const targetUser = inv.invitedUserName || personName(inv.invitedUserId) || 'Sinh viên được mời'
+                    const inviterName = inv.invitedByName || personName(inv.invitedBy)
 
-                  return (
-                    <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-3.5 hover:bg-canvas sm:flex-nowrap">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Avatar name={targetUser} size="sm" />
-                        <div className="min-w-0">
-                          <div className="truncate text-xs font-bold text-ink">
-                            {targetUser}
+                    return (
+                      <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-3.5 hover:bg-canvas sm:flex-nowrap">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar name={targetUser} size="sm" />
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-ink">
+                              {targetUser}
+                            </div>
+                            <div className="text-xs text-ink-muted">
+                              {inviterName ? `Người mời: ${inviterName} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
+                              {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
+                            </div>
+                            {inv.message && (
+                              <p className="mt-1 break-words text-xs italic text-ink-muted">
+                                {inv.message}
+                              </p>
+                            )}
                           </div>
-                          <div className="text-xs text-ink-muted">
-                            {inviterName ? `Người mời: ${inviterName} · ` : ''}Gửi lúc: {dateTimeLabel(inv.createdAt)}
-                            {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
-                          </div>
-                          {inv.message && (
-                            <p className="mt-1 break-words text-xs italic text-ink-muted">
-                              {inv.message}
-                            </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              inv.status === 'PENDING'
+                                ? 'border border-status-warning-border bg-status-warning-bg text-status-warning-text'
+                                : inv.status === 'ACCEPTED'
+                                  ? 'border border-status-success-border bg-status-success-bg text-status-success-text'
+                                  : 'border border-status-error-border bg-status-error-bg text-status-error-text'
+                            }`}
+                          >
+                            {statusLabel(inv.status)}
+                          </span>
+
+                          {isLeader && inv.status === 'PENDING' && !rosterLocked && (
+                            <button
+                              type="button"
+                              disabled={isMutationPending('cancel', inv.id)}
+                              onClick={() => handleCancel(inv.id)}
+                              className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50"
+                            >
+                              {isMutationPending('cancel', inv.id) ? 'Đang hủy...' : 'Hủy lời mời'}
+                            </button>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            inv.status === 'PENDING'
-                              ? 'border border-status-warning-border bg-status-warning-bg text-status-warning-text'
-                              : inv.status === 'ACCEPTED'
-                                ? 'border border-status-success-border bg-status-success-bg text-status-success-text'
-                                : 'border border-status-error-border bg-status-error-bg text-status-error-text'
-                          }`}
-                        >
-                          {statusLabel(inv.status)}
-                        </span>
-
-                        {isLeader && inv.status === 'PENDING' && !rosterLocked && (
-                          <button
-                            type="button"
-                            disabled={isMutationPending('cancel', inv.id)}
-                            onClick={() => handleCancel(inv.id)}
-                            className="min-h-11 rounded-lg px-3 py-1.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50"
-                          >
-                            {isMutationPending('cancel', inv.id) ? 'Đang hủy...' : 'Hủy lời mời'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+                {sentPagination.showPagination && (
+                  <Pagination
+                    page={sentPagination.page}
+                    pages={sentPagination.pages}
+                    total={sentPagination.total}
+                    pageSize={sentPagination.pageSize}
+                    onPage={sentPagination.setPage}
+                    onPageSizeChange={sentPagination.setPageSize}
+                    className="mt-3"
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -305,28 +334,35 @@ export function TeamInvitationsPanel({
       {activeTab === 'received' && (
         <div className="space-y-3 p-5">
           {receivedInvitations.length > 0 && (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <input
-                type="search"
-                value={inviteSearch}
-                onChange={(e) => setInviteSearch(e.target.value)}
-                placeholder="Tìm theo tên nhóm hoặc người mời…"
-                aria-label="Lọc lời mời đã nhận"
-                className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
-              />
-              <select
-                aria-label="Trạng thái lời mời đã nhận"
-                value={inviteStatusFilter}
-                onChange={(e) => setInviteStatusFilter(e.target.value)}
-                className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 py-1 text-xs text-ink"
-              >
-                <option value="">Tất cả trạng thái</option>
-                <option value="PENDING">Đang chờ phản hồi</option>
-                <option value="ACCEPTED">Đã chấp nhận</option>
-                <option value="REJECTED">Đã từ chối</option>
-                <option value="EXPIRED">Đã hết hạn</option>
-              </select>
-            </div>
+            <FilterToolbar
+              embedded
+              debounceMs={0}
+              ariaLabel="Bộ lọc lời mời đã nhận"
+              search={inviteSearch}
+              onSearchChange={setInviteSearch}
+              searchLabel="Lọc lời mời đã nhận"
+              searchPlaceholder="Tìm theo tên nhóm hoặc người mời…"
+              controls={
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Trạng thái lời mời đã nhận</span>
+                  <select
+                    aria-label="Trạng thái lời mời đã nhận"
+                    value={inviteStatusFilter}
+                    onChange={(e) => setInviteStatusFilter(e.target.value)}
+                    className="ft-select"
+                  >
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="PENDING">Đang chờ phản hồi</option>
+                    <option value="ACCEPTED">Đã chấp nhận</option>
+                    <option value="REJECTED">Đã từ chối</option>
+                    <option value="EXPIRED">Đã hết hạn</option>
+                  </select>
+                </label>
+              }
+              hasActiveFilters={hasInviteFilters}
+              onClearAll={clearInviteFilters}
+              resultSummary={hasInviteFilters ? `${filteredReceived.length} / ${receivedInvitations.length} lời mời` : undefined}
+            />
           )}
           {receivedInvitations.length === 0 ? (
             <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-xs text-ink-muted">
@@ -337,65 +373,78 @@ export function TeamInvitationsPanel({
               Không có lời mời nào phù hợp bộ lọc hiện tại.
             </div>
           ) : (
-            <div className="divide-y divide-hairline">
-              {filteredReceived.map((inv) => {
-                const teamTitle = inv.teamName
-                  ? (inv.teamName.startsWith('Nhóm') ? `Lời mời từ ${inv.teamName}` : `Lời mời từ nhóm ${inv.teamName}`)
-                  : `Lời mời từ nhóm #${inv.teamId}`
-                const inviterName = inv.invitedByName || personName(inv.invitedBy)
+            <>
+              <div className="divide-y divide-hairline">
+                {receivedPagination.paginatedItems.map((inv) => {
+                  const teamTitle = inv.teamName
+                    ? (inv.teamName.startsWith('Nhóm') ? `Lời mời từ ${inv.teamName}` : `Lời mời từ nhóm ${inv.teamName}`)
+                    : `Lời mời từ nhóm #${inv.teamId}`
+                  const inviterName = inv.invitedByName || personName(inv.invitedBy)
 
-                return (
-                  <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-canvas sm:flex-nowrap">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">
-                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">groups</span>
+                  return (
+                    <div key={inv.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-canvas sm:flex-nowrap">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-xs font-bold text-primary">
+                          <span className="material-symbols-outlined text-[20px]" aria-hidden="true">groups</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-xs font-bold text-ink">
+                            {teamTitle}
+                          </div>
+                          <div className="text-xs text-ink-muted">
+                            {inviterName ? `Người mời: ${inviterName} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
+                            {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
+                          </div>
+                          {inv.message && (
+                            <p className="mt-1 break-words rounded border border-hairline bg-canvas p-2 text-xs italic text-ink-muted">
+                              {inv.message}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-xs font-bold text-ink">
-                          {teamTitle}
-                        </div>
-                        <div className="text-xs text-ink-muted">
-                          {inviterName ? `Người mời: ${inviterName} · ` : ''}Nhận lúc: {dateTimeLabel(inv.createdAt)}
-                          {inv.expiresAt && ` • Hết hạn: ${dateTimeLabel(inv.expiresAt)}`}
-                        </div>
-                        {inv.message && (
-                          <p className="mt-1 break-words rounded border border-hairline bg-canvas p-2 text-xs italic text-ink-muted">
-                            {inv.message}
-                          </p>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        {inv.status === 'PENDING' ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isMutationPending('accept', inv.id)}
+                              onClick={() => handleAccept(inv.id)}
+                              className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">check</span>
+                              {isMutationPending('accept', inv.id) ? 'Đang chấp nhận...' : 'Chấp nhận'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isMutationPending('reject', inv.id)}
+                              onClick={() => handleReject(inv.id)}
+                              className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
+                              {isMutationPending('reject', inv.id) ? 'Đang từ chối...' : 'Từ chối'}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs font-semibold text-ink-muted">{statusLabel(inv.status)}</span>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      {inv.status === 'PENDING' ? (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isMutationPending('accept', inv.id)}
-                            onClick={() => handleAccept(inv.id)}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
-                          >
-                            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">check</span>
-                            {isMutationPending('accept', inv.id) ? 'Đang chấp nhận...' : 'Chấp nhận'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isMutationPending('reject', inv.id)}
-                            onClick={() => handleReject(inv.id)}
-                            className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-status-error-text transition-colors hover:border-status-error-border hover:bg-status-error-bg disabled:opacity-50"
-                          >
-                            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
-                            {isMutationPending('reject', inv.id) ? 'Đang từ chối...' : 'Từ chối'}
-                          </button>
-                        </>
-                      ) : (
-                        <span className="rounded-full border border-hairline bg-canvas px-2.5 py-1 text-xs font-semibold text-ink-muted">{statusLabel(inv.status)}</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+              {receivedPagination.showPagination && (
+                <Pagination
+                  page={receivedPagination.page}
+                  pages={receivedPagination.pages}
+                  total={receivedPagination.total}
+                  pageSize={receivedPagination.pageSize}
+                  onPage={receivedPagination.setPage}
+                  onPageSizeChange={receivedPagination.setPageSize}
+                  className="mt-3"
+                />
+              )}
+            </>
           )}
         </div>
       )}

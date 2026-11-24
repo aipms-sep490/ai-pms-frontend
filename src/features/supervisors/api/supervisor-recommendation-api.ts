@@ -75,7 +75,7 @@ function toSearchParams(query?: SupervisorRecommendationQuery): string {
   if (query?.majorId != null) params.set('majorId', String(query.majorId))
   if (query?.search) params.set('search', query.search)
   params.set('page', String(query?.page ?? 1))
-  params.set('pageSize', String(query?.pageSize ?? 20))
+  params.set('pageSize', String(query?.pageSize ?? 10))
   return params.toString()
 }
 
@@ -95,12 +95,12 @@ export const createSupervisorRecommendationRun = (projectId: number, query?: Sup
       majorId: query?.majorId,
       search: query?.search,
       page: query?.page ?? 1,
-      pageSize: query?.pageSize ?? 20,
+      pageSize: query?.pageSize ?? 10,
     },
   )
 
 export const getSupervisorRecommendationHistory = (
-  projectId: number, page = 1, pageSize = 20, signal?: AbortSignal,
+  projectId: number, page = 1, pageSize = 10, signal?: AbortSignal,
 ) => httpGet<PagedResult<SupervisorRecommendationRunSummary>>(
   `/projects/${projectId}/supervisor-recommendations/history?page=${page}&pageSize=${pageSize}`, signal,
 )

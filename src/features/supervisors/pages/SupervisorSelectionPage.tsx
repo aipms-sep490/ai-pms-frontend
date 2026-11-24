@@ -6,6 +6,8 @@ import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Modal } from '../../../components/ui/Modal'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useStudentJourney } from '../../../app/context'
 import { useSupervisorSelection, type SupervisorAssignmentType } from '../hooks/useSupervisorSelection'
@@ -82,6 +84,9 @@ export function SupervisorSelectionPage() {
     )
   }, [selection.candidates, onlyAvailable, departmentFilter, sortBy])
 
+  const candidatePager = useClientPagination(visibleCandidates, 10)
+  const requestPager = useClientPagination(selection.requests, 10)
+
   const choose = (candidateId: number) => { setSelectedId(candidateId); setSelectedSlot(activeSlot) }
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -114,27 +119,53 @@ export function SupervisorSelectionPage() {
     >
       {selection.error ? <section role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{selection.error.message}<Button className="ml-3" size="sm" variant="secondary" onClick={() => void selection.refresh(true)}>Tải lại</Button></section> : null}
 
-      {selection.activeAssignment ? <section className="rounded-2xl border border-status-success-border bg-status-success-bg p-5">
-        <h2 className="font-bold text-status-success-text">Đã có phân công hướng dẫn chính thức</h2>
-        <p className="mt-1 text-sm text-status-success-text">{selection.activeAssignment.supervisorName} · phân công lúc {dateTimeLabel(selection.activeAssignment.assignedAt)}</p>
-      </section> : null}
+      {selection.activeAssignment ? (
+        <section className="rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 text-ink shadow-xs">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <span className="material-symbols-outlined mt-0.5 text-[20px] text-status-success-text" aria-hidden="true">check_circle</span>
+              <div>
+                <h2 className="font-bold text-ink">Đã có phân công hướng dẫn chính thức</h2>
+                <p className="mt-1 text-sm text-ink-soft">{selection.activeAssignment.supervisorName} · phân công lúc {dateTimeLabel(selection.activeAssignment.assignedAt)}</p>
+              </div>
+            </div>
+            <StatusBadge tone="success" label="Đang hoạt động" />
+          </div>
+        </section>
+      ) : null}
 
       <section className="workspace-surface p-5">
         <h2 className="text-base font-bold text-ink">Yêu cầu hướng dẫn</h2>
-        {selection.requests.length ? <ul className="mt-3 divide-y divide-hairline">{selection.requests.map((request) => <li key={request.id} className="py-3 text-sm text-ink">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} />
-            <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span>
-            <span>· {request.supervisorName?.trim() || selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName || selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName || 'Chưa tải được tên giảng viên'}</span>
-            <span className="text-xs text-ink-muted">· gửi lúc {dateTimeLabel(request.requestedAt)}</span>
-            {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-ink-muted">· hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
-          </div>
-          {request.requestMessage ? <p className="mt-1 text-ink-soft">Lời nhắn: {request.requestMessage}</p> : null}
-          {request.responseMessage ? <p className="mt-1 text-ink-soft">Phản hồi: {request.responseMessage}</p> : null}
-          {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request)}>Hủy yêu cầu</Button> : null}
-          {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-ink-muted">Bạn có thể chọn một giảng viên phù hợp khác.</p> : null}
-          {request.status === 'EXPIRED' ? <p className="mt-2 text-xs text-ink-muted">Lời mời đã quá hạn phản hồi. Bạn có thể gửi lại cho vị trí này.</p> : null}
-        </li>)}</ul> : <p className="mt-2 text-sm text-ink-muted">Chưa có yêu cầu hướng dẫn.</p>}
+        {selection.requests.length ? (
+          <>
+            <ul className="mt-3 divide-y divide-hairline">{requestPager.paginatedItems.map((request) => <li key={request.id} className="py-3 text-sm text-ink">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} />
+                <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span>
+                <span>· {request.supervisorName?.trim() || selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName || selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName || 'Chưa tải được tên giảng viên'}</span>
+                <span className="text-xs text-ink-muted">· gửi lúc {dateTimeLabel(request.requestedAt)}</span>
+                {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-ink-muted">· hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
+              </div>
+              {request.requestMessage ? <p className="mt-1 text-ink-soft">Lời nhắn: {request.requestMessage}</p> : null}
+              {request.responseMessage ? <p className="mt-1 text-ink-soft">Phản hồi: {request.responseMessage}</p> : null}
+              {request.status === 'PENDING' && selection.isLeader ? <Button className="mt-2" size="sm" variant="danger" disabled={selection.cancelPending !== null} onClick={() => void selection.cancel(request)}>Hủy yêu cầu</Button> : null}
+              {request.status === 'REJECTED' ? <p className="mt-2 text-xs text-ink-muted">Bạn có thể chọn một giảng viên phù hợp khác.</p> : null}
+              {request.status === 'EXPIRED' ? <p className="mt-2 text-xs text-ink-muted">Lời mời đã quá hạn phản hồi. Bạn có thể gửi lại cho vị trí này.</p> : null}
+            </li>)}</ul>
+            {requestPager.showPagination && (
+              <div className="mt-3 border-t border-hairline pt-3">
+                <Pagination
+                  page={requestPager.page}
+                  pages={requestPager.pages}
+                  total={requestPager.total}
+                  pageSize={requestPager.pageSize}
+                  onPage={requestPager.setPage}
+                  onPageSizeChange={requestPager.setPageSize}
+                />
+              </div>
+            )}
+          </>
+        ) : <p className="mt-2 text-sm text-ink-muted">Chưa có yêu cầu hướng dẫn.</p>}
       </section>
 
       {env.supervisorRecommendationEnabled && (selection.canSend || selection.canSendMentor) && journey.project && activeSlot && <SupervisorRecommendationPanel
@@ -214,29 +245,43 @@ export function SupervisorSelectionPage() {
                 {hasFilters && <button type="button" onClick={clearAllFilters} className="mt-2 font-semibold text-primary underline">Xóa lọc</button>}
               </div>
             ) : (
-              <ul className="divide-y divide-hairline">
-                {visibleCandidates.map((candidate) => (
-                  <li key={candidate.id} className="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <Avatar name={candidate.fullName} size="md" />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold text-ink">{candidate.fullName}</h3>
-                          <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${candidate.remainingSlots > 0 ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-hairline bg-canvas text-ink-muted'}`}>
-                            Còn {candidate.remainingSlots}/{candidate.semesterLimit} vị trí
-                          </span>
+              <>
+                <ul className="divide-y divide-hairline">
+                  {candidatePager.paginatedItems.map((candidate) => (
+                    <li key={candidate.id} className="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Avatar name={candidate.fullName} size="md" />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold text-ink">{candidate.fullName}</h3>
+                            <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${candidate.remainingSlots > 0 ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-hairline bg-canvas text-ink-muted'}`}>
+                              Còn {candidate.remainingSlots}/{candidate.semesterLimit} vị trí
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-ink-muted">{candidate.departmentName} · Đang hướng dẫn {candidate.activeProjects} đồ án</p>
+                          {candidate.bio ? <p className="mt-1.5 text-sm text-ink-soft">{candidate.bio}</p> : null}
+                          <p className="mt-1.5 text-xs text-ink-muted">Chuyên môn: {candidate.expertise.map((item) => item.name).join(', ') || 'Chưa cập nhật'}</p>
                         </div>
-                        <p className="mt-0.5 text-xs text-ink-muted">{candidate.departmentName} · Đang hướng dẫn {candidate.activeProjects} đồ án</p>
-                        {candidate.bio ? <p className="mt-1.5 text-sm text-ink-soft">{candidate.bio}</p> : null}
-                        <p className="mt-1.5 text-xs text-ink-muted">Chuyên môn: {candidate.expertise.map((item) => item.name).join(', ') || 'Chưa cập nhật'}</p>
                       </div>
-                    </div>
-                    <Button className="mt-2 md:mt-0" size="sm" variant="secondary" disabled={!activeSlot || selection.sendRequestPending} onClick={() => choose(candidate.id)}>
-                      {slotOptions.length > 1 ? `Chọn cho ${activeSlot?.label}` : 'Chọn giảng viên'}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+                      <Button className="mt-2 md:mt-0" size="sm" variant="secondary" disabled={!activeSlot || selection.sendRequestPending} onClick={() => choose(candidate.id)}>
+                        {slotOptions.length > 1 ? `Chọn cho ${activeSlot?.label}` : 'Chọn giảng viên'}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                {candidatePager.showPagination && (
+                  <div className="mt-3 border-t border-hairline pt-3">
+                    <Pagination
+                      page={candidatePager.page}
+                      pages={candidatePager.pages}
+                      total={candidatePager.total}
+                      pageSize={candidatePager.pageSize}
+                      onPage={candidatePager.setPage}
+                      onPageSizeChange={candidatePager.setPageSize}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>}

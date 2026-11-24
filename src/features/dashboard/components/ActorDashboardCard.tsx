@@ -26,7 +26,7 @@ export function ActorDashboardCard() {
       <h2 className="font-heading text-sm font-semibold text-ink">Tổng quan nhanh · {scopeLabel[data.scope] ?? data.scope}</h2>
       {!data.complete && <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">Số liệu chưa đầy đủ</span>}
     </div>
-    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+    <div className="mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:grid-cols-6">
       <ActorMetric label="Đồ án" value={data.projectCount} />
       <ActorMetric label="Việc đang mở" value={data.openTasks} />
       <ActorMetric label="Việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} />
@@ -39,5 +39,5 @@ export function ActorDashboardCard() {
 
 function ActorMetric({ label, value, tone = 'neutral' }: { label: string; value: number; tone?: 'neutral' | 'warning' | 'error' }) {
   const tones = { neutral: 'text-ink', warning: 'text-status-warning-text', error: 'text-status-error-text' }
-  return <div><p className="text-xs font-medium text-ink-muted">{label}</p><p className={`mt-1 text-xl font-bold tabular-nums ${tones[tone]}`}>{value}</p></div>
+  return <div className="flex h-full flex-col justify-between rounded-lg border border-hairline bg-canvas/60 px-3 py-2.5"><p className="text-xs font-medium text-ink-muted">{label}</p><p className={`mt-1 text-xl font-bold tabular-nums ${tones[tone]}`}>{value}</p></div>
 }

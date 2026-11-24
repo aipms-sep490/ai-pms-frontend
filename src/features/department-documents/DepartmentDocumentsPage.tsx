@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useInRouterContext } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { getAcademicHierarchy } from '../academic/api/academic-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
@@ -227,6 +230,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     })
   }, [rows, manager, statusFilter, search, sortBy])
 
+  const docPager = useClientPagination(filteredRows, 10)
   const hasLocalFilters = Boolean(search.trim() || statusFilter || sortBy !== 'newest')
   const clearLocalFilters = () => { setSearch(''); setStatusFilter(''); setSortBy('newest') }
 
@@ -239,10 +243,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       : 'Xem tài liệu đã được bộ môn công bố cho ngành hoặc kỳ đồ án của bạn.'}
     action={
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void retryList()} disabled={loading || !majorId}>
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-          Tải lại
-        </button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void retryList()} disabled={loading || !majorId} />
         {manager && !unsupported && (
           <button type="button" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!majorId} onClick={() => setUploadOpen(true)}>
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">upload_file</span>
@@ -332,7 +333,12 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
 
       <div className="space-y-3 p-5">
         {error && !uploadOpen && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
-        {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{success}</p>}
+        {success && (
+          <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
+            <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <p role="status">{success}</p>
+          </div>
+        )}
         {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
         {!loading && !error && rows?.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
         {!loading && !error && rows && rows.length > 0 && filteredRows.length === 0 && (
@@ -341,7 +347,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
             <button type="button" className="mt-2 font-semibold text-primary underline" onClick={clearLocalFilters}>Xóa bộ lọc</button>
           </div>
         )}
-        {filteredRows.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 transition-colors hover:border-primary/30">
+        {docPager.paginatedItems.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 transition-colors hover:border-primary/30">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-semibold text-ink">{row.title}</h3>
@@ -375,6 +381,16 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
               onClick={() => void changeStatus(row, 'RETIRED')}>Thu hồi</button>}
           </div>
         </article>)}
+        {docPager.showPagination && (
+          <Pagination
+            page={docPager.page}
+            pages={docPager.pages}
+            total={docPager.total}
+            pageSize={docPager.pageSize}
+            onPage={docPager.setPage}
+            onPageSizeChange={docPager.setPageSize}
+          />
+        )}
       </div>
     </section>
     {preview && <DocumentPreviewModal open fileId={preview.id} fileName={preview.fileName} contentType={preview.contentType}

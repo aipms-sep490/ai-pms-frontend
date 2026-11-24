@@ -3,10 +3,12 @@ import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useQualificationQueue } from '../hooks/useQualificationQueue'
 
 import { QualificationCertificateViewer } from '../components/QualificationCertificateViewer'
@@ -28,6 +30,7 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const filterKey = `${queue.page}:${queue.search}:${queue.status}`
   const [trainingFilter, setTrainingFilter] = useState<'ALL' | 'COMPLETED' | 'PENDING'>('ALL')
+  const [sortBy, setSortBy] = useState<'default' | 'name_asc' | 'code_asc' | 'expires_asc'>('default')
   const [pendingId, setPendingId] = useState<number | null>(null)
   const [noticeState, setNoticeState] = useState<{ key: string; text: string } | null>(null)
   const notice = noticeState?.key === filterKey ? noticeState.text : null
@@ -36,13 +39,27 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
   useEffect(() => { if (queue.error) errorSummary.current?.focus() }, [queue.error])
 
   const visibleItems = useMemo(() => {
-    if (trainingFilter === 'ALL') return queue.items
-    return queue.items.filter(item =>
-      trainingFilter === 'COMPLETED'
-        ? item.trainingStatus === 'TRAINING_COMPLETED'
-        : item.trainingStatus !== 'TRAINING_COMPLETED',
-    )
-  }, [queue.items, trainingFilter])
+    const filtered = trainingFilter === 'ALL'
+      ? queue.items
+      : queue.items.filter(item =>
+          trainingFilter === 'COMPLETED'
+            ? item.trainingStatus === 'TRAINING_COMPLETED'
+            : item.trainingStatus !== 'TRAINING_COMPLETED',
+        )
+    if (sortBy === 'name_asc') return [...filtered].sort((a, b) => a.fullName.localeCompare(b.fullName, 'vi'))
+    if (sortBy === 'code_asc') return [...filtered].sort((a, b) => (a.studentCode ?? '').localeCompare(b.studentCode ?? '', 'vi'))
+    if (sortBy === 'expires_asc') {
+      return [...filtered].sort((a, b) => {
+        const at = a.expiresAt ? Date.parse(a.expiresAt) : Number.POSITIVE_INFINITY
+        const bt = b.expiresAt ? Date.parse(b.expiresAt) : Number.POSITIVE_INFINITY
+        return at - bt
+      })
+    }
+    return filtered
+  }, [queue.items, trainingFilter, sortBy])
+
+  const clientPager = useClientPagination(visibleItems, 10)
+  const displayedItems = queue.totalPages > 1 ? visibleItems : clientPager.paginatedItems
 
   async function decide(id: number, token: string, reject: boolean) {
     if (lock.current) return
@@ -56,7 +73,7 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
     } finally { lock.current = false; setPendingId(null) }
   }
 
-  const hasActiveFilters = Boolean(queue.search.trim() || trainingFilter !== 'ALL')
+  const hasActiveFilters = Boolean(queue.search.trim() || trainingFilter !== 'ALL' || sortBy !== 'default')
   const activeChips: ActiveFilterChip[] = []
   if (trainingFilter !== 'ALL') {
     activeChips.push({
@@ -78,33 +95,46 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
       onTabChange={code => { if (pendingId === null) queue.setStatus(code) }}
       tabsLabel="Lọc hồ sơ chứng chỉ theo trạng thái"
       controls={
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="ft-select-wrap">
-            <span className="sr-only">Trạng thái đào tạo</span>
-            <select
-              className="ft-select"
-              aria-label="Lọc theo trạng thái đào tạo"
-              value={trainingFilter}
-              disabled={pendingId !== null}
-              onChange={event => setTrainingFilter(event.target.value as 'ALL' | 'COMPLETED' | 'PENDING')}
-            >
-              <option value="ALL">Tất cả trạng thái đào tạo</option>
-              <option value="COMPLETED">Đã hoàn thành đào tạo</option>
-              <option value="PENDING">Chưa hoàn thành đào tạo</option>
-            </select>
-          </label>
-          {embedded && <Button variant="secondary" icon="refresh" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null}>Tải lại</Button>}
-        </div>
+        <label className="ft-select-wrap">
+          <span className="sr-only">Trạng thái đào tạo</span>
+          <select
+            className="ft-select"
+            aria-label="Lọc theo trạng thái đào tạo"
+            value={trainingFilter}
+            disabled={pendingId !== null}
+            onChange={event => setTrainingFilter(event.target.value as 'ALL' | 'COMPLETED' | 'PENDING')}
+          >
+            <option value="ALL">Tất cả trạng thái đào tạo</option>
+            <option value="COMPLETED">Đã hoàn thành đào tạo</option>
+            <option value="PENDING">Chưa hoàn thành đào tạo</option>
+          </select>
+        </label>
       }
+      sort={{
+        value: sortBy,
+        onChange: val => setSortBy(val as 'default' | 'name_asc' | 'code_asc' | 'expires_asc'),
+        options: [
+          { value: 'default', label: 'Mặc định' },
+          { value: 'name_asc', label: 'Họ tên A–Z' },
+          { value: 'code_asc', label: 'MSSV A–Z' },
+          { value: 'expires_asc', label: 'Hết hạn sớm nhất' },
+        ],
+      }}
+      rightActions={embedded ? <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null} /> : undefined}
       activeChips={activeChips}
       onRemoveChip={chipId => { if (chipId === 'training') setTrainingFilter('ALL') }}
-      onClearAll={() => { queue.setSearch(''); setTrainingFilter('ALL') }}
+      onClearAll={() => { queue.setSearch(''); setTrainingFilter('ALL'); setSortBy('default') }}
       hasActiveFilters={hasActiveFilters}
-      resultSummary={`${visibleItems.length} / ${queue.totalCount} hồ sơ`}
+      resultSummary={`${displayedItems.length} / ${queue.totalCount} hồ sơ`}
     />
     {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
-    {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
-    {queue.loading ? <ListLoading label="Đang tải hồ sơ…" /> : !queue.error && visibleItems.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{visibleItems.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
+    {notice && (
+      <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
+        <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+        <p role="status">{notice}</p>
+      </div>
+    )}
+    {queue.loading ? <ListLoading label="Đang tải hồ sơ…" /> : !queue.error && visibleItems.length === 0 ? <p className="workspace-surface p-5 text-sm text-ink-muted">Không có hồ sơ phù hợp.</p> : <ul className="space-y-3" aria-label="Hồ sơ sinh viên">{displayedItems.map(item => <li key={item.id} className="workspace-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Avatar name={item.fullName} size="md" />
@@ -115,11 +145,11 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
         </div>
         <StatusBadge tone={statusBadgeTone[item.verificationStatus] ?? 'neutral'} label={statuses[item.verificationStatus] ?? item.verificationStatus} />
       </div>
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 font-medium text-ink">{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
-        <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số chứng chỉ</dt><dd className="mt-1 break-all font-medium text-ink">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
-        <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Ngày cấp</dt><dd className="mt-1 font-medium text-ink">{date(item.issuedAt)}</dd></div>
-        <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Ngày hết hạn</dt><dd className="mt-1 font-medium text-ink">{date(item.expiresAt)}</dd></div>
+      <dl className="mt-4 grid items-stretch gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 font-medium text-ink">{item.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : 'Chưa hoàn thành'}</dd></div>
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Số chứng chỉ</dt><dd className="mt-1 break-all font-medium text-ink">{item.certificateNumber ?? 'Chưa khai báo'}</dd></div>
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Ngày cấp</dt><dd className="mt-1 font-medium text-ink">{date(item.issuedAt)}</dd></div>
+        <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Ngày hết hạn</dt><dd className="mt-1 font-medium text-ink">{date(item.expiresAt)}</dd></div>
       </dl>
       {item.certificateFileId && <QualificationCertificateViewer key={`${item.id}:${item.concurrencyToken}:${item.certificateFileId}`} qualificationId={item.id} />}
       {item.rejectionReason && <p className="mt-3 break-words rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">Lý do từ chối: {item.rejectionReason}</p>}
@@ -130,11 +160,31 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
         {!item.concurrencyToken && <p className="self-center text-sm text-ink-muted">Hồ sơ chưa có phiên bản xác minh. Hãy tải lại; chưa thể quyết định.</p>}{item.trainingStatus !== 'TRAINING_COMPLETED' && <p className="self-center text-sm text-ink-muted">Cần hoàn thành đào tạo trước khi xác minh.</p>}
       </div>}
     </li>)}</ul>}
-    {!queue.loading && !queue.error && queue.totalPages > 1 && <nav className="flex flex-wrap items-center justify-between gap-3 text-sm" aria-label="Phân trang hồ sơ xác minh"><Button className="min-h-11" variant="secondary" disabled={queue.page <= 1 || pendingId !== null} onClick={() => queue.setPage(queue.page - 1)}>Trang trước</Button><p className="text-ink-muted">Trang {queue.page} / {queue.totalPages} · {queue.totalCount} hồ sơ</p><Button className="min-h-11" variant="secondary" disabled={queue.page >= queue.totalPages || pendingId !== null} onClick={() => queue.setPage(queue.page + 1)}>Trang sau</Button></nav>}
+    {!queue.loading && !queue.error && (queue.totalPages > 1 ? (
+      <Pagination
+        page={queue.page}
+        pages={queue.totalPages}
+        total={queue.totalCount}
+        pageSize={queue.pageSize}
+        busy={pendingId !== null}
+        onPage={queue.setPage}
+        onPageSizeChange={queue.setPageSize}
+      />
+    ) : clientPager.showPagination ? (
+      <Pagination
+        page={clientPager.page}
+        pages={clientPager.pages}
+        total={clientPager.total}
+        pageSize={clientPager.pageSize}
+        busy={pendingId !== null}
+        onPage={clientPager.setPage}
+        onPageSizeChange={clientPager.setPageSize}
+      />
+    ) : null)}
     {confirmationDialog}
   </>
   if (embedded) return <div className="space-y-4">{body}</div>
-  return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án.">
+  return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null} />}>
     {body}
   </WorkspacePage>
 }

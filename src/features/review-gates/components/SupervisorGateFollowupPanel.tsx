@@ -78,8 +78,11 @@ export function SupervisorGateFollowupPanel({
       {!onSendFeedback ? (
         <p className="text-xs text-ink-muted">Chế độ chỉ đọc. Mở tiến trình đồ án trong phạm vi hướng dẫn để gửi nhận xét.</p>
       ) : submitted ? (
-        <div role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs font-semibold text-status-success-text flex flex-wrap gap-2 items-center justify-between">
-          <span>✓ Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công.</span>
+        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-xs font-semibold text-ink shadow-2xs">
+          <span className="inline-flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <span>Đã gửi nhận xét hướng dẫn cho nhóm sinh viên thành công.</span>
+          </span>
           <button type="button" onClick={() => setSubmitted(false)} className="min-h-11 min-w-11 text-primary hover:underline">Gửi thêm</button>
         </div>
       ) : (

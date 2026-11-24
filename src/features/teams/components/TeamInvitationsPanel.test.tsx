@@ -17,7 +17,7 @@ afterEach(cleanup)
 function panel(overrides = {}) {
   const props = {
     sentInvitations: [], receivedInvitations: [], isLeader: true, rosterLocked: false,
-    candidates: { items: [candidate], page: 2, pageSize: 20, totalCount: 25, totalPages: 2 },
+    candidates: { items: [candidate], page: 2, pageSize: 12, totalCount: 20, totalPages: 2 },
     candidateSearch: '', candidateLoading: false, candidateError: null,
     onCandidateSearchChange: vi.fn(), onCandidatePageChange: vi.fn(), onRetryCandidates: vi.fn(),
     isMutationPending: vi.fn().mockReturnValue(false), onSendInvitation: vi.fn().mockResolvedValue(undefined),
@@ -74,7 +74,7 @@ describe('TeamInvitationsPanel', () => {
 
   it('filters the current page of candidates by the selected unfilled major without changing the server query', () => {
     const { props } = panel({
-      candidates: { items: [candidate, marketingCandidate], page: 1, pageSize: 20, totalCount: 2, totalPages: 1 },
+      candidates: { items: [candidate, marketingCandidate], page: 1, pageSize: 12, totalCount: 2, totalPages: 1 },
       unfilledMajors: [{ majorId: 7, majorName: 'Marketing', remaining: 2 }],
     })
     expect(screen.getByText(/Nguyễn Văn A/)).toBeTruthy()

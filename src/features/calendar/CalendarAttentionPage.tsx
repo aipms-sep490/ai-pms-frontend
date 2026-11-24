@@ -6,8 +6,10 @@ import { DataSourceStatus } from '../../components/ui/DataSourceStatus'
 import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import './calendar-attention.css'
 import { loadCalendarAttention } from './calendar-data'
@@ -15,6 +17,7 @@ import { formatCalendarDate, isHistoricalStatus } from './calendar-projections'
 import type { AttentionItem, CalendarAttentionData, CalendarProjectionItem } from './calendar-types'
 
 type ViewMode = 'agenda' | 'month'
+type CalendarSort = 'soonest' | 'latest' | 'title'
 
 const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
   TASK: 'Công việc',
@@ -157,6 +160,7 @@ export function CalendarAttentionPage() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState<'ALL' | CalendarProjectionItem['sourceType']>('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [sortBy, setSortBy] = useState<CalendarSort>('soonest')
   const todayKey = useMemo(() => todayVnKey(), [])
   const [monthCursor, setMonthCursor] = useState<{ year: number; month: number }>(() => parseMonthAnchor(todayKey))
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null)
@@ -218,13 +222,24 @@ export function CalendarAttentionPage() {
 
   const items = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return baseItems.filter((item) => {
+    const filtered = baseItems.filter((item) => {
       if (sourceFilter !== 'ALL' && item.sourceType !== sourceFilter) return false
       if (statusFilter !== 'ALL' && calendarStatusLabel(item.status) !== statusFilter) return false
       if (query && !`${item.title} ${item.projectName ?? ''}`.toLowerCase().includes(query)) return false
       return true
     })
-  }, [baseItems, search, sourceFilter, statusFilter])
+    if (sortBy === 'latest') {
+      return [...filtered].sort((left, right) => (datedAt(right) ?? '').localeCompare(datedAt(left) ?? ''))
+    }
+    if (sortBy === 'title') {
+      return [...filtered].sort((left, right) => left.title.localeCompare(right.title, 'vi'))
+    }
+    return filtered
+  }, [baseItems, search, sortBy, sourceFilter, statusFilter])
+
+  const agendaPagination = useClientPagination(items, 10)
+  const attentionItems = useMemo(() => data?.attention ?? [], [data?.attention])
+  const attentionPagination = useClientPagination(attentionItems, 10)
 
   const grouped = useMemo(
     () =>
@@ -234,6 +249,16 @@ export function CalendarAttentionPage() {
         return groups
       }, {}),
     [items],
+  )
+
+  const agendaGrouped = useMemo(
+    () =>
+      agendaPagination.paginatedItems.reduce<Record<string, CalendarProjectionItem[]>>((groups, item) => {
+        const key = dateKey(item) || 'undated'
+        groups[key] = [...(groups[key] ?? []), item]
+        return groups
+      }, {}),
+    [agendaPagination.paginatedItems],
   )
 
   const activeChips = useMemo<ActiveFilterChip[]>(() => {
@@ -302,9 +327,14 @@ export function CalendarAttentionPage() {
           <h1 id="calendar-heading">Lịch tổng hợp &amp; điểm cần chú ý</h1>
           <p>Tổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.</p>
         </div>
-        <Button variant="outline" icon="refresh" onClick={() => void refresh()} disabled={loading} aria-label="Tải lại lịch và điểm cần chú ý">
-          Tải lại
-        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          onClick={() => void refresh()}
+          disabled={loading}
+          aria-label="Tải lại lịch và điểm cần chú ý"
+        />
       </header>
 
       {loading && <PageLoading label="Đang tải lịch tổng hợp" />}
@@ -375,13 +405,22 @@ export function CalendarAttentionPage() {
                     </>
                   }
                   activeChips={activeChips}
+                  sort={{
+                    value: sortBy,
+                    onChange: (value) => setSortBy(value as CalendarSort),
+                    options: [
+                      { value: 'soonest', label: 'Sắp đến hạn trước' },
+                      { value: 'latest', label: 'Xa nhất trước' },
+                      { value: 'title', label: 'Tiêu đề A–Z' },
+                    ],
+                  }}
                   onRemoveChip={(id) => {
                     if (id === 'search') setSearch('')
                     if (id === 'source') setSourceFilter('ALL')
                     if (id === 'status') setStatusFilter('ALL')
                   }}
-                  onClearAll={() => { setSearch(''); setSourceFilter('ALL'); setStatusFilter('ALL') }}
-                  hasActiveFilters={activeChips.length > 0}
+                  onClearAll={() => { setSearch(''); setSourceFilter('ALL'); setStatusFilter('ALL'); setSortBy('soonest') }}
+                  hasActiveFilters={activeChips.length > 0 || sortBy !== 'soonest'}
                   resultSummary={activeChips.length > 0 ? `Hiển thị ${items.length} / ${baseItems.length} sự kiện` : undefined}
                 />
               </div>
@@ -399,16 +438,30 @@ export function CalendarAttentionPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="calendar-agenda">
-                    {Object.entries(grouped).map(([date, entries]) => (
-                      <div className="calendar-agenda__group" key={date}>
-                        <h3>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</h3>
-                        {entries.map((item) => (
-                          <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
-                        ))}
+                  <>
+                    <div className="calendar-agenda">
+                      {Object.entries(agendaGrouped).map(([date, entries]) => (
+                        <div className="calendar-agenda__group" key={date}>
+                          <h3>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</h3>
+                          {entries.map((item) => (
+                            <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    {agendaPagination.showPagination && (
+                      <div className="px-5 pb-4">
+                        <Pagination
+                          page={agendaPagination.page}
+                          pages={agendaPagination.pages}
+                          total={agendaPagination.total}
+                          pageSize={agendaPagination.pageSize}
+                          onPage={agendaPagination.setPage}
+                          onPageSizeChange={agendaPagination.setPageSize}
+                        />
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )
               ) : (
                 <div className="calendar-month-shell">
@@ -576,20 +629,34 @@ export function CalendarAttentionPage() {
                 </div>
               ) : (
                 data.attention.length > 0 && (
-                  <ul className="attention-list">
-                    {data.attention.map(item => (
-                      <li key={`${item.code}-${item.sourceId}`}>
-                        {item.deepLink ? (
-                          <Link to={item.deepLink}><AttentionContent item={item} /></Link>
-                        ) : (
-                          <div className="attention-list__content">
-                            <AttentionContent item={item} />
-                            <span className="text-xs text-ink-muted">Chưa có liên kết nội bộ hợp lệ.</span>
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <ul className="attention-list">
+                      {attentionPagination.paginatedItems.map(item => (
+                        <li key={`${item.code}-${item.sourceId}`}>
+                          {item.deepLink ? (
+                            <Link to={item.deepLink}><AttentionContent item={item} /></Link>
+                          ) : (
+                            <div className="attention-list__content">
+                              <AttentionContent item={item} />
+                              <span className="text-xs text-ink-muted">Chưa có liên kết nội bộ hợp lệ.</span>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {attentionPagination.showPagination && (
+                      <div className="px-4 pb-4">
+                        <Pagination
+                          page={attentionPagination.page}
+                          pages={attentionPagination.pages}
+                          total={attentionPagination.total}
+                          pageSize={attentionPagination.pageSize}
+                          onPage={attentionPagination.setPage}
+                          onPageSizeChange={attentionPagination.setPageSize}
+                        />
+                      </div>
+                    )}
+                  </>
                 )
               )}
             </aside>

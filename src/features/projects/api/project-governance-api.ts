@@ -33,10 +33,10 @@ export const getProjectGovernance = (projectId: number) => httpGet<ProjectGovern
 export const getReportingCycle = (projectId: number, id: number) => httpGet<ReportingCycle>(`${root(projectId)}/reporting-cycles/${id}`)
 export const getProjectActionItem = (projectId: number, id: number) => httpGet<ProjectActionItem>(`${root(projectId)}/action-items/${id}`)
 export const updateProjectActionItem = (projectId: number, id: number, body: Pick<ProjectActionItem, 'title' | 'description' | 'ownerId' | 'taskId' | 'milestoneId' | 'dueAt' | 'concurrencyToken'>) => httpPut<ProjectActionItem>(`${root(projectId)}/action-items/${id}`, body)
-export const getReportingCycles = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<ReportingCycle>>(`${root(projectId)}/reporting-cycles?page=${page}&pageSize=20`, signal)
+export const getReportingCycles = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<ReportingCycle>>(`${root(projectId)}/reporting-cycles?page=${page}&pageSize=10`, signal)
 export const createReportingCycle = (projectId: number, body: { reportType: 'WEEKLY' | 'MONTHLY'; periodStart: string; periodEnd: string; deadline: string; latePolicy: 'BLOCK' | 'FLAG'; projectPeriodId?: number }) => httpPost<ReportingCycle>(`${root(projectId)}/reporting-cycles`, body)
 export const updateReportingCycle = (projectId: number, id: number, body: Partial<Pick<ReportingCycle, 'periodStart' | 'periodEnd' | 'deadline' | 'latePolicy'>> & { concurrencyToken: string }) => httpPut<ReportingCycle>(`${root(projectId)}/reporting-cycles/${id}`, body)
-export const getProjectActionItems = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<ProjectActionItem>>(`${root(projectId)}/action-items?page=${page}&pageSize=20`, signal)
+export const getProjectActionItems = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<ProjectActionItem>>(`${root(projectId)}/action-items?page=${page}&pageSize=10`, signal)
 export const createProjectActionItem = (projectId: number, body: { sourceType: 'MEETING' | 'PROGRESS_REPORT'; meetingId?: number; progressReportId?: number; title: string; description?: string | null; dueAt?: string | null }) => httpPost<ProjectActionItem>(`${root(projectId)}/action-items`, body)
 export const updateProjectActionItemStatus = (projectId: number, id: number, status: ProjectActionItem['status'], concurrencyToken: string) => httpPost<ProjectActionItem>(`${root(projectId)}/action-items/${id}/status`, { status, concurrencyToken })
 export interface ProjectEvidenceQuery {
@@ -48,7 +48,7 @@ export interface ProjectEvidenceQuery {
 }
 
 export const getProjectEvidence = (projectId: number, query: ProjectEvidenceQuery = {}, signal?: AbortSignal) => {
-  const params = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 20) })
+  const params = new URLSearchParams({ page: String(query.page ?? 1), pageSize: String(query.pageSize ?? 10) })
   if (query.sourceType) params.set('sourceType', query.sourceType)
   if (query.majorId) params.set('majorId', String(query.majorId))
   if (query.verificationStatus) params.set('verificationStatus', query.verificationStatus)

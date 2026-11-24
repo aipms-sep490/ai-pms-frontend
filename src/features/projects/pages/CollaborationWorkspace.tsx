@@ -20,6 +20,7 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const data = useCollaborationWorkspace(project.id)
   const [selectedMember, setSelectedMember] = useState<number | null>(null)
   const [taskQuickFilter, setTaskQuickFilter] = useState<'all' | 'blocked' | 'overdue'>('all')
+  const [showAllFeedback, setShowAllFeedback] = useState(false)
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState(false)
   const createRef = useRef<HTMLButtonElement>(null)
@@ -98,8 +99,17 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
       <div className="workspace-heading-copy"><span className="workspace-kicker cw-eyebrow">{team?.name || project.teamName || 'Nhóm đồ án'} <span> / </span> {project.code}</span>
         <h1>{isTeamLeader ? 'Điều phối đồ án' : 'Công việc của tôi'}</h1><p className="cw-page-description">{isTeamLeader ? 'Theo dõi tiến độ, phân công công việc và hỗ trợ nhóm xử lý vướng mắc.' : 'Ưu tiên việc được giao, hạn gần, vướng mắc và các mốc cần phối hợp.'}</p>
       </div>
-      <div className="cw-heading-actions"><button type="button" className="cw-button" onClick={data.reload} disabled={isLoading} aria-label="Cập nhật dữ liệu nhóm">
-        <Icon name="refresh" />{isLoading ? 'Đang cập nhật…' : 'Cập nhật'}</button>
+      <div className="cw-heading-actions">
+        <button
+          type="button"
+          className="cw-button cw-button-icon"
+          onClick={data.reload}
+          disabled={isLoading}
+          aria-label="Cập nhật dữ liệu nhóm"
+          title={isLoading ? 'Đang cập nhật dữ liệu nhóm…' : 'Cập nhật dữ liệu nhóm'}
+        >
+          <span className={`material-symbols-outlined ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true">refresh</span>
+        </button>
         {canCreate && <button ref={createRef} className="cw-button cw-button-primary" type="button" onClick={() => { setCreating(value => !value); setCreated(false) }} aria-expanded={creating}><Icon name="add" />Tạo công việc</button>}
       </div>
     </header>
@@ -206,32 +216,117 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
             : <p className="cw-empty">Nhóm chưa có hạng mục cần nộp.</p>)}
         </section>
 
-        {!isTeamLeader && <section className="cw-panel" aria-labelledby="evidence-heading">
-          <div className="cw-section-heading"><div><h2 id="evidence-heading">Đóng góp và chứng cứ</h2><p>Xem phần đóng góp đã ghi nhận và các tệp chứng cứ của đồ án.</p></div><Icon name="folder_open" /></div>
-          <div className="cw-context-links"><Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/evidence">Sổ minh chứng<Icon name="arrow_forward" /></Link><Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_forward" /></Link></div>
-        </section>}
+        {!isTeamLeader && (
+          <div className="cw-secondary-grid">
+            <section className="cw-panel cw-panel--stretch" aria-labelledby="milestone-heading">
+              <div className="cw-section-heading"><h2 id="milestone-heading">Mốc gần nhất</h2><Icon name="flag" /></div>
+              <div className="cw-panel-body-fill">
+                <ResourceState resource={data.timeline} retry={data.reload} />
+                {data.timeline.state === 'ready' && (closestMilestone ? (
+                  <div className="cw-milestone">
+                    <p className="cw-milestone-date">{dateLabel(closestMilestone.dueDate)}</p>
+                    <h3>{closestMilestone.title}</h3>
+                    <p>{closestMilestone.tasks.filter(task => task.status === 'DONE').length}/{closestMilestone.tasks.length} công việc hoàn thành</p>
+                    <Progress value={closestMilestone.progressPercentage} label={`Tiến độ mốc ${closestMilestone.title}`} />
+                  </div>
+                ) : <p className="cw-empty">Không có mốc nào đang thực hiện.</p>)}
+              </div>
+              {data.timeline.state === 'ready' && closestMilestone && (
+                <div className="cw-panel-footer">
+                  <Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link>
+                </div>
+              )}
+            </section>
+
+            <section className="cw-panel cw-panel--stretch" aria-labelledby="meeting-heading">
+              <div className="cw-section-heading"><h2 id="meeting-heading">Lịch họp tiếp theo</h2><Icon name="calendar_month" /></div>
+              <div className="cw-panel-body-fill">
+                <ResourceState resource={data.meetings} retry={data.reload} />
+                {data.meetings.state === 'ready' && <UpcomingMeeting meetings={data.meetings.data} />}
+              </div>
+              <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link></div>
+            </section>
+          </div>
+        )}
       </div>
 
       <aside className="cw-side-column" aria-label="Hướng dẫn và lịch của nhóm">
-        <section className="cw-panel" aria-labelledby="feedback-heading"><div className="cw-section-heading"><div><p className="cw-eyebrow">Cùng giảng viên</p><h2 id="feedback-heading">Nhận xét gần đây</h2></div><Icon name="chat_bubble_outline" /></div>
+        <section className="cw-panel" aria-labelledby="feedback-heading">
+          <div className="cw-section-heading">
+            <div>
+              <p className="cw-eyebrow">Cùng giảng viên</p>
+              <h2 id="feedback-heading">
+                Nhận xét gần đây
+                {data.feedback.state === 'ready' && data.feedback.data.items.length > 0 && (
+                  <span className="cw-count">{data.feedback.data.items.length}</span>
+                )}
+              </h2>
+            </div>
+            <Icon name="chat_bubble_outline" />
+          </div>
           <ResourceState resource={data.feedback} retry={data.reload} />
-          {data.feedback.state === 'ready' && <>{data.feedback.data.incomplete && <p className="cw-section-error" role="alert">Một số nhận xét chưa tải được. <button onClick={data.reload}>Thử lại</button></p>}
-            {data.feedback.data.items.length ? <ul className="cw-feedback-list">{data.feedback.data.items.map(item => <li key={item.id}><div className="cw-feedback-author"><Avatar name={item.supervisorName} size="md" shape="rounded" /><div><strong>{item.supervisorName}</strong><span>{dateLabel(item.createdAt)} · Nhận xét báo cáo</span></div></div><blockquote>{item.feedbackText}</blockquote><Link className="cw-text-link" to={`/project/reports/${item.reportId}`}>Xem báo cáo {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}<Icon name="arrow_forward" /></Link></li>)}</ul>
-              : !data.feedback.data.incomplete && <p className="cw-empty">Chưa có nhận xét trong các kỳ báo cáo gần đây.</p>}</>}
+          {data.feedback.state === 'ready' && <>
+            {data.feedback.data.incomplete && <p className="cw-section-error" role="alert">Một số nhận xét chưa tải được. <button onClick={data.reload}>Thử lại</button></p>}
+            {data.feedback.data.items.length ? (
+              <>
+                <ul className="cw-feedback-list">
+                  {(showAllFeedback ? data.feedback.data.items : data.feedback.data.items.slice(0, 2)).map(item => (
+                    <li key={item.id}>
+                      <div className="cw-feedback-author">
+                        <Avatar name={item.supervisorName} size="md" shape="rounded" />
+                        <div>
+                          <strong>{item.supervisorName}</strong>
+                          <span>{dateLabel(item.createdAt)} · Nhận xét báo cáo</span>
+                        </div>
+                      </div>
+                      <blockquote><p className={`m-0 ${showAllFeedback ? '' : 'line-clamp-3'}`}>{item.feedbackText}</p></blockquote>
+                      <Link className="cw-text-link" to={`/project/reports/${item.reportId}`}>
+                        Xem báo cáo {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}<Icon name="arrow_forward" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {data.feedback.data.items.length > 2 && (
+                  <div className="px-6 pb-3">
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-primary hover:underline underline-offset-4"
+                      onClick={() => setShowAllFeedback(prev => !prev)}
+                    >
+                      {showAllFeedback ? 'Thu gọn nhận xét' : `Xem thêm ${data.feedback.data.items.length - 2} nhận xét`}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : !data.feedback.data.incomplete && <p className="cw-empty">Chưa có nhận xét trong các kỳ báo cáo gần đây.</p>}
+          </>}
           <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/reports">Tất cả báo cáo<Icon name="arrow_forward" /></Link></div>
         </section>
 
-        <section className="cw-panel" aria-labelledby="milestone-heading"><div className="cw-section-heading"><h2 id="milestone-heading">Mốc gần nhất</h2><Icon name="flag" /></div>
-          <ResourceState resource={data.timeline} retry={data.reload} />
-          {data.timeline.state === 'ready' && (closestMilestone ? <div className="cw-milestone"><p className="cw-milestone-date">{dateLabel(closestMilestone.dueDate)}</p><h3>{closestMilestone.title}</h3><p>{closestMilestone.tasks.filter(task => task.status === 'DONE').length}/{closestMilestone.tasks.length} công việc hoàn thành</p><Progress value={closestMilestone.progressPercentage} label={`Tiến độ mốc ${closestMilestone.title}`} /><Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link></div>
-            : <p className="cw-empty">Không có mốc nào đang thực hiện.</p>)}
-        </section>
+        {!isTeamLeader ? (
+          <section className="cw-panel" aria-labelledby="evidence-heading">
+            <div className="cw-section-heading"><div><h2 id="evidence-heading">Đóng góp và chứng cứ</h2><p>Xem phần đóng góp đã ghi nhận và các tệp chứng cứ của đồ án.</p></div><Icon name="folder_open" /></div>
+            <div className="cw-context-links cw-context-links--stack">
+              <Link className="cw-text-link" to="/project/contributions">Đóng góp của nhóm<Icon name="arrow_forward" /></Link>
+              <Link className="cw-text-link" to="/project/evidence">Sổ minh chứng<Icon name="arrow_forward" /></Link>
+              <Link className="cw-text-link" to="/project/files">Tệp và chứng cứ<Icon name="arrow_forward" /></Link>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section className="cw-panel" aria-labelledby="milestone-heading"><div className="cw-section-heading"><h2 id="milestone-heading">Mốc gần nhất</h2><Icon name="flag" /></div>
+              <ResourceState resource={data.timeline} retry={data.reload} />
+              {data.timeline.state === 'ready' && (closestMilestone ? <div className="cw-milestone"><p className="cw-milestone-date">{dateLabel(closestMilestone.dueDate)}</p><h3>{closestMilestone.title}</h3><p>{closestMilestone.tasks.filter(task => task.status === 'DONE').length}/{closestMilestone.tasks.length} công việc hoàn thành</p><Progress value={closestMilestone.progressPercentage} label={`Tiến độ mốc ${closestMilestone.title}`} /><Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link></div>
+                : <p className="cw-empty">Không có mốc nào đang thực hiện.</p>)}
+            </section>
 
-        <section className="cw-panel" aria-labelledby="meeting-heading"><div className="cw-section-heading"><h2 id="meeting-heading">Lịch họp tiếp theo</h2><Icon name="calendar_month" /></div>
-          <ResourceState resource={data.meetings} retry={data.reload} />
-          {data.meetings.state === 'ready' && <UpcomingMeeting meetings={data.meetings.data} />}
-          <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link></div>
-        </section>
+            <section className="cw-panel" aria-labelledby="meeting-heading"><div className="cw-section-heading"><h2 id="meeting-heading">Lịch họp tiếp theo</h2><Icon name="calendar_month" /></div>
+              <ResourceState resource={data.meetings} retry={data.reload} />
+              {data.meetings.state === 'ready' && <UpcomingMeeting meetings={data.meetings.data} />}
+              <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link></div>
+            </section>
+          </>
+        )}
       </aside>
     </div>
     <footer className="cw-page-footer"><span>{data.updatedAt ? `Cập nhật lúc ${data.updatedAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : 'Đang tải thông tin nhóm…'}</span><span>{project.code} · {team?.code || project.teamName}</span></footer>

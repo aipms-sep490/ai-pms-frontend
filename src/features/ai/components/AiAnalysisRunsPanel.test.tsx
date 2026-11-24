@@ -8,7 +8,7 @@ vi.mock('../ai-api', () => ({ getProjectAiRuns: mocks.getProjectAiRuns, getAiRun
 
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
-const paged = (items: unknown[], totalPages = 1) => ({ items, page: 1, pageSize: 20, totalCount: items.length, totalPages })
+const paged = (items: unknown[], totalPages = 1) => ({ items, page: 1, pageSize: 10, totalCount: items.length, totalPages })
 const run = (over: Partial<Record<string, unknown>>) => ({
   id: 1, projectId: 9, kind: 'PROJECT_ASK', status: 'COMPLETED', modelVersion: 'rule-v1', configVersion: 'v1',
   startedAt: '2026-10-08T03:00:00Z', completedAt: '2026-10-08T03:00:05Z', errorCode: null, evidence: [], ...over,
@@ -33,7 +33,7 @@ describe('AiAnalysisRunsPanel', () => {
     render(<AiAnalysisRunsPanel projectId={9} />)
     fireEvent.click(await screen.findByRole('button', { name: /Hỏi trợ lý/ }))
     await waitFor(() => expect(mocks.getAiRun).toHaveBeenCalledWith(9, 5, expect.any(AbortSignal)))
-    expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 1, 20, expect.any(AbortSignal))
+    expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 1, 10, expect.any(AbortSignal))
   })
 
   it('expands a PROJECT_ASK run to show the saved answer', async () => {
@@ -101,6 +101,6 @@ describe('AiAnalysisRunsPanel', () => {
     render(<AiAnalysisRunsPanel projectId={9} />)
     await screen.findByRole('button', { name: /Hỏi trợ lý/ })
     fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
-    await waitFor(() => expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 2, 20, expect.any(AbortSignal)))
+    await waitFor(() => expect(mocks.getProjectAiRuns).toHaveBeenCalledWith(9, 2, 10, expect.any(AbortSignal)))
   })
 })

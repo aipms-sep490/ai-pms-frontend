@@ -1,12 +1,23 @@
 import type { ButtonProps } from './Button'
 
-export function buttonClassName({ size = 'md', variant = 'primary', className = '' }: Pick<ButtonProps, 'size' | 'variant' | 'className'> = {}) {
-  const sizeStyles = {
-    // WCAG 2.2 Target Size (Minimum) Exception for secondary inline/table row controls
-    sm: 'px-2.5 text-xs gap-1.5 min-h-[36px]',
-    md: 'px-3.5 text-[13px] gap-2 min-h-[44px]',
-    lg: 'px-4 text-sm gap-2.5 min-h-[48px]',
-  }[size]
+export function buttonClassName({
+  size = 'md',
+  variant = 'primary',
+  className = '',
+  iconOnly = false,
+}: Pick<ButtonProps, 'size' | 'variant' | 'className'> & { iconOnly?: boolean } = {}) {
+  const sizeStyles = iconOnly
+    ? {
+        sm: 'w-9 h-9 p-0 min-h-[36px] text-xs',
+        md: 'w-10 h-10 p-0 min-h-[40px] text-[13px]',
+        lg: 'w-11 h-11 p-0 min-h-[44px] text-sm',
+      }[size]
+    : {
+        // WCAG 2.2 Target Size (Minimum) Exception for secondary inline/table row controls
+        sm: 'px-2.5 text-xs gap-1.5 min-h-[36px]',
+        md: 'px-3.5 text-[13px] gap-2 min-h-[40px]',
+        lg: 'px-4 text-sm gap-2.5 min-h-[44px]',
+      }[size]
 
   const variantStyles = {
     primary:

@@ -10,7 +10,7 @@ const dashboard = {
   asOfUtc: '2026-09-28T00:00:00Z',
   workload: { hasProfile: true, isAvailable: true, assignedProjects: 2, profileMaxActiveProjects: 4 },
   projectStates: [{ status: 'ACTIVE', count: 2 }], pendingProgressReviews: 1, overdueTasks: 1,
-  projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Dashboard contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 1, departmentId: 1, departmentName: 'SE', majors: [], supervisor: { userId: 4, name: 'GV A' }, analysis: { dataStatus: 'READY', riskLevel: 'HIGH', trendStatus: 'UP', progressSummary: { progressPercentage: 50, overdueTasks: 1, blockedTasks: 0 } } }], page: 1, pageSize: 20, totalCount: 22, totalPages: 2 },
+  projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Dashboard contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 1, departmentId: 1, departmentName: 'SE', majors: [], supervisor: { userId: 4, name: 'GV A' }, analysis: { dataStatus: 'READY', riskLevel: 'HIGH', trendStatus: 'UP', progressSummary: { progressPercentage: 50, overdueTasks: 1, blockedTasks: 0 } } }], page: 1, pageSize: 10, totalCount: 22, totalPages: 3 },
 }
 
 beforeEach(() => { vi.clearAllMocks(); api.getSupervisorDashboard.mockResolvedValue(dashboard); api.getActorDashboard.mockRejectedValue(new Error('not under test')) })
@@ -29,15 +29,15 @@ describe('SupervisorDashboardPage', () => {
     let finish!: (value: typeof dashboard) => void
     api.getSupervisorDashboard.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
     render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)
-    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenCalledWith({ page: 1, pageSize: 20 }))
+    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenCalledWith({ page: 1, pageSize: 10 }))
     expect(screen.queryByRole('link', { name: 'Mở không gian đồ án' })).toBeNull()
     await act(async () => finish(dashboard))
     expect(await screen.findByRole('link', { name: 'Mở không gian đồ án' })).toBeTruthy()
 
     fireEvent.change(screen.getByLabelText('Trạng thái'), { target: { value: 'ACTIVE' } })
-    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, status: 'ACTIVE' }))
+    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 1, pageSize: 10, status: 'ACTIVE' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Trang sau' }))
-    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, status: 'ACTIVE' }))
+    await waitFor(() => expect(api.getSupervisorDashboard).toHaveBeenLastCalledWith({ page: 2, pageSize: 10, status: 'ACTIVE' }))
   })
   it('hides outdated project data when refresh fails', async () => {
     render(<MemoryRouter><SupervisorDashboardPage /></MemoryRouter>)

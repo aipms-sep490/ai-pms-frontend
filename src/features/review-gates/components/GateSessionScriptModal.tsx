@@ -332,9 +332,9 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                     key={idx}
                     className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                       stage.status === 'COMPLETED'
-                        ? 'border-status-success-border bg-status-success-bg/60'
+                        ? 'border-hairline border-l-4 border-l-status-success-text bg-card'
                         : stage.status === 'IN_PROGRESS'
-                        ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
+                        ? 'border-hairline border-l-4 border-l-primary bg-card shadow-xs ring-1 ring-primary/30'
                         : 'border-hairline bg-canvas/40'
                     }`}
                   >

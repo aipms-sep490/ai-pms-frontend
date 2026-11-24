@@ -158,7 +158,7 @@ export function listDepartmentStudents(filters: DepartmentStudentQuery = {}, sig
       qualificationStatus: filters.qualificationStatus || undefined,
       teamStatus: filters.teamStatus || undefined,
       page: filters.page ?? 1,
-      pageSize: filters.pageSize ?? 20,
+      pageSize: filters.pageSize ?? 12,
     }),
     signal,
   )

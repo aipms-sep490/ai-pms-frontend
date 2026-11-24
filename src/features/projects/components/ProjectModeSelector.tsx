@@ -24,11 +24,11 @@ export function ProjectModeSelector({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 items-stretch md:grid-cols-2 gap-3.5">
         {/* Single Major Option */}
         <label
           htmlFor="project-mode-single-major"
-          className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+          className={`flex h-full flex-col justify-between gap-3 rounded-xl border-2 p-4 transition-all cursor-pointer ${
             selectedMode === 'SINGLE_MAJOR'
               ? 'border-primary/35 bg-primary-subtle shadow-xs'
               : 'border-hairline hover:border-line-strong bg-card'
@@ -67,7 +67,7 @@ export function ProjectModeSelector({
         {/* Interdisciplinary Option */}
         <label
           htmlFor="project-mode-interdisciplinary"
-          className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3 ${
+          className={`flex h-full flex-col justify-between gap-3 rounded-xl border-2 p-4 transition-all cursor-pointer ${
             selectedMode === 'INTERDISCIPLINARY'
               ? 'border-primary/35 bg-primary-subtle shadow-xs'
               : 'border-hairline hover:border-line-strong bg-card'

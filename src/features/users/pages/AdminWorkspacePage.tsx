@@ -47,6 +47,13 @@ function auditDateBoundary(day: string, end = false): string | undefined {
   return Number.isFinite(date.getTime()) ? date.toISOString() : undefined
 }
 
+function formatSafeTimestamp(value: string | null | undefined, options: Intl.DateTimeFormatOptions): string {
+  if (!value) return 'Chưa ghi nhận'
+  const ts = utcTimestamp(value)
+  if (!Number.isFinite(ts)) return 'Chưa ghi nhận'
+  return new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', ...options }).format(ts)
+}
+
 const AUDIT_ENTITY_LABELS: Record<string, string> = {
   USER: 'Người dùng',
   ROLE: 'Vai trò',
@@ -94,6 +101,7 @@ export function AdminWorkspacePage() {
 
   const [params, setParams] = useSearchParams()
   const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
+  const pageSize = Math.max(1, Number(params.get('pageSize') ?? '10') || 10)
   const search = params.get('search') ?? ''
   const status = params.get('status') ?? ''
   const roleFilter = params.get('role') ?? ''
@@ -101,6 +109,8 @@ export function AdminWorkspacePage() {
   const majorFilter = params.get('majorId') ?? ''
   const departmentIdNum = Number(departmentFilter) > 0 ? Number(departmentFilter) : undefined
   const majorIdNum = Number(majorFilter) > 0 ? Number(majorFilter) : undefined
+  const auditPage = Math.max(1, Number(params.get('auditPage') ?? '1') || 1)
+  const auditPageSize = Math.max(1, Number(params.get('auditPageSize') ?? '10') || 10)
   const auditAction = params.get('auditAction') ?? ''
   const auditEntityType = params.get('auditEntityType') ?? ''
   const auditOutcome = params.get('auditOutcome') ?? ''
@@ -114,6 +124,7 @@ export function AdminWorkspacePage() {
       departmentId: departmentIdNum,
       majorId: majorIdNum,
       page,
+      pageSize,
     },
     {
       action: auditAction || undefined,
@@ -121,6 +132,8 @@ export function AdminWorkspacePage() {
       outcome: auditOutcome || undefined,
       fromUtc: auditDateBoundary(auditFrom),
       toUtc: auditDateBoundary(auditTo, true),
+      page: auditPage,
+      pageSize: auditPageSize,
     },
   )
 
@@ -139,8 +152,8 @@ export function AdminWorkspacePage() {
   useEffect(() => () => { exportAbortRef.current?.abort(); exportAbortRef.current = null }, [])
 
   const globalRoles = useMemo(
-    () => admin.rbac.value.roles.filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'),
-    [admin.rbac.value.roles],
+    () => (admin.rbac.value?.roles ?? []).filter((role) => role.isAssignableGlobalRole && role.assignmentKind === 'GLOBAL'),
+    [admin.rbac.value?.roles],
   )
 
   const userNameMap = useMemo(() => {
@@ -184,7 +197,12 @@ export function AdminWorkspacePage() {
   const setFilter = (patch: Record<string, string>) => {
     const next = new URLSearchParams(params)
     Object.entries(patch).forEach(([key, value]) => (value ? next.set(key, value) : next.delete(key)))
-    if (!('page' in patch)) next.set('page', '1')
+    const isAuditPatch = Object.keys(patch).every((key) => key.startsWith('audit'))
+    if (isAuditPatch) {
+      if (!('auditPage' in patch)) next.set('auditPage', '1')
+    } else if (!('page' in patch)) {
+      next.set('page', '1')
+    }
     setParams(next)
   }
 
@@ -303,6 +321,16 @@ export function AdminWorkspacePage() {
     return chips
   }, [academicNames.departments, academicNames.majors, departmentFilter, majorFilter, roleFilter, search, status])
 
+  const auditChips = useMemo<ActiveFilterChip[]>(() => {
+    const chips: ActiveFilterChip[] = []
+    if (auditAction) chips.push({ id: 'auditAction', label: 'Hành động', value: auditActionLabel(auditAction) })
+    if (auditEntityType) chips.push({ id: 'auditEntityType', label: 'Đối tượng', value: AUDIT_ENTITY_LABELS[auditEntityType] ?? displayLabel(auditEntityType) })
+    if (auditOutcome) chips.push({ id: 'auditOutcome', label: 'Kết quả', value: auditOutcome === 'SUCCESS' ? 'Thành công' : 'Thất bại' })
+    if (auditFrom) chips.push({ id: 'auditFrom', label: 'Từ ngày', value: auditFrom })
+    if (auditTo) chips.push({ id: 'auditTo', label: 'Đến ngày', value: auditTo })
+    return chips
+  }, [auditAction, auditEntityType, auditFrom, auditOutcome, auditTo])
+
   const activeTab = params.get('tab') === 'audit' ? 'audit' : params.get('tab') === 'access' ? 'access' : 'accounts'
   const departmentEntries = Object.entries(academicNames.departments)
   const hasCustomAuditAction = Boolean(auditAction && !(auditAction in AUDIT_ACTION_LABELS))
@@ -317,6 +345,7 @@ export function AdminWorkspacePage() {
           <p>Quản lý tài khoản, phân quyền và theo dõi hoạt động trên hệ thống.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={admin.refresh} />
           <Link className="admin-link-button" to="/academic/governance">Quản lý học vụ</Link>
           <Link className="admin-link-button" to="/academic">Cấu trúc tổ chức</Link>
         </div>
@@ -334,7 +363,12 @@ export function AdminWorkspacePage() {
         </div>
       </nav>
 
-      {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
+      {notice ? (
+        <p className="admin-notice" role="status">
+          <span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
+        </p>
+      ) : null}
       {errorNotice ? <p className="admin-error" role="alert">{errorNotice}</p> : null}
       <SystemStatusPanel />
 
@@ -495,14 +529,13 @@ export function AdminWorkspacePage() {
                     <TableCell label="Đăng nhập gần nhất">
                       {user.lastLoginAt ? (
                         <time dateTime={user.lastLoginAt}>
-                          {new Intl.DateTimeFormat('vi-VN', {
-                            timeZone: 'Asia/Ho_Chi_Minh',
+                          {formatSafeTimestamp(user.lastLoginAt, {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit',
-                          }).format(utcTimestamp(user.lastLoginAt))}
+                          })}
                         </time>
                       ) : 'Chưa ghi nhận'}
                     </TableCell>
@@ -559,6 +592,7 @@ export function AdminWorkspacePage() {
             pageSize={admin.users.value.pageSize}
             total={admin.users.value.totalCount}
             onPage={(next) => setFilter({ page: String(next) })}
+            onPageSizeChange={(size) => setFilter({ pageSize: String(size), page: '1' })}
           />
         )}
 
@@ -586,7 +620,7 @@ export function AdminWorkspacePage() {
                   </small>
                 </span>
                 <time dateTime={record.occurredAt}>
-                  {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}
+                  {formatSafeTimestamp(record.occurredAt, { dateStyle: 'short', timeStyle: 'short' })}
                 </time>
               </li>
             ))}
@@ -602,63 +636,79 @@ export function AdminWorkspacePage() {
             <h2 id="audit-title">Nhật ký bảo mật</h2>
             <p>Theo dõi thời gian, người thực hiện và nội dung hoạt động quản trị.</p>
           </div>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại nhật ký bảo mật" onClick={admin.refresh} />
         </div>
-        <form
-          key={[auditAction, auditEntityType, auditOutcome, auditFrom, auditTo].join('|')}
-          className="admin-filter"
-          onSubmit={(event) => {
-            event.preventDefault()
-            const data = new FormData(event.currentTarget)
-            setFilter({
-              auditAction: String(data.get('action') ?? ''),
-              auditEntityType: String(data.get('entityType') ?? ''),
-              auditOutcome: String(data.get('outcome') ?? ''),
-              auditFrom: String(data.get('fromUtc') ?? ''),
-              auditTo: String(data.get('toUtc') ?? ''),
-            })
-          }}
-        >
-          <label>
-            Hành động
-            <select name="action" defaultValue={auditAction}>
-              <option value="">Tất cả hành động</option>
-              {hasCustomAuditAction && <option value={auditAction}>{auditAction}</option>}
-              {Object.entries(AUDIT_ACTION_LABELS).map(([code, label]) => (
-                <option key={code} value={code}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Đối tượng
-            <select name="entityType" defaultValue={auditEntityType}>
-              <option value="">Tất cả đối tượng</option>
-              {hasCustomAuditEntity && <option value={auditEntityType}>{displayLabel(auditEntityType)}</option>}
-              {Object.entries(AUDIT_ENTITY_LABELS).map(([code, label]) => (
-                <option key={code} value={code}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Kết quả
-            <select name="outcome" defaultValue={auditOutcome}>
-              <option value="">Tất cả</option>
-              <option value="SUCCESS">Thành công</option>
-              <option value="FAILURE">Thất bại</option>
-            </select>
-          </label>
-          <label>Từ ngày (giờ Việt Nam)<input type="date" name="fromUtc" defaultValue={auditFrom} /></label>
-          <label>Đến ngày (giờ Việt Nam)<input type="date" name="toUtc" defaultValue={auditTo} /></label>
-          <Button type="submit" variant="secondary">Lọc</Button>
-          {(auditAction || auditEntityType || auditOutcome || auditFrom || auditTo) ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '' })}
-            >
-              Đặt lại
-            </Button>
-          ) : null}
-        </form>
+        <div className="mt-4">
+          <FilterToolbar
+            embedded
+            ariaLabel="Bộ lọc nhật ký bảo mật"
+            controls={
+              <>
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Hành động</span>
+                  <select
+                    aria-label="Hành động"
+                    value={auditAction}
+                    onChange={(event) => setFilter({ auditAction: event.target.value })}
+                  >
+                    <option value="">Tất cả hành động</option>
+                    {hasCustomAuditAction && <option value={auditAction}>{auditAction}</option>}
+                    {Object.entries(AUDIT_ACTION_LABELS).map(([code, label]) => (
+                      <option key={code} value={code}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Đối tượng</span>
+                  <select
+                    aria-label="Đối tượng"
+                    value={auditEntityType}
+                    onChange={(event) => setFilter({ auditEntityType: event.target.value })}
+                  >
+                    <option value="">Tất cả đối tượng</option>
+                    {hasCustomAuditEntity && <option value={auditEntityType}>{displayLabel(auditEntityType)}</option>}
+                    {Object.entries(AUDIT_ENTITY_LABELS).map(([code, label]) => (
+                      <option key={code} value={code}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Kết quả</span>
+                  <select
+                    aria-label="Kết quả"
+                    value={auditOutcome}
+                    onChange={(event) => setFilter({ auditOutcome: event.target.value })}
+                  >
+                    <option value="">Mọi kết quả</option>
+                    <option value="SUCCESS">Thành công</option>
+                    <option value="FAILURE">Thất bại</option>
+                  </select>
+                </label>
+                <label className="ft-select-wrap">
+                  <span className="text-xs font-semibold text-ink-soft whitespace-nowrap">Từ ngày (giờ Việt Nam)</span>
+                  <input
+                    type="date"
+                    value={auditFrom}
+                    onChange={(event) => setFilter({ auditFrom: event.target.value })}
+                  />
+                </label>
+                <label className="ft-select-wrap">
+                  <span className="text-xs font-semibold text-ink-soft whitespace-nowrap">Đến ngày (giờ Việt Nam)</span>
+                  <input
+                    type="date"
+                    value={auditTo}
+                    onChange={(event) => setFilter({ auditTo: event.target.value })}
+                  />
+                </label>
+              </>
+            }
+            activeChips={auditChips}
+            onRemoveChip={(id) => setFilter({ [id]: '' })}
+            onClearAll={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '', auditPage: '1' })}
+            hasActiveFilters={auditChips.length > 0}
+            clearAllLabel="Đặt lại"
+          />
+        </div>
         {admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}
         {admin.audit.state === 'error' ? (
           <Failure
@@ -667,7 +717,7 @@ export function AdminWorkspacePage() {
           />
         ) : null}
         {admin.audit.state === 'ready' && admin.audit.value.items.length > 0 ? (
-          <Table stack className="mt-3">
+          <Table stack className="mt-4">
             <TableHead>
               <TableRow head>
                 <TableHeaderCell>Hành động</TableHeaderCell>
@@ -691,7 +741,7 @@ export function AdminWorkspacePage() {
                   </TableCell>
                   <TableCell label="Thời gian">
                     <time dateTime={record.occurredAt}>
-                      {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(utcTimestamp(record.occurredAt))}
+                      {formatSafeTimestamp(record.occurredAt, { dateStyle: 'short', timeStyle: 'short' })}
                     </time>
                   </TableCell>
                 </TableRow>
@@ -700,14 +750,15 @@ export function AdminWorkspacePage() {
           </Table>
         ) : null}
         {admin.audit.state === 'ready' && admin.audit.value.totalCount === 0 ? (
-          <p role="status">Không có hoạt động phù hợp với bộ lọc hiện tại.</p>
+          <p role="status" className="mt-4 text-sm text-ink-muted">Không có hoạt động phù hợp với bộ lọc hiện tại.</p>
         ) : null}
         {admin.audit.state === 'ready' && admin.audit.value.totalCount > 0 && (
           <Pagination
             page={admin.audit.value.page}
             pageSize={admin.audit.value.pageSize}
             total={admin.audit.value.totalCount}
-            onPage={(next) => setFilter({ page: String(next) })}
+            onPage={(next) => setFilter({ auditPage: String(next) })}
+            onPageSizeChange={(size) => setFilter({ auditPageSize: String(size), auditPage: '1' })}
           />
         )}
       </section>
@@ -818,11 +869,38 @@ function Failure({ message, retry }: { message: string; retry: () => void }) {
   return <p className="admin-error" role="alert">{message} <Button size="sm" variant="outline" onClick={retry}>Thử lại</Button></p>
 }
 
-function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) {
+function Pagination({
+  page,
+  pageSize,
+  total,
+  onPage,
+  onPageSizeChange,
+}: {
+  page: number
+  pageSize: number
+  total: number
+  onPage: (page: number) => void
+  onPageSizeChange?: (size: number) => void
+}) {
   const pages = Math.max(1, Math.ceil(total / pageSize))
   return (
     <div className="admin-pagination">
       <span>Trang {page}/{pages} · {total} kết quả</span>
+      {onPageSizeChange && (
+        <label className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
+          <span className="whitespace-nowrap">Số dòng:</span>
+          <select
+            aria-label="Số bản ghi trên mỗi trang"
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            className="h-8 min-h-8 w-auto rounded-lg border border-hairline bg-card px-2 text-xs text-ink"
+          >
+            {[10, 12, 20, 50].map((size) => (
+              <option key={size} value={size}>{size} / trang</option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="flex items-center gap-1">
         <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(1)}>Đầu</Button>
         <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPage(page - 1)}>Trang trước</Button>

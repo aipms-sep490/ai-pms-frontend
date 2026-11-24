@@ -90,8 +90,8 @@ export const DefenseRoomCanvas: React.FC<DefenseRoomCanvasProps> = ({
 
         <div className="flex items-center gap-2">
           {status === 'ONGOING' && (
-            <div className="flex items-center gap-2 rounded-lg border border-status-success-border bg-status-success-bg px-3 py-1.5 text-xs text-status-success-text">
-              <span className="font-semibold">Thời gian Q&A:</span>
+            <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-3 py-1.5 text-xs text-ink">
+              <span className="font-semibold text-status-success-text">Thời gian Q&A:</span>
               <span>{elapsedMinutes}/{totalMinutes} phút</span>
               <div className="h-1.5 w-16 overflow-hidden rounded-full bg-canvas">
                 <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPercent}%` }} />

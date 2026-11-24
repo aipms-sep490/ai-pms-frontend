@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Modal } from '../../../components/ui/Modal'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { HttpError } from '../../../services/http/http-client'
 import {
   createDepartmentSpecialization,
@@ -149,6 +151,8 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
     }
   }
 
+  const itemPager = useClientPagination(items, 10)
+
   return (
     <Modal
       open
@@ -159,7 +163,12 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
     >
       <div className="space-y-4">
         {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-sm text-status-error-text">{error}</p>}
-        {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg px-3 py-2 text-sm text-status-success-text">{notice}</p>}
+        {notice && (
+          <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-3 py-2 text-sm text-ink">
+            <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+            <p role="status">{notice}</p>
+          </div>
+        )}
 
         <form className="grid gap-3 rounded-xl border border-hairline bg-slate-50/60 p-4 sm:grid-cols-2" onSubmit={event => void handleSubmit(event)}>
           <label className="text-sm font-medium">
@@ -226,29 +235,41 @@ export function SpecializationCatalogPanel({ departmentId, majors, onClose, onCh
         ) : items.length === 0 ? (
           <p className="rounded-lg border border-hairline p-4 text-sm text-ink-muted">Khoa chưa khai báo chuyên ngành hẹp nào.</p>
         ) : (
-          <ul className="divide-y divide-hairline rounded-xl border border-hairline">
-            {items.map(item => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <strong>{item.code}</strong>
-                    <span>{item.name}</span>
-                    <StatusBadge tone={item.isActive ? 'success' : 'neutral'} label={item.isActive ? 'Đang áp dụng' : 'Ngừng áp dụng'} />
+          <div className="space-y-3">
+            <ul className="divide-y divide-hairline rounded-xl border border-hairline">
+              {itemPager.paginatedItems.map(item => (
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong>{item.code}</strong>
+                      <span>{item.name}</span>
+                      <StatusBadge tone={item.isActive ? 'success' : 'neutral'} label={item.isActive ? 'Đang áp dụng' : 'Ngừng áp dụng'} />
+                    </div>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {item.majorName ? `Ngành: ${item.majorName}` : 'Toàn Khoa'}
+                      {item.description ? ` · ${item.description}` : ''}
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {item.majorName ? `Ngành: ${item.majorName}` : 'Toàn Khoa'}
-                    {item.description ? ` · ${item.description}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => startEdit(item)}>Sửa</Button>
-                  <Button size="sm" variant="secondary" disabled={busy} onClick={() => void toggleStatus(item)}>
-                    {item.isActive ? 'Ngừng dùng' : 'Kích hoạt'}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => startEdit(item)}>Sửa</Button>
+                    <Button size="sm" variant="secondary" disabled={busy} onClick={() => void toggleStatus(item)}>
+                      {item.isActive ? 'Ngừng dùng' : 'Kích hoạt'}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {itemPager.showPagination && (
+              <Pagination
+                page={itemPager.page}
+                pages={itemPager.pages}
+                total={itemPager.total}
+                pageSize={itemPager.pageSize}
+                onPage={itemPager.setPage}
+                onPageSizeChange={itemPager.setPageSize}
+              />
+            )}
+          </div>
         )}
 
         <div className="app-modal__actions">

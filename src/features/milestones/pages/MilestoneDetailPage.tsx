@@ -188,8 +188,8 @@ export function MilestoneDetailPage() {
       description={milestoneId ? 'Theo dõi thời gian, tiến độ và công việc thuộc mốc này.' : 'Chia đồ án thành các mốc rõ ràng để cả nhóm cùng theo dõi tiến độ.'}
       action={
         <>
-          <button className="ex-button" onClick={reload} disabled={loading || mutation.busy}>
-            <ExIcon name="refresh" />Cập nhật
+          <button type="button" className="ex-button ex-button-icon" aria-label="Cập nhật" title="Cập nhật" onClick={reload} disabled={loading || mutation.busy}>
+            <ExIcon name="refresh" />
           </button>
           {canCreate && !milestoneId && (
             <button

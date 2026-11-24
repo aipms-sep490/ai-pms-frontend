@@ -197,16 +197,21 @@ export function ProjectGovernancePage() {
       description="Theo dõi lịch báo cáo, việc cần làm sau trao đổi và minh chứng của nhóm."
       eyebrow={eyebrow}
       className="execution-page space-y-6"
-      action={canManage ? (
-        <div className="flex flex-wrap gap-2">
-          <Button icon="event_repeat" variant="secondary" disabled={busy} onClick={() => { setEditingCycle(null); setCycleModalOpen(true) }}>
-            Tạo lịch nộp
-          </Button>
-          <Button icon="add_task" disabled={busy || !sources.length} onClick={() => { setEditingAction(null); setActionModalOpen(true) }}>
-            Thêm công việc
-          </Button>
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || busy} onClick={() => void load()} />
+          {canManage && (
+            <>
+              <Button icon="event_repeat" variant="secondary" disabled={busy} onClick={() => { setEditingCycle(null); setCycleModalOpen(true) }}>
+                Tạo lịch nộp
+              </Button>
+              <Button icon="add_task" disabled={busy || !sources.length} onClick={() => { setEditingAction(null); setActionModalOpen(true) }}>
+                Thêm công việc
+              </Button>
+            </>
+          )}
         </div>
-      ) : undefined}
+      }
     >
       {error && (
         <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
@@ -215,7 +220,12 @@ export function ProjectGovernancePage() {
           <button type="button" className="mt-2 min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button>
         </div>
       )}
-      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
+      {notice && (
+        <p role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
+          <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
+        </p>
+      )}
       {loading && !data && <ListLoading label="Đang tải thông tin điều phối…" />}
 
       {data && (
@@ -585,7 +595,7 @@ async function loadData(projectId: number, cyclePage = 1, actionPage = 1, eviden
     getProject(projectId),
     api.getReportingCycles(projectId, undefined, cyclePage),
     api.getProjectActionItems(projectId, undefined, actionPage),
-    api.getProjectEvidence(projectId, { page: evidencePage, pageSize: 20 }),
+    api.getProjectEvidence(projectId, { page: evidencePage, pageSize: 10 }),
     readAllPages(page => getProgressReports(projectId, { page, pageSize: 100 })),
     readAllPages(page => getMeetings(projectId, { page, pageSize: 100 })),
     api.getProjectGovernance(projectId),

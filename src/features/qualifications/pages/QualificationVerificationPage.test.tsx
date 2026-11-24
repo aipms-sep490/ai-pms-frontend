@@ -45,7 +45,7 @@ it('uses server pagination and resets to the first page after filtering', async 
   render(<QualificationVerificationPage />)
   await screen.findByText('Mai Anh')
   fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
-  await waitFor(() => expect(api.getVerificationQueue).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 20 })))
+  await waitFor(() => expect(api.getVerificationQueue).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 10 })))
   fireEvent.change(screen.getByLabelText('Tìm sinh viên'), { target: { value: 'Mai' } })
   await waitFor(() => expect(api.getVerificationQueue).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, search: 'Mai' })))
 })

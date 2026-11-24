@@ -9,7 +9,7 @@ export interface ReplacementCandidate {
   assignmentType: string; majorId: number | null; responsibleDepartmentId: number | null
   eligible: boolean; reasons: string[]; expertiseMatch: 'MATCHED' | 'NOT_REQUIRED' | 'UNKNOWN' | string
 }
-export const getReplacementCandidates = (id: number, page = 1, search = '') => httpGet<import('../../../types/backend').PagedResult<ReplacementCandidate>>(`/supervisor-assignments/${id}/replacement-candidates?${new URLSearchParams({ page: String(page), pageSize: '20', search })}`)
+export const getReplacementCandidates = (id: number, page = 1, search = '') => httpGet<import('../../../types/backend').PagedResult<ReplacementCandidate>>(`/supervisor-assignments/${id}/replacement-candidates?${new URLSearchParams({ page: String(page), pageSize: '10', search })}`)
 
 export interface ReplacementProfile { id: number; fullName: string; departmentId: number; departmentName: string; isAvailable: boolean }
 /** Discovery only. Replacement eligibility/capacity is checked by the write service. */

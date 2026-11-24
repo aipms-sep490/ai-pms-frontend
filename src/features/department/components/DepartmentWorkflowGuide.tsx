@@ -22,7 +22,7 @@ export function DepartmentWorkflowGuide() {
       </summary>
       <div className="border-t border-hairline px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
         <p className="text-sm leading-6 text-ink-muted">Các bước giúp tìm đúng màn hình. Quyền và điều kiện thao tác được kiểm tra trên từng hồ sơ, không được cấp thêm từ hướng dẫn này.</p>
-        <ol className="mt-4 grid gap-3 md:grid-cols-2">{steps.map((step, index) => <li key={step.title} className="rounded-lg border border-hairline bg-canvas/40 p-4"><h3 className="font-semibold text-ink">{index + 1}. {step.title}</h3><p className="mt-1.5 text-sm leading-6 text-ink-muted">{step.text}</p><Link className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={step.to}>{step.action}</Link></li>)}</ol>
+        <ol className="mt-4 grid items-stretch gap-3 md:grid-cols-2">{steps.map((step, index) => <li key={step.title} className="flex h-full flex-col justify-between rounded-lg border border-hairline bg-canvas/40 p-4"><div><h3 className="font-semibold text-ink">{index + 1}. {step.title}</h3><p className="mt-1.5 text-sm leading-6 text-ink-muted">{step.text}</p></div><Link className="mt-2 inline-flex min-h-10 items-center text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={step.to}>{step.action}</Link></li>)}</ol>
       </div>
     </details>
   )

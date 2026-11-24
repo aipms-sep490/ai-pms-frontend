@@ -15,7 +15,7 @@ export function AssignedGateReviewPage() {
   const [error, setError] = useState<string | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize, setPageSize] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const requestId = useRef(0)
@@ -94,7 +94,7 @@ export function AssignedGateReviewPage() {
       eyebrow="Hội đồng thẩm định"
       title="Thẩm định tiến trình đồ án"
       description="Xem xét minh chứng học thuật theo phiên bản được nộp, đối chiếu tiêu chí và đưa ra quyết định thẩm định chính thức."
-      action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => void loadAssignments()}>Tải lại</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void loadAssignments()} />}
     >
       <ReviewGatesMockNotice />
       {loading && !hasLoaded ? (

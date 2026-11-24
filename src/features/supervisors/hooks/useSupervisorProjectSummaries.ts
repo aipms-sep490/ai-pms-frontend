@@ -73,7 +73,7 @@ export function useSupervisorProjectSummaries(assignments: SupervisorAssignmentD
               ? { state: 'ready', data: { percentage: progress.value.progressPercentage, doneTasks: progress.value.doneTasks, totalTasks: progress.value.totalTasks } }
               : failure('tiến độ'),
             attention: attention.status === 'fulfilled'
-              ? { state: 'ready', data: { overdue: attention.value.overdueTasks.length, blocked: attention.value.blockedTasks.length } }
+              ? { state: 'ready', data: { overdue: (attention.value.overdueTasks ?? []).length, blocked: (attention.value.blockedTasks ?? []).length } }
               : failure('việc quá hạn và vướng mắc'),
             meetings: meetings.status === 'fulfilled'
               ? { state: 'ready', data: { count: meetings.value.totalCount, nextAt: earliestMeeting(meetings.value.items) } }

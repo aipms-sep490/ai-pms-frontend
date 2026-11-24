@@ -10,7 +10,7 @@ vi.mock('../../academic/hooks/useAcademicStructure', () => academic)
 afterEach(cleanup)
 
 const reviewState = (overrides: Record<string, unknown> = {}) => ({
-  queue: { items: [], page: 1, pageSize: 20, totalCount: 0 },
+  queue: { items: [], page: 1, pageSize: 10, totalCount: 0 },
   project: { code: 'P-1', title: 'Interdisciplinary project', teamName: 'Team Alpha', status: 'UnderReview', description: 'Real API description', proposalSource: 'STUDENT_PROPOSAL' },
   detail: {
     academicScope: { projectMode: 'INTERDISCIPLINARY', leadDepartmentId: 5, primaryMajorId: null, requirements: [{ majorId: 7, minMembers: 1, maxMembers: 2, responsibility: 'Data' }] },
@@ -179,7 +179,7 @@ describe('ProjectReviewPage', () => {
 
   it('compares two actual registration snapshots when a revision exists', () => {
     const evidence = (count: number) => ({ scope: { projectMode: 'SINGLE_MAJOR', leadDepartmentId: 5, primaryMajorId: 7, requirements: [] }, policy: { minMembers: 2, maxMembers: count, minDistinctMajors: 1 }, members: [], departmentIds: [5] })
-    hook.useProjectReview.mockReturnValue(reviewState({ reviewSnapshots: { page: 1, pageSize: 20, totalCount: 2, items: [
+    hook.useProjectReview.mockReturnValue(reviewState({ reviewSnapshots: { page: 1, pageSize: 10, totalCount: 2, items: [
       { id: 2, submissionNumber: 2, submittedAt: '2026-10-16', evidence: evidence(5), decisions: [] },
       { id: 1, submissionNumber: 1, submittedAt: '2026-10-15', evidence: evidence(4), decisions: [] },
     ] } }))

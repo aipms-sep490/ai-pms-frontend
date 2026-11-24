@@ -1,6 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Link } from 'react-router-dom'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
@@ -71,11 +73,11 @@ export function SupervisorProgressReviewPage() {
       title="Theo dõi tiến độ và báo cáo"
       eyebrow={`Giám sát tiến độ · ${project.code}`}
       description="Theo dõi kết quả thực hiện, những việc cần lưu ý và gửi phản hồi cho nhóm."
-      action={<Button variant="secondary" icon="refresh" onClick={review.reload}>Làm mới dữ liệu</Button>}
+      action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới dữ liệu" onClick={review.reload} />}
     >
       <section aria-labelledby="progress-overview">
         <h2 id="progress-overview" className="sr-only">Tổng quan tiến độ</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <ResourceCard label="Tiến độ tổng quan" resource={review.summary} render={data => <><strong className="text-2xl text-ink">{data.progressPercentage}%</strong><p className="mt-2">{data.doneTasks}/{data.totalTasks} công việc · {data.completedMilestones}/{data.totalMilestones} mốc hoàn thành</p></>} />
           <ResourceCard label="Công việc cần lưu ý" resource={review.attention} render={data => <><strong className="text-2xl text-ink">{data.overdueTasks.length + data.blockedTasks.length}</strong><p className="mt-2">{data.overdueTasks.length} quá hạn · {data.blockedTasks.length} vướng mắc</p></>} />
           <ResourceCard label="Báo cáo theo kỳ" resource={review.reports} render={data => <><strong className="text-2xl text-ink">{data.totalCount}</strong><p className="mt-2">{reportCounts ? `${reportCounts.SUBMITTED} đã nộp · ${reportCounts.REVIEWED} đã có phản hồi trong trang đang xem` : 'Đang tổng hợp'}</p></>} />
@@ -145,7 +147,7 @@ export function SupervisorProgressReviewPage() {
 }
 
 function ResourceCard<T>({ label, resource, render }: { label: string; resource: ProgressReviewResource<T>; render: (data: T) => ReactNode }) {
-  return <section className="min-w-0 workspace-surface p-5"><h3 className="text-sm font-semibold text-ink">{label}</h3>{resource.state === 'loading' ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải…</p> : resource.state === 'error' ? <p role="alert" className="mt-3 break-words text-sm text-status-error-text">{resource.message}</p> : <div className="mt-3 break-words text-sm leading-6 text-ink-muted">{render(resource.data)}</div>}</section>
+  return <section className="flex h-full min-w-0 flex-col justify-between workspace-surface p-5"><h3 className="text-sm font-semibold text-ink">{label}</h3>{resource.state === 'loading' ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải…</p> : resource.state === 'error' ? <p role="alert" className="mt-3 break-words text-sm text-status-error-text">{resource.message}</p> : <div className="mt-3 break-words text-sm leading-6 text-ink-muted">{render(resource.data)}</div>}</section>
 }
 
 function ReportList({ resource, filteredItems, hasFilters, onClearFilters, routeBase }: {
@@ -155,6 +157,7 @@ function ReportList({ resource, filteredItems, hasFilters, onClearFilters, route
   onClearFilters: () => void
   routeBase: string
 }) {
+  const pager = useClientPagination(filteredItems, 10)
   if (resource.state === 'loading') return <p role="status" className="p-5 text-sm text-ink-muted">Đang tải báo cáo tiến độ…</p>
   if (resource.state === 'error') return <p role="alert" className="p-5 text-sm text-status-error-text">{resource.message}</p>
   if (resource.data.items.length === 0) return <p className="p-5 text-sm text-ink-muted">Chưa có báo cáo tiến độ trong phạm vi dữ liệu hiện có.</p>
@@ -167,25 +170,39 @@ function ReportList({ resource, filteredItems, hasFilters, onClearFilters, route
     )
   }
   return (
-    <ul className="divide-y divide-hairline">
-      {filteredItems.map(report => (
-        <li key={report.id} className="p-5 transition-colors hover:bg-canvas/50">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <ReportBadge status={report.status} />
-                <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold text-primary">{reportTypeLabel(report.reportType)}</span>
-                <span className="font-mono text-xs text-ink-muted">{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</span>
+    <>
+      <ul className="divide-y divide-hairline">
+        {pager.paginatedItems.map(report => (
+          <li key={report.id} className="p-5 transition-colors hover:bg-canvas/50">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ReportBadge status={report.status} />
+                  <span className="rounded-full bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold text-primary">{reportTypeLabel(report.reportType)}</span>
+                  <span className="font-mono text-xs text-ink-muted">{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</span>
+                </div>
+                <h3 className="mt-2.5 break-words font-semibold text-ink">{report.summary || 'Chưa có tóm tắt tiến độ.'}</h3>
+                <p className="mt-1.5 break-words text-sm leading-6 text-ink-muted"><span className="font-medium text-ink-soft">Khó khăn &amp; rủi ro:</span> {report.issuesAndRisks?.trim() || 'Chưa có nội dung.'}</p>
+                <p className="mt-1.5 text-xs text-ink-muted">{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: <strong className="text-ink-soft">{report.submittedByName}</strong> · {report.submittedAt ? submittedAt(report.submittedAt) : 'Chưa nộp'}</p>
               </div>
-              <h3 className="mt-2.5 break-words font-semibold text-ink">{report.summary || 'Chưa có tóm tắt tiến độ.'}</h3>
-              <p className="mt-1.5 break-words text-sm leading-6 text-ink-muted"><span className="font-medium text-ink-soft">Khó khăn &amp; rủi ro:</span> {report.issuesAndRisks?.trim() || 'Chưa có nội dung.'}</p>
-              <p className="mt-1.5 text-xs text-ink-muted">{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: <strong className="text-ink-soft">{report.submittedByName}</strong> · {report.submittedAt ? submittedAt(report.submittedAt) : 'Chưa nộp'}</p>
+              <Link className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`${routeBase}/reports/${report.id}`}>{report.status === 'DRAFT' ? 'Xem báo cáo' : 'Đọc và phản hồi'}</Link>
             </div>
-            <Link className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" to={`${routeBase}/reports/${report.id}`}>{report.status === 'DRAFT' ? 'Xem báo cáo' : 'Đọc và phản hồi'}</Link>
-          </div>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+      {pager.showPagination && (
+        <div className="border-t border-hairline px-5 py-3">
+          <Pagination
+            page={pager.page}
+            pages={pager.pages}
+            total={pager.total}
+            pageSize={pager.pageSize}
+            onPage={pager.setPage}
+            onPageSizeChange={pager.setPageSize}
+          />
+        </div>
+      )}
+    </>
   )
 }
 

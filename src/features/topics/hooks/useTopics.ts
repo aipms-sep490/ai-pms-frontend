@@ -8,9 +8,9 @@ export interface BatchPublishResult {
   failed: Array<{ id: number; code: string; title: string; reason: string }>
 }
 
-const empty: TopicPage = { items: [], page: 1, pageSize: 20, totalCount: 0 }
+const empty: TopicPage = { items: [], page: 1, pageSize: 12, totalCount: 0 }
 export function useTopics(id?: number) {
-  const { session } = useAuthSession(); const [directory, setDirectory] = useState<TopicPage>(empty); const [current, setCurrent] = useState<Topic | null>(null); const [filters, setFilters] = useState<TopicFilters>({ status: 'DRAFT', page: 1, pageSize: 20 }); const [loading, setLoading] = useState(Boolean(session)); const [error, setError] = useState<Error | null>(null); const [saving, setSaving] = useState(false); const [mutationError, setMutationError] = useState<Error | null>(null); const requestVersion = useRef(0), mutationLock = useRef(false)
+  const { session } = useAuthSession(); const [directory, setDirectory] = useState<TopicPage>(empty); const [current, setCurrent] = useState<Topic | null>(null); const [filters, setFilters] = useState<TopicFilters>({ status: 'DRAFT', page: 1, pageSize: 12 }); const [loading, setLoading] = useState(Boolean(session)); const [error, setError] = useState<Error | null>(null); const [saving, setSaving] = useState(false); const [mutationError, setMutationError] = useState<Error | null>(null); const requestVersion = useRef(0), mutationLock = useRef(false)
   const token = session?.accessToken
   const refresh = useCallback(async () => { if (!token) return; const version = ++requestVersion.current; setLoading(true); setError(null); setCurrent(null); try { if (id) { const topic = await getTopic(id, token); if (version === requestVersion.current) setCurrent(topic) } else { const items = await listTopics(token, filters); if (version === requestVersion.current) setDirectory(items) } } catch (caught) { if (version === requestVersion.current) setError(caught as Error) } finally { if (version === requestVersion.current) setLoading(false) } }, [id, token, filters])
   useEffect(() => { const version = requestVersion; void refresh(); return () => { version.current++ } }, [refresh])

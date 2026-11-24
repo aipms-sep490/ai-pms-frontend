@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '../../../components/ui/Button'
 import { services } from '../../../services/service-gateway'
 import type { StudentQualificationDto } from '../../../types/backend'
 import { QualificationCertificateForm } from './QualificationCertificateForm'
@@ -47,9 +48,7 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
           <h2 className="mt-1 text-base font-bold text-ink">Điều kiện tham gia đồ án</h2>
           <p className="mt-1 text-xs text-ink-muted">Trạng thái này do dữ liệu đào tạo/chứng chỉ và xác minh học vụ quyết định; sinh viên không tự xác nhận đủ điều kiện.</p>
         </div>
-        <button type="button" onClick={() => void load()} disabled={loading || uploadBusy} className="min-h-11 rounded-lg border border-hairline bg-card px-3.5 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50">
-          Tải lại
-        </button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void load()} disabled={loading || uploadBusy} />
       </div>
       {loading ? <p className="mt-4 text-sm text-ink-muted">Đang tải trạng thái xác minh…</p> : null}
       {error ? <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">{error}</p> : null}
@@ -59,15 +58,20 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
         </div>
       ) : null}
       {!loading && !error && qualification ? (
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 text-sm font-semibold text-ink">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
-          <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Xác minh</dt><dd className="mt-1 text-sm font-semibold text-ink">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
-          <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Chứng chỉ</dt><dd className="mt-1 break-all text-sm font-semibold text-ink">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
-          <div className="rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Điều kiện đăng ký</dt><dd className="mt-1 text-sm text-ink-soft">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
+        <dl className="mt-4 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Đào tạo</dt><dd className="mt-1 text-sm font-semibold text-ink">{qualification.trainingStatus === 'TRAINING_COMPLETED' ? 'Đã hoàn thành' : qualification.trainingStatus === 'PENDING_TRAINING' ? 'Chưa hoàn thành' : 'Chưa xác định'}</dd></div>
+          <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Xác minh</dt><dd className="mt-1 text-sm font-semibold text-ink">{{ PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }[qualification.verificationStatus] ?? 'Chưa xác định'}</dd></div>
+          <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Chứng chỉ</dt><dd className="mt-1 break-all text-sm font-semibold text-ink">{qualification.certificateNumber ?? 'Chưa có'}</dd></div>
+          <div className="flex h-full flex-col justify-between rounded-xl border border-hairline bg-canvas p-3"><dt className="text-xs text-ink-muted">Điều kiện đăng ký</dt><dd className="mt-1 text-sm text-ink-soft">Theo kiểm tra điều kiện nhóm của hệ thống.</dd></div>
         </dl>
       ) : null}
       {!loading && !error && qualification?.rejectionReason && <p className="mt-3 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">Lý do từ chối: {qualification.rejectionReason}</p>}
-      {notice && <p role="status" className="mt-3 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">{notice}</p>}
+      {notice && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
+          <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <p role="status">{notice}</p>
+        </div>
+      )}
       {!loading && !error && <QualificationCertificateForm onSubmitted={submitted} onBusyChange={setUploadBusy} />}
     </section>
   )

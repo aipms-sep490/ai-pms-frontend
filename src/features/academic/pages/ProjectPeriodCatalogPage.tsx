@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStudentJourney } from '../../../app/context'
+import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -130,7 +131,7 @@ export function ProjectPeriodCatalogPage() {
   const hasFilters = Boolean(urlSearch || urlSemesterId || windowFilter || sortBy !== 'default')
   const totalPages = Math.max(1, Math.ceil((result?.totalCount ?? 0) / pageSize))
 
-  return <WorkspacePage size="wide" title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án.">
+  return <WorkspacePage size="wide" title="Kỳ đăng ký đồ án" eyebrow="Khám phá học kỳ" description="Tìm kỳ đăng ký đang hoạt động và xem bước tiếp theo trong lộ trình đồ án." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => setRevision(value => value + 1)} />}>
     {/* Academic directory scope notice */}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-hairline bg-card/60 px-4 py-2.5 text-xs text-ink-muted">
       <div className="flex items-center gap-2">
@@ -245,10 +246,10 @@ export function ProjectPeriodCatalogPage() {
     )}
     {!loading && !error && !isForbidden && visiblePeriods.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
     {!loading && !error && !isForbidden && result && visiblePeriods.length > 0 && <>
-      <ul className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visiblePeriods.map(period => {
+      <ul className="mt-4 grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">{visiblePeriods.map(period => {
         const isCurrentSemester = period.academicSemesterId === semester?.id
         const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
-        return <li key={period.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-hairline bg-card">
+        return <li key={period.id} className="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card">
           <div className="flex-1 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="rounded-full bg-primary-subtle px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>

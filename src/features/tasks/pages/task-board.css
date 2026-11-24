@@ -135,17 +135,24 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 3px;
 }
-.task-board-panel .ex-toolbar {
+.task-board-panel .ex-toolbar.task-board-top-strip {
+  padding: 10px 16px;
+  gap: 10px;
+  background: var(--color-card);
   flex-wrap: wrap;
 }
 .task-board-panel .ex-tabs {
   flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
+  padding: 3px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
 }
-.task-board-panel :is(.ex-tabs button, .ex-filters button, .ex-filters input, .ex-filters select, .ex-pagination button) {
-  min-height: 44px;
-  height: auto;
+.task-board-panel .ex-tabs button {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 12.5px;
 }
 .task-board-panel .ex-pagination {
   flex-wrap: wrap;

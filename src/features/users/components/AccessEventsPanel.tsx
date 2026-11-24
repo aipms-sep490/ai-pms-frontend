@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
+import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
@@ -54,6 +56,8 @@ export function AccessEventsPanel({
   const toInput = params.get('accessTo') ?? ''
   const pageInput = Number(params.get('accessPage') ?? '1')
   const page = Number.isSafeInteger(pageInput) && pageInput > 0 ? pageInput : 1
+  const pageSizeInput = Number(params.get('accessPageSize') ?? '10')
+  const pageSize = Number.isSafeInteger(pageSizeInput) && pageSizeInput > 0 ? pageSizeInput : 10
   const filters: AccessEventQuery = {
     search: searchInput.trim() || undefined,
     eventType: eventInput === 'LOGIN' || eventInput === 'LOGOUT' ? eventInput : undefined,
@@ -61,6 +65,7 @@ export function AccessEventsPanel({
     fromUtc: dateBoundary(fromInput),
     toUtc: dateBoundary(toInput, true),
     page,
+    pageSize,
   }
   const filterKey = JSON.stringify(filters)
   const invalidRange = Boolean(filters.fromUtc && filters.toUtc && filters.fromUtc > filters.toUtc)
@@ -68,6 +73,16 @@ export function AccessEventsPanel({
   const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState(true)
   const [revision, setRevision] = useState(0)
+
+  const accessChips = useMemo<ActiveFilterChip[]>(() => {
+    const chips: ActiveFilterChip[] = []
+    if (searchInput) chips.push({ id: 'search', label: 'Người dùng', value: searchInput })
+    if (eventInput) chips.push({ id: 'event', label: 'Sự kiện', value: eventInput === 'LOGIN' ? 'Đăng nhập' : 'Đăng xuất' })
+    if (outcomeInput) chips.push({ id: 'outcome', label: 'Kết quả', value: outcomeLabel(outcomeInput) })
+    if (fromInput) chips.push({ id: 'from', label: 'Từ ngày', value: fromInput })
+    if (toInput) chips.push({ id: 'to', label: 'Đến ngày', value: toInput })
+    return chips
+  }, [eventInput, fromInput, outcomeInput, searchInput, toInput])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -101,18 +116,6 @@ export function AccessEventsPanel({
     setParams(next)
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const values = new FormData(event.currentTarget)
-    updateFilters({
-      accessSearch: String(values.get('search') ?? '').trim(),
-      accessEvent: String(values.get('eventType') ?? ''),
-      accessOutcome: String(values.get('outcome') ?? ''),
-      accessFrom: String(values.get('fromUtc') ?? ''),
-      accessTo: String(values.get('toUtc') ?? ''),
-    })
-  }
-
   return (
     <section id="access-events" className="admin-panel" aria-labelledby="access-events-title">
       <div className="admin-panel-heading">
@@ -120,40 +123,78 @@ export function AccessEventsPanel({
           <h2 id="access-events-title">Nhật ký truy cập</h2>
           <p>Các lượt đăng nhập và đăng xuất được máy chủ ghi nhận. Lần đăng nhập không chứng minh người dùng đang trực tuyến; IP là địa chỉ mạng, không phải vị trí địa lý.</p>
         </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          aria-label="Tải lại nhật ký truy cập"
+          disabled={loading}
+          onClick={() => setRevision(value => value + 1)}
+        />
       </div>
 
-      <form key={[searchInput, eventInput, outcomeInput, fromInput, toInput].join('|')} className="admin-filter" onSubmit={submit}>
-        <label>Người dùng<input name="search" defaultValue={searchInput} maxLength={255} placeholder="Tên hoặc email" /></label>
-        <label>
-          Sự kiện
-          <select name="eventType" defaultValue={eventInput}>
-            <option value="">Tất cả</option>
-            <option value="LOGIN">Đăng nhập</option>
-            <option value="LOGOUT">Đăng xuất</option>
-          </select>
-        </label>
-        <label>
-          Kết quả
-          <select name="outcome" defaultValue={outcomeInput}>
-            <option value="">Tất cả</option>
-            <option value="SUCCESS">Thành công</option>
-            <option value="FAILURE">Thất bại</option>
-            <option value="DENIED">Bị từ chối</option>
-          </select>
-        </label>
-        <label>Từ ngày (giờ Việt Nam)<input name="fromUtc" type="date" defaultValue={fromInput} /></label>
-        <label>Đến ngày (giờ Việt Nam)<input name="toUtc" type="date" defaultValue={toInput} /></label>
-        <Button type="submit" variant="secondary">Lọc truy cập</Button>
-        {(searchInput || eventInput || outcomeInput || fromInput || toInput) && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => updateFilters({ accessSearch: '', accessEvent: '', accessOutcome: '', accessFrom: '', accessTo: '' })}
-          >
-            Đặt lại truy cập
-          </Button>
-        )}
-      </form>
+      <div className="mt-4">
+        <FilterToolbar
+          embedded
+          ariaLabel="Bộ lọc nhật ký truy cập"
+          search={searchInput}
+          onSearchChange={(value) => updateFilters({ accessSearch: value.trim() })}
+          searchLabel="Người dùng"
+          searchPlaceholder="Tìm theo tên hoặc email…"
+          activeTab={outcomeInput}
+          onTabChange={(value) => updateFilters({ accessOutcome: value })}
+          tabsLabel="Lọc theo kết quả truy cập"
+          tabs={[
+            { value: '', label: 'Tất cả' },
+            { value: 'SUCCESS', label: 'Thành công' },
+            { value: 'FAILURE', label: 'Thất bại' },
+            { value: 'DENIED', label: 'Bị từ chối' },
+          ]}
+          controls={
+            <>
+              <label className="ft-select-wrap">
+                <span className="sr-only">Sự kiện</span>
+                <select
+                  aria-label="Sự kiện"
+                  value={eventInput}
+                  onChange={(e) => updateFilters({ accessEvent: e.target.value })}
+                >
+                  <option value="">Mọi sự kiện</option>
+                  <option value="LOGIN">Đăng nhập</option>
+                  <option value="LOGOUT">Đăng xuất</option>
+                </select>
+              </label>
+              <label className="ft-select-wrap">
+                <span className="text-xs font-semibold text-ink-soft whitespace-nowrap">Từ ngày (giờ Việt Nam)</span>
+                <input
+                  type="date"
+                  value={fromInput}
+                  onChange={(e) => updateFilters({ accessFrom: e.target.value })}
+                />
+              </label>
+              <label className="ft-select-wrap">
+                <span className="text-xs font-semibold text-ink-soft whitespace-nowrap">Đến ngày (giờ Việt Nam)</span>
+                <input
+                  type="date"
+                  value={toInput}
+                  onChange={(e) => updateFilters({ accessTo: e.target.value })}
+                />
+              </label>
+            </>
+          }
+          activeChips={accessChips}
+          onRemoveChip={(id) => {
+            if (id === 'search') updateFilters({ accessSearch: '' })
+            if (id === 'event') updateFilters({ accessEvent: '' })
+            if (id === 'outcome') updateFilters({ accessOutcome: '' })
+            if (id === 'from') updateFilters({ accessFrom: '' })
+            if (id === 'to') updateFilters({ accessTo: '' })
+          }}
+          onClearAll={() => updateFilters({ accessSearch: '', accessEvent: '', accessOutcome: '', accessFrom: '', accessTo: '' })}
+          hasActiveFilters={accessChips.length > 0}
+          clearAllLabel="Đặt lại truy cập"
+        />
+      </div>
 
       {loading && <ListLoading label="Đang tải nhật ký truy cập…" />}
       {error && (
@@ -173,6 +214,7 @@ export function AccessEventsPanel({
       )}
 
       {!loading && !error && data && data.items.length > 0 && (
+        <div className="mt-4">
         <Table stack>
           <TableHead>
             <TableRow head>
@@ -227,16 +269,18 @@ export function AccessEventsPanel({
             })}
           </TableBody>
         </Table>
+        </div>
       )}
 
-      {!loading && !error && data && data.totalCount > 0 && (
-        <div className="admin-pagination">
-          <span>Trang {data.page}/{Math.ceil(data.totalCount / data.pageSize)} · {data.totalCount} lượt</span>
-          <div className="flex items-center gap-1">
-            <Button size="sm" variant="outline" disabled={data.page <= 1} onClick={() => updateFilters({ accessPage: String(data.page - 1) })}>Trang trước</Button>
-            <Button size="sm" variant="outline" disabled={data.page * data.pageSize >= data.totalCount} onClick={() => updateFilters({ accessPage: String(data.page + 1) })}>Trang sau</Button>
-          </div>
-        </div>
+      {!loading && !error && data && data.totalCount > data.pageSize && (
+        <Pagination
+          page={data.page}
+          pages={Math.max(1, Math.ceil(data.totalCount / data.pageSize))}
+          total={data.totalCount}
+          pageSize={data.pageSize}
+          onPage={(next) => updateFilters({ accessPage: String(next) })}
+          onPageSizeChange={(size) => updateFilters({ accessPageSize: String(size), accessPage: '1' })}
+        />
       )}
     </section>
   )

@@ -42,15 +42,15 @@ describe('account security catalog API', () => {
   })
 
   it('keeps server pagination, audit filters, and explicit account lifecycle endpoints authoritative', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(response({ items: [], page: 1, pageSize: 20, totalCount: 0 }))
+    const fetchMock = vi.fn().mockResolvedValue(response({ items: [], page: 1, pageSize: 10, totalCount: 0 }))
     vi.stubGlobal('fetch', fetchMock)
     await Promise.all([
       getUsers('token', { search: 'minh', status: 'ACTIVE', page: 2 }),
       getAudit('token', { action: 'ACCOUNT_', outcome: 'SUCCESS', page: 3 }),
       activateUser(8, 'token'), deactivateUser(8, 'token'), blockUser(8, 'token'), unblockUser(8, 'token'),
     ])
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/users?search=minh&status=ACTIVE&page=2&pageSize=20', expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/security/audit-logs?action=ACCOUNT_&outcome=SUCCESS&page=3&pageSize=20', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/users?search=minh&status=ACTIVE&page=2&pageSize=10', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/security/audit-logs?action=ACCOUNT_&outcome=SUCCESS&page=3&pageSize=10', expect.objectContaining({ method: 'GET' }))
     for (const suffix of ['activate', 'deactivate', 'block', 'unblock']) expect(fetchMock).toHaveBeenCalledWith(`/api/v1/users/8/${suffix}`, expect.objectContaining({ method: 'POST' }))
   })
 

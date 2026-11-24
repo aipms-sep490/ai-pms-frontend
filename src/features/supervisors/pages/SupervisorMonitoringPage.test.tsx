@@ -23,11 +23,11 @@ const supervisor = {
 const state = (overrides = {}) => ({
   items: [supervisor],
   page: 1,
-  pageSize: 20,
+  pageSize: 12,
   totalCount: 1,
   current: null,
   allowedDepartments: [{ id: 2, name: 'Computer Science' }],
-  filters: { page: 1, pageSize: 20 },
+  filters: { page: 1, pageSize: 12 },
   setFilters: vi.fn(),
   loading: false,
   error: null,

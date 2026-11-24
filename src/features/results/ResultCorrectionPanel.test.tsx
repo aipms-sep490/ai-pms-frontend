@@ -9,7 +9,7 @@ vi.mock('./AppealRequestDetail', () => ({ AppealRequestDetail: ({ requestId }: {
 vi.mock('./ResultHistoryPanel', () => ({ ResultHistoryPanel: () => <p>Lịch sử kết quả</p> }))
 const published = { projectId: 9, studentId: 88, version: 2, breakdown: { components: [{ componentId: 6, name: 'Chấm ngành', scope: 'MAJOR_SPECIFIC', stage: 'COLD', weightPercent: 50 }] } }
 const window = { id: 5, policyId: 4, status: 'OPEN', closesAt: '2026-12-01T00:00:00Z', targets: [{ targetType: 'STUDENT', studentId: 88, resultVersion: 2 }] }
-const page = { items: [], totalCount: 0, page: 1, pageSize: 20 }
+const page = { items: [], totalCount: 0, page: 1, pageSize: 10 }
 beforeEach(() => { vi.clearAllMocks(); mocks.getResultCorrectionRequests.mockResolvedValue(page); mocks.getAppealWindows.mockResolvedValue({ ...page, items: [window], totalCount: 1 }); mocks.getStudentResult.mockResolvedValue(published) })
 afterEach(cleanup)
 const renderPanel = () => render(<StudentAppealPanel projectId={9} studentId={88} />)

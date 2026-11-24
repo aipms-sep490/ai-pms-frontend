@@ -19,12 +19,12 @@ const detail = (token = 'TOKEN_A') => ({
 
 describe('useProjectReview', () => {
   beforeEach(() => {
-    api.getReviewQueue.mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+    api.getReviewQueue.mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 10, totalCount: 0 })
     api.getProjectForReview.mockReset().mockResolvedValue({ id: 1, code: 'P-1', title: 'Project' })
     api.getReviewDetail.mockReset().mockResolvedValue(detail())
     api.getReviewHistory.mockReset().mockResolvedValue([])
     api.getProjectMajorRequirements.mockReset().mockResolvedValue({ concurrencyToken: 'REQUIREMENTS_A', requirements: [] })
-    api.getReviewSnapshots.mockReset().mockResolvedValue({ page: 1, pageSize: 20, totalCount: 0, items: [] })
+    api.getReviewSnapshots.mockReset().mockResolvedValue({ page: 1, pageSize: 10, totalCount: 0, items: [] })
     api.getReviewActions.mockReset().mockResolvedValue({ status: 'UnderReview', actions: [
       { code: 'start_review', allowed: true, reasons: [] },
       { code: 'approve_department', allowed: true, reasons: [] },

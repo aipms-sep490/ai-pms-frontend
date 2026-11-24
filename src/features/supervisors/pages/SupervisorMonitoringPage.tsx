@@ -5,6 +5,7 @@ import { Avatar } from '../../../components/ui/Avatar'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisors } from '../hooks/useSupervisors'
@@ -86,7 +87,12 @@ export function SupervisorMonitoringPage() {
       eyebrow="Không gian bộ môn"
       title="Giảng viên hướng dẫn"
       description="Tra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn."
-      action={<div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div>}
+      action={
+        <div className="flex items-center gap-3">
+          <div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={supervisors.loading} onClick={() => void supervisors.refresh()} />
+        </div>
+      }
     >
       <FilterToolbar
         search={supervisors.filters.search ?? ''}
@@ -209,11 +215,15 @@ export function SupervisorMonitoringPage() {
       )}
 
       {!supervisors.loading && supervisors.totalCount > supervisors.pageSize ? (
-        <nav className="sup__paging" aria-label="Phân trang giảng viên">
-          <Button variant="secondary" disabled={supervisors.page <= 1} onClick={() => supervisors.setFilters({ ...supervisors.filters, page: supervisors.page - 1 })}>Trang trước</Button>
-          <span>Trang {supervisors.page} / {Math.ceil(supervisors.totalCount / supervisors.pageSize)}</span>
-          <Button variant="secondary" disabled={supervisors.page * supervisors.pageSize >= supervisors.totalCount} onClick={() => supervisors.setFilters({ ...supervisors.filters, page: supervisors.page + 1 })}>Trang sau</Button>
-        </nav>
+        <Pagination
+          page={supervisors.page}
+          pages={Math.ceil(supervisors.totalCount / supervisors.pageSize)}
+          total={supervisors.totalCount}
+          pageSize={supervisors.pageSize}
+          busy={supervisors.loading}
+          onPage={(next) => supervisors.setFilters({ ...supervisors.filters, page: next })}
+          onPageSizeChange={(size) => supervisors.setFilters({ ...supervisors.filters, page: 1, pageSize: size })}
+        />
       ) : null}
     </WorkspacePage>
   )

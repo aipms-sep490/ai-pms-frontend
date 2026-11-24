@@ -13,18 +13,18 @@ beforeEach(() => {
   mocks.getRoles.mockResolvedValue({ items: [] })
   mocks.getPermissions.mockResolvedValue({ items: [] })
   mocks.getPermissionMatrix.mockResolvedValue({ roles: [], permissions: [] })
-  mocks.getAudit.mockResolvedValue({ items: [], page: 1, pageSize: 20, totalCount: 0 })
+  mocks.getAudit.mockResolvedValue({ items: [], page: 1, pageSize: 10, totalCount: 0 })
 })
 afterEach(cleanup)
 
 it('keeps the newest account filter result when an older request finishes later', async () => {
   let finishOld!: (value: object) => void
   mocks.getUsers.mockReturnValueOnce(new Promise(resolve => { finishOld = resolve }))
-  mocks.getUsers.mockResolvedValueOnce({ items: [], page: 1, pageSize: 20, totalCount: 2 })
+  mocks.getUsers.mockResolvedValueOnce({ items: [], page: 1, pageSize: 10, totalCount: 2 })
   const { result, rerender } = renderHook(({ search }) => useAdminWorkspace({ search }), { initialProps: { search: 'old' } })
   rerender({ search: 'new' })
   await waitFor(() => expect(result.current.users.value.totalCount).toBe(2))
-  await act(async () => { finishOld({ items: [], page: 1, pageSize: 20, totalCount: 99 }) })
+  await act(async () => { finishOld({ items: [], page: 1, pageSize: 10, totalCount: 99 }) })
   expect(result.current.users.value.totalCount).toBe(2)
   expect(result.current.users.state).toBe('ready')
 })

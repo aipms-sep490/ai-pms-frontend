@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button'
 import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { useAuthSession } from '../auth/context/useAuthSession'
@@ -62,12 +64,16 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
     })
   }, [requests, search, statusFilter])
 
+  const requestPager = useClientPagination(filteredRequests, 10)
+  const useServerPaging = Boolean(requests && requests.totalCount > requests.items.length)
+  const displayedRequests = useServerPaging ? filteredRequests : requestPager.paginatedItems
+
   const hasFilters = Boolean(search.trim() || statusFilter !== 'ALL')
   const chips: ActiveFilterChip[] = []
   if (statusFilter !== 'ALL') chips.push({ id: 'status', label: 'Trạng thái', value: displayLabel(statusFilter) })
 
   const select = (id: number) => setParams({ request: String(id) })
-  return <WorkspacePage size="wide" title="Phúc khảo và đính chính" eyebrow={projectLabel ?? 'Hồ sơ đồ án'} description="Xử lý yêu cầu theo phạm vi, phiên bản kết quả và thao tác được hệ thống cấp." action={<Button variant="secondary" icon="refresh" disabled={loading} onClick={() => { capabilities.retry(); setRevision(value => value + 1) }}>Tải lại danh sách</Button>}>
+  return <WorkspacePage size="wide" title="Phúc khảo và đính chính" eyebrow={projectLabel ?? 'Hồ sơ đồ án'} description="Xử lý yêu cầu theo phạm vi, phiên bản kết quả và thao tác được hệ thống cấp." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại danh sách" disabled={loading} onClick={() => { capabilities.retry(); setRevision(value => value + 1) }} />}>
     <div className="space-y-5">
       {canManage && <AppealManagementPanel projectId={projectId} onCreated={id => { select(id); setRevision(value => value + 1) }} />}
       <section className="workspace-surface space-y-4 p-5">
@@ -107,7 +113,7 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
             <p className="text-sm text-ink-muted">{hasFilters ? 'Không có yêu cầu khớp bộ lọc hiện tại.' : 'Chưa có yêu cầu trong phạm vi hiện tại.'}</p>
           ) : (
             <ul className="divide-y divide-hairline">
-              {filteredRequests.map(item => (
+              {displayedRequests.map(item => (
                 <li key={item.id} className="py-3">
                   <button
                     type="button"
@@ -124,7 +130,18 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
               ))}
             </ul>
           )}
-          <AppealPaging page={page} totalCount={requests.totalCount} busy={loading} onChange={setPage} />
+          {useServerPaging ? (
+            <AppealPaging page={page} totalCount={requests.totalCount} busy={loading} onChange={setPage} />
+          ) : requestPager.showPagination ? (
+            <Pagination
+              page={requestPager.page}
+              pages={requestPager.pages}
+              total={requestPager.total}
+              pageSize={requestPager.pageSize}
+              onPage={requestPager.setPage}
+              onPageSizeChange={requestPager.setPageSize}
+            />
+          ) : null}
         </>}
       </section>
       {Number.isSafeInteger(selected) && selected > 0 && <AppealRequestDetail key={`${projectId}:${selected}`} projectId={projectId} requestId={selected} onChanged={() => setRevision(value => value + 1)} />}

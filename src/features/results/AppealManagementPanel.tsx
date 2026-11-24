@@ -91,14 +91,14 @@ export function AppealManagementPanel({ projectId, onCreated }: { projectId: num
         <p className="mt-0.5 text-xs text-ink-muted">{policy ? `Chính sách hiện hành: v${policy.version} · ${policy.approvalReference}` : 'Chưa ghi nhận nguồn phê duyệt học thuật.'}</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" icon="refresh" disabled={busy || loading} onClick={() => { setStale(true); void load() }}>Tải lại cấu hình</Button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại cấu hình" disabled={busy || loading} onClick={() => { setStale(true); void load() }} />
         {stale && <Button size="sm" disabled={busy || loading || !windows} onClick={() => { setStale(false); setError('') }}>Tôi đã đối chiếu cấu hình mới</Button>}
       </div>
     </div>
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
     {loading && <p role="status" className="text-sm text-ink-muted">Đang tải cấu hình phúc khảo…</p>}
     {!loading && windows && (
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid items-stretch gap-5 xl:grid-cols-2">
         <div className="space-y-5">
           <form className="rounded-xl border border-hairline bg-canvas/50 p-4 space-y-3" onSubmit={event => { event.preventDefault(); if (reference.trim()) void run(() => api.recordAppealPolicy(projectId, policy?.version ?? 0, reference.trim()), true) }}>
             <h3 className="text-sm font-semibold text-ink">1. Chính sách phê duyệt</h3>

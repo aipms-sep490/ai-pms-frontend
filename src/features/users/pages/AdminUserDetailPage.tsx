@@ -223,7 +223,7 @@ export function AdminUserDetailPage() {
             </div>
           </header>
 
-          {notice && <p className="admin-notice" role="status">{notice}</p>}
+          {notice && <p className="admin-notice" role="status"><span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span><span>{notice}</span></p>}
           {errorNotice && <p className="admin-error" role="alert">{errorNotice}</p>}
 
           <div className="admin-detail-grid">

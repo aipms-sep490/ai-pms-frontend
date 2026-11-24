@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
+import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import type { Permission } from '../api/admin-api'
@@ -58,22 +61,26 @@ export function AdminRbacPage() {
   const canEdit = env.rbacWriteEnabled
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
   const [filter, setFilter] = useState('')
-  const [grantedOnly, setGrantedOnly] = useState(false)
+  const [grantFilter, setGrantFilter] = useState<'all' | 'granted' | 'ungranted'>('all')
+  const [moduleFilter, setModuleFilter] = useState('')
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [errorNotice, setErrorNotice] = useState<string | null>(null)
   const { requestConfirmation, confirmationDialog } = useActionConfirmation()
 
+  const roles = useMemo(() => admin.rbac.value?.roles ?? [], [admin.rbac.value?.roles])
+  const allPermissions = useMemo(() => admin.rbac.value?.permissions ?? [], [admin.rbac.value?.permissions])
+
   useEffect(() => {
-    if (selectedRoleId === null && admin.rbac.value.roles.length > 0) {
-      const first = admin.rbac.value.roles[0]
+    if (selectedRoleId === null && roles.length > 0) {
+      const first = roles[0]
       setSelectedRoleId(first.id)
       setSelectedPermissionIds(new Set(first.permissions.map(item => item.id)))
     }
-  }, [admin.rbac.value.roles, selectedRoleId])
+  }, [roles, selectedRoleId])
 
-  const selectedRole = admin.rbac.value.roles.find((role) => role.id === selectedRoleId) ?? null
+  const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null
 
   const isDirty = useMemo(() => {
     if (!selectedRole) return false
@@ -85,25 +92,45 @@ export function AdminRbacPage() {
     return false
   }, [selectedPermissionIds, selectedRole])
 
+  const moduleGroups = useMemo(() => {
+    const groups = new Set<string>()
+    for (const perm of allPermissions) groups.add(moduleGroupFor(perm.code))
+    return [...groups].sort((a, b) => a.localeCompare(b, 'vi'))
+  }, [allPermissions])
+
   const permissions = useMemo(() => {
     const query = filter.trim().toLowerCase()
-    return admin.rbac.value.permissions.filter((item) => {
-      if (grantedOnly && !selectedPermissionIds.has(item.id)) return false
+    return allPermissions.filter((item) => {
+      if (grantFilter === 'granted' && !selectedPermissionIds.has(item.id)) return false
+      if (grantFilter === 'ungranted' && selectedPermissionIds.has(item.id)) return false
+      if (moduleFilter && moduleGroupFor(item.code) !== moduleFilter) return false
       if (query && !`${item.code} ${item.name} ${item.description ?? ''}`.toLowerCase().includes(query)) return false
       return true
     })
-  }, [admin.rbac.value.permissions, filter, grantedOnly, selectedPermissionIds])
+  }, [allPermissions, filter, grantFilter, moduleFilter, selectedPermissionIds])
+
+  const rolesPagination = useClientPagination(roles, 10)
+  const permissionsPagination = useClientPagination(permissions, 10)
 
   const groupedPermissions = useMemo(() => {
     const map = new Map<string, Permission[]>()
-    for (const perm of permissions) {
+    for (const perm of permissionsPagination.paginatedItems) {
       const group = moduleGroupFor(perm.code)
       const list = map.get(group) ?? []
       list.push(perm)
       map.set(group, list)
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'vi'))
-  }, [permissions])
+  }, [permissionsPagination.paginatedItems])
+
+  const permissionChips = useMemo<ActiveFilterChip[]>(() => {
+    const chips: ActiveFilterChip[] = []
+    if (filter.trim()) chips.push({ id: 'search', label: 'Từ khóa', value: filter.trim() })
+    if (grantFilter === 'granted') chips.push({ id: 'grant', label: 'Trạng thái', value: 'Đã cấp' })
+    if (grantFilter === 'ungranted') chips.push({ id: 'grant', label: 'Trạng thái', value: 'Chưa cấp' })
+    if (moduleFilter) chips.push({ id: 'module', label: 'Phân hệ', value: moduleFilter })
+    return chips
+  }, [filter, grantFilter, moduleFilter])
 
   const fail = admin.rbac.error instanceof HttpError && admin.rbac.error.status === 403
 
@@ -153,10 +180,18 @@ export function AdminRbacPage() {
             {canEdit ? 'Quản lý quyền truy cập của từng vai trò.' : 'Xem quyền truy cập của từng vai trò (chỉ đọc).'} Phân công trong đồ án được quản lý ở không gian học vụ.
           </p>
         </div>
-        <Link className="admin-link-button" to="/admin/access">Về tổng quan</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={admin.refresh} />
+          <Link className="admin-link-button" to="/admin/access">Về tổng quan</Link>
+        </div>
       </header>
 
-      {notice ? <p className="admin-notice" role="status">{notice}</p> : null}
+      {notice ? (
+        <p className="admin-notice" role="status">
+          <span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
+        </p>
+      ) : null}
       {errorNotice ? <p className="admin-error" role="alert">{errorNotice}</p> : null}
       {admin.rbac.state === 'loading' ? <ListLoading label="Đang tải danh mục phân quyền…" /> : null}
       {admin.rbac.state === 'error' ? (
@@ -164,6 +199,23 @@ export function AdminRbacPage() {
           {fail ? 'Bạn không có quyền quản lý phân quyền.' : 'Chưa tải được danh mục phân quyền.'}{' '}
           <Button size="sm" variant="outline" onClick={admin.refresh}>Thử lại</Button>
         </p>
+      ) : null}
+
+      {admin.rbac.state === 'ready' ? (
+        <section className="admin-overview" aria-label="Tổng quan phân quyền">
+          <div>
+            <span>Tổng vai trò</span>
+            <strong>{roles.length}</strong>
+          </div>
+          <div>
+            <span>Quyền toàn hệ thống</span>
+            <strong>{allPermissions.length}</strong>
+          </div>
+          <div>
+            <span>Quyền đã cấp cho vai trò chọn</span>
+            <strong>{selectedRole ? `${selectedPermissionIds.size}/${allPermissions.length}` : '—'}</strong>
+          </div>
+        </section>
       ) : null}
 
       {admin.rbac.state !== 'error' ? (
@@ -177,31 +229,43 @@ export function AdminRbacPage() {
           </div>
 
           <div className="admin-rbac-layout workspace-master-detail">
-            <ul className="admin-role-list">
-              {admin.rbac.value.roles.map((role) => (
-                <li key={role.id}>
-                  <button
-                    type="button"
-                    className={role.id === selectedRoleId ? 'is-selected' : ''}
-                    disabled={busy}
-                    aria-pressed={role.id === selectedRoleId}
-                    onClick={() => {
-                      setSelectedRoleId(role.id)
-                      setSelectedPermissionIds(new Set(role.permissions.map(item => item.id)))
-                      setNotice(null)
-                      setErrorNotice(null)
-                    }}
-                  >
-                    <strong className="flex items-center justify-between gap-2">
-                      <span>{displayLabel(role.code)}</span>
-                      <span className="font-mono text-xs text-ink-muted">{role.permissions.length}</span>
-                    </strong>
-                    <span>{role.code}</span>
-                    {role.isSystemRole ? <small>Vai trò hệ thống</small> : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col justify-between gap-3">
+              <ul className="admin-role-list">
+                {rolesPagination.paginatedItems.map((role) => (
+                  <li key={role.id}>
+                    <button
+                      type="button"
+                      className={role.id === selectedRoleId ? 'is-selected' : ''}
+                      disabled={busy}
+                      aria-pressed={role.id === selectedRoleId}
+                      onClick={() => {
+                        setSelectedRoleId(role.id)
+                        setSelectedPermissionIds(new Set(role.permissions.map(item => item.id)))
+                        setNotice(null)
+                        setErrorNotice(null)
+                      }}
+                    >
+                      <strong className="flex items-center justify-between gap-2">
+                        <span>{displayLabel(role.code)}</span>
+                        <span className="font-mono text-xs text-ink-muted">{role.permissions.length}</span>
+                      </strong>
+                      <span>{role.code}</span>
+                      {role.isSystemRole ? <small>Vai trò hệ thống</small> : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {rolesPagination.showPagination && (
+                <Pagination
+                  page={rolesPagination.page}
+                  pages={rolesPagination.pages}
+                  total={rolesPagination.total}
+                  pageSize={rolesPagination.pageSize}
+                  onPage={rolesPagination.setPage}
+                  onPageSizeChange={rolesPagination.setPageSize}
+                />
+              )}
+            </div>
 
             <div className="admin-rbac-detail">
               {selectedRole ? (
@@ -213,36 +277,56 @@ export function AdminRbacPage() {
                     </div>
                     <StatusBadge
                       tone="neutral"
-                      label={`Đã cấp ${selectedPermissionIds.size}/${admin.rbac.value.permissions.length} quyền`}
+                      label={`Đã cấp ${selectedPermissionIds.size}/${allPermissions.length} quyền`}
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-end gap-3">
-                    <label className="grid min-w-[220px] flex-1 gap-1.5 text-sm font-semibold text-ink-soft">
-                      Tìm quyền truy cập
-                      <input
-                        value={filter}
-                        onChange={(event) => setFilter(event.target.value)}
-                        placeholder="Nhập mã hoặc tên quyền"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={grantedOnly}
-                      onClick={() => setGrantedOnly(prev => !prev)}
-                      className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors ${
-                        grantedOnly
-                          ? 'border-primary bg-primary-subtle text-primary'
-                          : 'border-hairline bg-card text-ink-soft hover:bg-canvas'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">
-                        {grantedOnly ? 'check_circle' : 'filter_list'}
-                      </span>
-                      Chỉ xem quyền đã cấp
-                    </button>
-                  </div>
+                  <FilterToolbar
+                    embedded
+                    debounceMs={0}
+                    ariaLabel="Bộ lọc quyền truy cập"
+                    search={filter}
+                    onSearchChange={setFilter}
+                    searchLabel="Tìm quyền truy cập"
+                    searchPlaceholder="Nhập mã hoặc tên quyền…"
+                    activeTab={grantFilter}
+                    onTabChange={(value) => setGrantFilter(value as 'all' | 'granted' | 'ungranted')}
+                    tabsLabel="Lọc theo trạng thái cấp quyền"
+                    tabs={[
+                      { value: 'all', label: 'Tất cả', count: allPermissions.length },
+                      { value: 'granted', label: 'Đã cấp', count: selectedPermissionIds.size },
+                      { value: 'ungranted', label: 'Chưa cấp', count: Math.max(0, allPermissions.length - selectedPermissionIds.size) },
+                    ]}
+                    controls={
+                      moduleGroups.length > 1 ? (
+                        <label className="ft-select-wrap">
+                          <span className="sr-only">Phân hệ</span>
+                          <select
+                            aria-label="Phân hệ"
+                            value={moduleFilter}
+                            onChange={(event) => setModuleFilter(event.target.value)}
+                          >
+                            <option value="">Tất cả phân hệ</option>
+                            {moduleGroups.map((group) => (
+                              <option key={group} value={group}>{group}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : undefined
+                    }
+                    activeChips={permissionChips}
+                    onRemoveChip={(id) => {
+                      if (id === 'search') setFilter('')
+                      if (id === 'grant') setGrantFilter('all')
+                      if (id === 'module') setModuleFilter('')
+                    }}
+                    onClearAll={() => {
+                      setFilter('')
+                      setGrantFilter('all')
+                      setModuleFilter('')
+                    }}
+                    hasActiveFilters={permissionChips.length > 0}
+                  />
 
                   <fieldset disabled={busy || !canEdit}>
                     <legend>Quyền truy cập ({permissions.length})</legend>
@@ -308,6 +392,16 @@ export function AdminRbacPage() {
                       </div>
                     )}
                   </fieldset>
+                  {permissionsPagination.showPagination && (
+                    <Pagination
+                      page={permissionsPagination.page}
+                      pages={permissionsPagination.pages}
+                      total={permissionsPagination.total}
+                      pageSize={permissionsPagination.pageSize}
+                      onPage={permissionsPagination.setPage}
+                      onPageSizeChange={permissionsPagination.setPageSize}
+                    />
+                  )}
 
                   {canEdit ? (
                     <div className="admin-actions">

@@ -10,7 +10,7 @@
 .curriculum-import__check input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--color-primary); }
 .curriculum-import__error,.curriculum-import__success { padding: 12px; border-radius: 6px; margin: 0; overflow-wrap: anywhere; }
 .curriculum-import__error { border: 1px solid var(--color-status-error-border); background: var(--color-status-error-bg); color: var(--color-status-error-text); }
-.curriculum-import__success { border: 1px solid var(--color-status-success-border); background: var(--color-status-success-bg); color: var(--color-status-success-text); }
+.curriculum-import__success { border: 1px solid var(--color-hairline); border-left: 4px solid var(--color-status-success-text); background: var(--color-card); color: var(--color-ink); }
 .curriculum-import__pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0; }
 .curriculum-import .app-modal__actions { margin-top: 0; }
 @media (max-width: 480px) { .curriculum-import .app-modal__actions > button { flex: 1 1 auto; } }

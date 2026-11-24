@@ -142,7 +142,12 @@ export function AcademicStructurePage() {
       title="Cấu trúc đào tạo"
       eyebrow="Quản lý học vụ"
       description="Sắp xếp tổ chức, bộ môn và chuyên ngành; quản lý thông tin và trạng thái hoạt động."
-      action={!hasStateBlock && !academic.isLoading && academic.canManageOrganizations ? <Button icon="add" onClick={() => openEditor('organization')}>Thêm tổ chức</Button> : null}
+      action={!hasStateBlock && !academic.isLoading ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={academic.retry} />
+          {academic.canManageOrganizations && <Button icon="add" onClick={() => openEditor('organization')}>Thêm tổ chức</Button>}
+        </div>
+      ) : null}
     >
       {confirmationDialog}
 

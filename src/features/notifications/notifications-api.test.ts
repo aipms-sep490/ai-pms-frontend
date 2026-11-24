@@ -13,7 +13,7 @@ describe('notifications API contract', () => {
     await getUnreadCount()
     await markNotificationRead(8)
     await markAllNotificationsRead()
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/notifications?page=2&pageSize=20&isRead=false', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/notifications?page=2&pageSize=10&isRead=false', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/notifications/unread-count', expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/notifications/8/read', expect.objectContaining({ method: 'PATCH' }))
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/notifications/read-all', expect.objectContaining({ method: 'POST' }))

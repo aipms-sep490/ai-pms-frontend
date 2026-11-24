@@ -239,21 +239,24 @@ export function InterdisciplinaryGatePanel({
         </div>
 
         {/* Readiness Outcome Card */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="space-y-4 lg:sticky lg:top-6 lg:col-span-4">
           <div
-            className={`rounded-xl border p-5 shadow-xs ${
+            className={`rounded-xl border border-hairline border-l-4 bg-card p-5 text-ink shadow-xs ${
               allPassed
-                ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                : 'border-status-warning-border bg-status-warning-bg/70 text-status-warning-text'
+                ? 'border-l-status-success-text'
+                : 'border-l-[var(--color-accent-amber)]'
             }`}
           >
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Theo dõi thẩm định liên ngành
-            </span>
-            <div className="mt-2 text-2xl font-black">
+            <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${allPassed ? 'text-status-success-text' : 'text-status-warning-text'}`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+                {allPassed ? 'check_circle' : 'pending_actions'}
+              </span>
+              <span>Theo dõi thẩm định liên ngành</span>
+            </div>
+            <div className="mt-2 text-2xl font-black text-ink">
               {allPassed ? 'Các nhánh đã đạt' : hasRevision ? 'Có nhánh cần chỉnh sửa' : 'Chờ thẩm định'}
             </div>
-            <p className="mt-2 text-xs leading-relaxed opacity-90">
+            <p className="mt-2 text-xs leading-relaxed text-ink-soft">
               Trạng thái từng nhánh do hệ thống trả về. Kết luận cổng và điều kiện chuyển tiếp được xác định bởi hệ thống và reviewer được phân công.
             </p>
           </div>

@@ -1,7 +1,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
+import { Pagination } from '../../components/ui/Pagination'
+import { useClientPagination } from '../../components/ui/useClientPagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { AcademicWorkflowContext } from '../../app/context/academic-workflow-context'
@@ -274,6 +277,8 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     })
   }, [published, publishedRoomFilter, publishedSearch])
 
+  const publishedPager = useClientPagination(filteredPublished, 10)
+
   const hasPublishedFilters = Boolean(publishedSearch.trim() || publishedRoomFilter !== 'ALL')
   const publishedChips: ActiveFilterChip[] = []
   if (publishedRoomFilter !== 'ALL') publishedChips.push({ id: 'room', label: 'Phòng', value: publishedRoomFilter })
@@ -377,10 +382,13 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
           </div>
         )}
         {success && (
-          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-status-success-border bg-status-success-bg p-3 text-sm text-status-success-text">
-            <span>{success}</span>
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-sm text-ink shadow-xs">
+            <span className="inline-flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+              <span>{success}</span>
+            </span>
             {sectionTab !== 'published' && (
-              <button type="button" onClick={() => setSectionTab('published')} className="min-h-9 rounded-lg border border-status-success-border bg-card px-3 text-xs font-bold text-status-success-text hover:bg-canvas">
+              <button type="button" onClick={() => setSectionTab('published')} className="min-h-9 rounded-lg border border-hairline bg-canvas px-3 text-xs font-bold text-primary hover:border-primary hover:bg-primary-subtle">
                 Xem lịch đã công bố →
               </button>
             )}
@@ -523,10 +531,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
             <section aria-label={`Lịch đã công bố ${targetGate}`} className="rounded-2xl border border-hairline bg-card p-4 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-bold">Lịch đã công bố · {targetGate}</h2>
-                <button type="button" onClick={refreshPublished}
-                  className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary hover:bg-primary-subtle">
-                  Tải lại lịch
-                </button>
+                <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại lịch" onClick={refreshPublished} />
               </div>
               {published.length > 0 && (
                 <FilterToolbar
@@ -568,7 +573,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                     <TableHeaderCell>Trạng thái</TableHeaderCell>
                     {targetGate === 'R3' && <TableHeaderCell>Thao tác</TableHeaderCell>}
                   </TableRow></TableHead>
-                  <TableBody>{filteredPublished.map(item => <TableRow key={item.key}>
+                  <TableBody>{publishedPager.paginatedItems.map(item => <TableRow key={item.key}>
                     <TableCell className="font-semibold">{projectDisplay(item.projectId, item.projectCode, item.projectTitle)}</TableCell>
                     <TableCell>{new Date(item.startAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</TableCell>
                     <TableCell>{item.roomCode ?? 'Chưa có phòng'}</TableCell>
@@ -578,6 +583,16 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                   </TableRow>)}</TableBody>
                 </Table>
               </div>}
+              {!publishedLoading && !publishedError && publishedPager.showPagination && (
+                <Pagination
+                  page={publishedPager.page}
+                  pages={publishedPager.pages}
+                  total={publishedPager.total}
+                  pageSize={publishedPager.pageSize}
+                  onPage={publishedPager.setPage}
+                  onPageSizeChange={publishedPager.setPageSize}
+                />
+              )}
               {targetGate === 'R3' && editingGate3 && <div className="mt-4"><Gate3ScheduleChangePanel
                 key={`${editingGate3.gateInstanceId}-${editingGate3.concurrencyToken}`}
                 periodId={periodId} schedule={editingGate3} rooms={rooms}
