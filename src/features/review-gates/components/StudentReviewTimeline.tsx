@@ -823,7 +823,7 @@ export function StudentReviewTimeline({
 
       {/* Advisory Defense Readiness Modal (DEF-01) */}
       {showDefenseModal && readiness ? (
-        <Modal open onClose={() => setShowDefenseModal(false)} title="Điều kiện bảo vệ từ hệ thống">
+        <Modal open onClose={() => setShowDefenseModal(false)} title="Điều kiện bảo vệ từ hệ thống" className="app-modal--large">
           <DefenseReadinessChecker summary={readiness} />
         </Modal>
       ) : showDefenseModal && (

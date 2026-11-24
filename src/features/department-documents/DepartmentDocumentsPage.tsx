@@ -302,7 +302,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         search={search}
         onSearchChange={setSearch}
         searchLabel="Tìm tài liệu"
-        searchPlaceholder="Tìm theo tên, mã tài liệu hoặc tên tệp…"
+        searchPlaceholder="Tìm tên, mã tài liệu hoặc tệp…"
         controls={
           <>
             <select aria-label="Ngành" value={majorId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setMajorId(event.target.value) }}>

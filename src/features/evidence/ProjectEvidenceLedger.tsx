@@ -145,7 +145,7 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
         search={search}
         onSearchChange={setSearch}
         searchLabel="Tìm minh chứng"
-        searchPlaceholder="Tìm theo tiêu đề, ghi chú hoặc người gửi…"
+        searchPlaceholder="Tìm tiêu đề, ghi chú…"
         controls={
           <>
             <select aria-label="Nguồn" value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)}>

@@ -189,15 +189,15 @@ export function DefenseReadinessChecker({
               Quy tắc học thuật chuẩn mực
             </h4>
             <div className="space-y-2 border-t border-hairline pt-2">
-              <div className="flex justify-between">
+              <div className="flex items-baseline justify-between gap-3">
                 <span>Được quyền nộp Final Submission?</span>
-                <span className="font-bold text-ink">
+                <span className="shrink-0 whitespace-nowrap font-bold text-ink">
                   {summary.conditions[0]?.satisfied ? 'CÓ' : 'KHÓA'}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-baseline justify-between gap-3">
                 <span>Được xếp lịch bảo vệ?</span>
-                <span className="font-bold text-ink">
+                <span className="shrink-0 whitespace-nowrap font-bold text-ink">
                   {summary.isReady ? 'CHO PHÉP' : 'CHƯA ĐƯỢC'}
                 </span>
               </div>

@@ -261,16 +261,28 @@ export function DepartmentStudentDetailPage() {
             </div>
 
             <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => void handleSaveAcademic(event)}>
-              <label className="text-sm font-medium">
+              <label className="text-sm font-medium sm:col-span-2">
                 Ngành đào tạo
                 <select
-                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-hairline py-2 pl-3 pr-9 text-sm"
                   value={draftMajorId}
                   onChange={event => { setDraftMajorId(event.target.value); setDraftSpecId('') }}
                   disabled={saving}
                 >
                   <option value="">Chọn ngành</option>
                   {majors.map(m => <option key={m.id} value={m.id}>{m.code} · {m.name}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-medium sm:col-span-2">
+                Chuyên ngành hẹp
+                <select
+                  className="mt-1 block w-full rounded-lg border border-hairline py-2 pl-3 pr-9 text-sm"
+                  value={draftSpecId}
+                  onChange={event => setDraftSpecId(event.target.value)}
+                  disabled={saving}
+                >
+                  <option value="">Chưa chọn chuyên ngành hẹp</option>
+                  {filteredSpecs.map(s => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
                 </select>
               </label>
               <label className="text-sm font-medium">
@@ -283,18 +295,6 @@ export function DepartmentStudentDetailPage() {
                   maxLength={50}
                   disabled={saving}
                 />
-              </label>
-              <label className="text-sm font-medium">
-                Chuyên ngành hẹp
-                <select
-                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
-                  value={draftSpecId}
-                  onChange={event => setDraftSpecId(event.target.value)}
-                  disabled={saving}
-                >
-                  <option value="">Chưa chọn chuyên ngành hẹp</option>
-                  {filteredSpecs.map(s => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
-                </select>
               </label>
               <label className="text-sm font-medium">
                 Khung CTĐT

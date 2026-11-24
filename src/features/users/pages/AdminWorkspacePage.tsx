@@ -831,9 +831,9 @@ export function AdminWorkspacePage() {
                 ))}
               </fieldset>
               <p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p>
-              <div className="admin-actions">
-                <Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button>
+              <div className="app-modal__actions col-span-full">
                 <Button type="button" variant="outline" disabled={busy} onClick={() => setCreateOpen(false)}>Đóng</Button>
+                <Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button>
               </div>
             </fieldset>
           </form>
@@ -878,11 +878,11 @@ export function AdminWorkspacePage() {
               className="font-mono text-xs"
             />
           </label>
-          <div className="admin-actions">
+          <div className="app-modal__actions">
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setJsonImportOpen(false)}>Đóng</Button>
             <Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>
               {busy ? 'Đang gửi…' : 'Gửi lô tới máy chủ'}
             </Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setJsonImportOpen(false)}>Đóng</Button>
           </div>
         </Modal>
       )}

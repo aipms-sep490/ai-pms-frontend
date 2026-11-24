@@ -359,13 +359,18 @@
   justify-self: start;
 }
 
-.admin-form .admin-create-fields {
+.admin-form fieldset.admin-create-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   min-width: 0;
   padding: 0;
   border: 0;
+  background: transparent;
+}
+
+.app-modal .admin-form {
+  margin-top: 0;
 }
 
 .admin-create-fields > :is(.academic-scope-fields, fieldset, p, .admin-actions) {

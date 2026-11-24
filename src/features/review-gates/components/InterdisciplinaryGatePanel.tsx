@@ -190,14 +190,15 @@ export function InterdisciplinaryGatePanel({
                         <strong className="block font-semibold text-ink">{item.name}</strong>
                         <span className="text-xs text-ink-muted">{item.desc}</span>
                       </td>
-                      <td className="py-3.5 px-3 text-center">{effectiveRequiredScopes.includes(item.scope) ? <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">BẮT BUỘC</span> : <span className="text-ink-muted">Chưa xác nhận</span>}</td>
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">{effectiveRequiredScopes.includes(item.scope) ? <span className="inline-flex items-center whitespace-nowrap rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">BẮT BUỘC</span> : <span className="text-ink-muted whitespace-nowrap">Chưa xác nhận</span>}</td>
                       <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap items-center gap-2">
                         <select
                           aria-label={`Trạng thái thẩm định · ${item.name}`}
                           disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false}
                           value={draftChoices[item.scope] ?? scopes[item.scope] ?? ''}
                           onChange={e => setDraftChoices(current => ({ ...current, [item.scope]: e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW' | '' }))}
-                          className={`min-h-11 max-w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:ring-primary ${
+                          className={`min-h-10 max-w-full rounded-lg border py-1.5 pl-2.5 pr-8 text-xs font-medium focus:ring-2 focus:ring-primary ${
                             scopes[item.scope] === 'PASSED'
                               ? 'border-status-success-border bg-status-success-bg text-status-success-text'
                               : scopes[item.scope] === 'REVISION_REQUIRED'
@@ -212,7 +213,8 @@ export function InterdisciplinaryGatePanel({
                           <option value="PLANNED" disabled>Chưa bắt đầu</option>
                           <option value="LOCKED" disabled>Chưa mở</option>
                         </select>
-                        <button type="button" className="mt-2 ml-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50" disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false || !draftChoices[item.scope] || (draftChoices[item.scope] === scopes[item.scope] && conflictedScope !== item.scope)} onClick={() => void handleScopeChange(item.scope)}>{busyScope === item.scope ? 'Đang gửi…' : 'Ghi quyết định'}</button>
+                        <button type="button" className="min-h-10 whitespace-nowrap rounded-lg border border-primary px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50" disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false || !draftChoices[item.scope] || (draftChoices[item.scope] === scopes[item.scope] && conflictedScope !== item.scope)} onClick={() => void handleScopeChange(item.scope)}>{busyScope === item.scope ? 'Đang gửi…' : 'Ghi quyết định'}</button>
+                        </div>
                         {hybridScopeCapabilities?.[item.scope] === false && <p className="mt-1 text-xs text-ink-muted">Máy chủ không cấp quyền quyết định phạm vi này.</p>}
                         {hybridScopeDecisionDetails?.[item.scope] && <p className="mt-1 text-xs text-ink-muted">{hybridScopeDecisionDetails[item.scope].decidedByName ?? 'Người quyết định chưa được cung cấp'}{hybridScopeDecisionDetails[item.scope].decidedAt ? ` · ${dateTimeLabel(hybridScopeDecisionDetails[item.scope].decidedAt)}` : ''}</p>}
                       </td>

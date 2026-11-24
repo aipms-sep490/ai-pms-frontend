@@ -22,7 +22,7 @@
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) label { font-size:13px; font-weight:550; line-height:1.6; color:var(--experience-ink); }
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { border:1px solid var(--experience-line); border-radius:9px; background-color:#fff; font-size:14px; }
 [data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
-[data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):disabled { background:var(--color-canvas); color:var(--experience-muted); }
+[data-experience=enhanced] :is(.api-form,.ex-form,.mtg-form,.report-editor,.admin-form) :is(input,select,textarea):disabled { background-color:var(--color-canvas); color:var(--experience-muted); }
 [data-experience=enhanced] :is(.report-row,.mtg-row) { padding:18px 22px; gap:16px; }
 [data-experience=enhanced] :is(.report-list,.mtg-list) { padding:0 0 8px; }
 [data-experience=enhanced] :is(.report-steps,.mtg-process) { border:1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--experience-line)); border-radius:12px; overflow:hidden; box-shadow:0 2px 8px -6px color-mix(in oklab, var(--color-brand-navy) 18%, transparent); }
