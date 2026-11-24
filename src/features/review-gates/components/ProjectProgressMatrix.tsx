@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { env } from '../../../app/config/env'
 import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.types'
 import { Table, TableHead } from '../../../components/ui/Table'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 
 interface ProjectProgressMatrixProps {
   projects: ProjectReviewMatrixRow[]
@@ -37,58 +40,64 @@ export function ProjectProgressMatrix({
   onSelectProject,
 }: ProjectProgressMatrixProps) {
   const [filterMode, setFilterMode] = useState<string>('ALL')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [inspectingProject, setInspectingProject] = useState<ProjectReviewMatrixRow | null>(null)
   const [selectedGateToDecide, setSelectedGateToDecide] = useState<string>('R2')
   const [decisionChoice, setDecisionChoice] = useState<'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW'>('PASSED')
   const [updatingDecision, setUpdatingDecision] = useState(false)
   const [decisionError, setDecisionError] = useState<string | null>(null)
 
-  const filteredProjects = projects.filter(p => filterMode === 'ALL' || p.mode === filterMode)
+  const filteredProjects = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return projects.filter(p => {
+      if (filterMode !== 'ALL' && p.mode !== filterMode) return false
+      if (!q) return true
+      return (
+        p.projectName.toLowerCase().includes(q) ||
+        p.projectId.toLowerCase().includes(q) ||
+        p.major.toLowerCase().includes(q)
+      )
+    })
+  }, [projects, filterMode, searchQuery])
+
+  const pagination = useClientPagination(filteredProjects, 10)
 
   const allGateCodes = Array.from(
     new Set(projects.flatMap(p => Object.keys(p.gateStatuses))),
   ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
   const displayGateCodes = allGateCodes.length > 0 ? allGateCodes : ['R1', 'R2', 'R3', 'R4']
 
+  const revisionCount = projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length
+  const inReviewCount = projects.filter(p => Object.values(p.gateStatuses).includes('IN_REVIEW')).length
+  const interdisciplinaryCount = projects.filter(p => p.mode === 'INTERDISCIPLINARY').length
+
   return (
     <div className="space-y-5">
-      {/* KPI Cards Bar */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-ink-muted">Tổng số đồ án</span>
-          <p className="mt-1 text-2xl font-black text-ink">{projects.length}</p>
-        </div>
-        <div className="rounded-xl border border-status-error-border bg-status-error-bg/50 p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-status-error-text">Cần chỉnh sửa Review</span>
-          <p className="mt-1 text-2xl font-black text-status-error-text">
-            {projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length}
-          </p>
-        </div>
-        <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-primary">Đang thẩm định</span>
-          <p className="mt-1 text-2xl font-black text-primary">
-            {projects.filter(p => Object.values(p.gateStatuses).includes('IN_REVIEW')).length}
-          </p>
-        </div>
-        <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-          <span className="text-xs font-semibold text-ink-muted">Đồ án liên ngành</span>
-          <p className="mt-1 text-2xl font-black text-primary">
-            {projects.filter(p => p.mode === 'INTERDISCIPLINARY').length}
-          </p>
-        </div>
-      </div>
-
       {/* Matrix Table Section */}
-      <div className="rounded-xl border border-hairline bg-card shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline p-4">
+      <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+        <div className="flex flex-wrap items-end justify-between gap-4 bg-canvas/70 border-b border-hairline px-5 py-3.5">
           <div>
-            <h3 className="text-sm font-bold text-ink">Ma trận tiến trình các đồ án</h3>
-            <p className="text-xs text-ink-muted">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-sm font-bold text-ink">Ma trận tiến trình các đồ án</h3>
+              <StatusBadge tone="neutral" label={`${filteredProjects.length} đồ án`} />
+              {revisionCount > 0 && <StatusBadge tone="danger" label={`${revisionCount} cần sửa`} />}
+              {inReviewCount > 0 && <StatusBadge tone="info" label={`${inReviewCount} đang xét`} />}
+              {interdisciplinaryCount > 0 && <StatusBadge tone="neutral" label={`${interdisciplinaryCount} liên ngành`} />}
+            </div>
+            <p className="mt-0.5 text-xs text-ink-muted">
               Nhấp vào từng đồ án để xem quyết định của Reviewer và nguyên nhân bị chặn.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <input
+              type="search"
+              aria-label="Tìm đồ án trên ma trận"
+              placeholder="Tìm mã, tên đồ án, ngành…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="min-h-10 w-52 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs text-ink focus:border-primary focus:outline-none"
+            />
             <label htmlFor="matrix-mode-select" className="text-xs font-semibold text-ink-soft">
               Chế độ đồ án:
             </label>
@@ -118,7 +127,7 @@ export function ProjectProgressMatrix({
               </tr>
             </TableHead>
             <tbody className="divide-y divide-hairline text-ink-soft">
-              {filteredProjects.map(proj => {
+              {pagination.paginatedItems.map(proj => {
                 const keys = Object.keys(proj.gateStatuses)
                 return (
                   <tr
@@ -162,15 +171,19 @@ export function ProjectProgressMatrix({
                       )
                     })}
                     <td className="py-3.5 px-4 min-w-[130px]">
-                      {proj.hasTasks === false ? <span className="text-xs text-ink-muted">Chưa có công việc</span> : <div className="flex items-center gap-2">
-                        <div className="h-2 w-full rounded-full bg-canvas overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${proj.taskProgress}%` }}
-                          />
+                      {proj.hasTasks === false ? (
+                        <span className="text-xs text-ink-muted">Chưa có công việc</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-full rounded-full bg-canvas overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${proj.taskProgress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold tabular-nums text-ink-soft">{proj.taskProgress}%</span>
                         </div>
-                        <span className="text-xs font-bold text-ink-soft">{proj.taskProgress}%</span>
-                      </div>}
+                      )}
                     </td>
                   </tr>
                 )
@@ -178,7 +191,22 @@ export function ProjectProgressMatrix({
             </tbody>
           </Table>
         </div>
-        <p className="p-3 text-xs text-ink-muted border-t border-hairline">
+
+        {pagination.showPagination && (
+          <div className="border-t border-hairline px-5 py-3">
+            <Pagination
+              page={pagination.page}
+              pages={pagination.totalPages}
+              total={pagination.total}
+              pageSize={pagination.pageSize}
+              pageSizeOptions={[10, 20, 50]}
+              onPage={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          </div>
+        )}
+
+        <p className="px-5 py-3 text-xs text-ink-muted border-t border-hairline bg-canvas/40">
           * Tiến độ Task % là số liệu quản lý nội bộ; không thay thế quyết định thẩm định chính thức của Reviewer.
         </p>
       </div>

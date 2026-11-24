@@ -550,7 +550,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">✅</div>
+                    <span className="material-symbols-outlined text-xl text-status-success-text" aria-hidden="true">check_circle</span>
                     <div className="mt-1 font-bold text-xs">ĐẠT (PASSED)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Cho phép qua cổng</div>
                   </button>
@@ -564,7 +564,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">⚠️</div>
+                    <span className="material-symbols-outlined text-xl text-status-warning-text" aria-hidden="true">warning</span>
                     <div className="mt-1 font-bold text-xs">SỬA ĐỔI (REVISION)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Hạn sửa 5 ngày làm việc</div>
                   </button>
@@ -578,7 +578,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">❌</div>
+                    <span className="material-symbols-outlined text-xl text-status-error-text" aria-hidden="true">cancel</span>
                     <div className="mt-1 font-bold text-xs">KHÔNG ĐẠT (FAILED)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Dừng tiến trình đồ án</div>
                   </button>

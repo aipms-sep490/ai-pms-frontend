@@ -1,4 +1,7 @@
 import { Table, TableHead } from '../../../components/ui/Table'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
 import { env } from '../../../app/config/env'
@@ -95,6 +98,7 @@ export function InterdisciplinaryGatePanel({
 
   const effectiveRequiredScopes = env.reviewGatesMockEnabled ? Object.keys(scopes) : requiredScopes
   const scopeKeys = [...new Set([...effectiveRequiredScopes, ...Object.keys(scopes)])]
+  const pagination = useClientPagination(scopeKeys, 8)
   const allPassed = topologyState === 'ready' && effectiveRequiredScopes.length > 0 && effectiveRequiredScopes.every(key => scopes[key] === 'PASSED')
   const hasRevision = scopeKeys.some(key => scopes[key] === 'REVISION_REQUIRED')
   const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || projectScopeLabels[key] || scopeMeta[key]?.name || `Ngành ${key}`
@@ -117,11 +121,16 @@ export function InterdisciplinaryGatePanel({
   }
 
   return (
-    <div className="space-y-6">
-      {topologyState !== 'ready' && <p role="status" className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">{topologyState === 'loading' ? 'Đang đối chiếu đủ phạm vi từ dữ liệu dự án…' : 'Chưa xác nhận được đầy đủ phạm vi bắt buộc; trạng thái sẵn sàng không được suy đoán.'}</p>}
+    <div className="space-y-5">
+      {topologyState !== 'ready' && (
+        <p role="status" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
+          {topologyState === 'loading' ? 'Đang đối chiếu đủ phạm vi từ dữ liệu dự án…' : 'Chưa xác nhận được đầy đủ phạm vi bắt buộc; trạng thái sẵn sàng không được suy đoán.'}
+        </p>
+      )}
+
       {/* Header Context */}
-      <div className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+      <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-canvas/70 border-b border-hairline px-5 py-3.5">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
               Đồ án liên ngành · {projectId || 'Chưa chọn đồ án'}
@@ -140,89 +149,125 @@ export function InterdisciplinaryGatePanel({
             {allPassed ? 'CÁC NHÁNH ĐÃ ĐẠT' : 'CHỜ THẨM ĐỊNH CÁC NGÀNH'}
           </span>
         </div>
-        <p className="mt-2 text-xs text-ink-muted">
+        <p className="px-5 py-3.5 text-xs text-ink-muted">
           Đồ án liên ngành được thẩm định độc lập theo từng phân ban chuyên môn trước khi xét duyệt Cổng tích hợp chung.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
         {/* Scopes Table */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="rounded-xl border border-hairline bg-card shadow-xs overflow-x-auto">
-            <div className="border-b border-hairline p-4">
-              <h3 className="text-sm font-bold text-ink">
-                Thẩm định phân theo từng Chuyên ngành (Scope Review)
-              </h3>
-              <p className="text-xs text-ink-muted">
-                Mỗi bộ môn tham gia chỉ thẩm định và ra quyết định trong phạm vi chuyên môn của mình.
-              </p>
+        <div className="lg:col-span-8 space-y-5">
+          <div className="rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <div>
+                <h3 className="text-sm font-bold text-ink">
+                  Thẩm định phân theo từng Chuyên ngành (Scope Review)
+                </h3>
+                <p className="mt-0.5 text-xs text-ink-muted">
+                  Mỗi bộ môn tham gia chỉ thẩm định và ra quyết định trong phạm vi chuyên môn của mình.
+                </p>
+              </div>
+              <StatusBadge tone="info" label={`${scopeKeys.length} phân nhánh`} />
             </div>
 
             {scopeError && (
-              <div role="alert" className="mx-4 mt-3 rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
+              <div role="alert" className="mx-5 mt-3 rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
                 ✕ {scopeError}
               </div>
             )}
 
-            <Table className="w-full text-left text-xs">
-              <TableHead className="font-semibold uppercase tracking-wider text-ink-muted">
-                <tr>
-                  <th className="py-3 px-4">Phạm vi chuyên ngành</th>
-                  <th className="py-3 px-3 text-center">Bắt buộc</th>
-                  <th className="py-3 px-4">Quyết định Reviewer</th>
-                </tr>
-              </TableHead>
-              <tbody className="divide-y divide-hairline text-ink-soft">
-                {scopeKeys.map(scopeKey => {
-                  const item = {
-                    scope: scopeKey,
-                    name: scopeName(scopeKey),
-                    desc: scopeMeta[scopeKey]?.desc || 'Thẩm định yêu cầu chuyên ngành',
-                  }
-                  return (
-                    <tr key={item.scope} className="hover:bg-canvas">
-                      <td className="py-3.5 px-4">
-                        <strong className="block font-semibold text-ink">{item.name}</strong>
-                        <span className="text-xs text-ink-muted">{item.desc}</span>
-                      </td>
-                      <td className="py-3.5 px-3 text-center">{effectiveRequiredScopes.includes(item.scope) ? <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">BẮT BUỘC</span> : <span className="text-ink-muted">Chưa xác nhận</span>}</td>
-                      <td className="py-3.5 px-4">
-                        <select
-                          aria-label={`Trạng thái thẩm định · ${item.name}`}
-                          disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false}
-                          value={draftChoices[item.scope] ?? scopes[item.scope] ?? ''}
-                          onChange={e => setDraftChoices(current => ({ ...current, [item.scope]: e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW' | '' }))}
-                          className={`min-h-11 max-w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:ring-primary ${
-                            scopes[item.scope] === 'PASSED'
-                              ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                              : scopes[item.scope] === 'REVISION_REQUIRED'
-                              ? 'border-status-error-border bg-status-error-bg/50 text-status-error-text'
-                              : 'border-primary/20 bg-primary-subtle text-primary'
-                          } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
-                        >
-                          <option value="">Chưa có quyết định</option>
-                          <option value="PASSED">Đã đạt</option>
-                          <option value="REVISION_REQUIRED">Cần chỉnh sửa</option>
-                          <option value="IN_REVIEW">Đang thẩm định</option>
-                          <option value="PLANNED" disabled>Chưa bắt đầu</option>
-                          <option value="LOCKED" disabled>Chưa mở</option>
-                        </select>
-                        <button type="button" className="mt-2 ml-2 min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50" disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false || !draftChoices[item.scope] || (draftChoices[item.scope] === scopes[item.scope] && conflictedScope !== item.scope)} onClick={() => void handleScopeChange(item.scope)}>{busyScope === item.scope ? 'Đang gửi…' : 'Ghi quyết định'}</button>
-                        {hybridScopeCapabilities?.[item.scope] === false && <p className="mt-1 text-xs text-ink-muted">Máy chủ không cấp quyền quyết định phạm vi này.</p>}
-                        {hybridScopeDecisionDetails?.[item.scope] && <p className="mt-1 text-xs text-ink-muted">{hybridScopeDecisionDetails[item.scope].decidedByName ?? 'Người quyết định chưa được cung cấp'}{hybridScopeDecisionDetails[item.scope].decidedAt ? ` · ${dateTimeLabel(hybridScopeDecisionDetails[item.scope].decidedAt)}` : ''}</p>}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table className="w-full text-left text-xs">
+                <TableHead className="font-semibold uppercase tracking-wider text-ink-muted">
+                  <tr>
+                    <th className="py-3 px-4">Phạm vi chuyên ngành</th>
+                    <th className="py-3 px-3 text-center">Bắt buộc</th>
+                    <th className="py-3 px-4">Quyết định Reviewer</th>
+                  </tr>
+                </TableHead>
+                <tbody className="divide-y divide-hairline text-ink-soft">
+                  {pagination.paginatedItems.map(scopeKey => {
+                    const item = {
+                      scope: scopeKey,
+                      name: scopeName(scopeKey),
+                      desc: scopeMeta[scopeKey]?.desc || 'Thẩm định yêu cầu chuyên ngành',
+                    }
+                    return (
+                      <tr key={item.scope} className="hover:bg-canvas">
+                        <td className="py-3.5 px-4">
+                          <strong className="block font-semibold text-ink">{item.name}</strong>
+                          <span className="text-xs text-ink-muted">{item.desc}</span>
+                        </td>
+                        <td className="py-3.5 px-3 text-center">
+                          {effectiveRequiredScopes.includes(item.scope) ? (
+                            <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">BẮT BUỘC</span>
+                          ) : (
+                            <span className="text-ink-muted">Chưa xác nhận</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <select
+                              aria-label={`Trạng thái thẩm định · ${item.name}`}
+                              disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false}
+                              value={draftChoices[item.scope] ?? scopes[item.scope] ?? ''}
+                              onChange={e => setDraftChoices(current => ({ ...current, [item.scope]: e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW' | '' }))}
+                              className={`min-h-11 max-w-full rounded-lg border px-2.5 py-1.5 text-xs font-medium focus:ring-2 focus:ring-primary ${
+                                scopes[item.scope] === 'PASSED'
+                                  ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                                  : scopes[item.scope] === 'REVISION_REQUIRED'
+                                  ? 'border-status-error-border bg-status-error-bg/50 text-status-error-text'
+                                  : 'border-primary/20 bg-primary-subtle text-primary'
+                              } ${busyScope === item.scope ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                              <option value="">Chưa có quyết định</option>
+                              <option value="PASSED">Đã đạt</option>
+                              <option value="REVISION_REQUIRED">Cần chỉnh sửa</option>
+                              <option value="IN_REVIEW">Đang thẩm định</option>
+                              <option value="PLANNED" disabled>Chưa bắt đầu</option>
+                              <option value="LOCKED" disabled>Chưa mở</option>
+                            </select>
+                            <button
+                              type="button"
+                              className="min-h-11 rounded-lg border border-primary px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50"
+                              disabled={busyScope !== null || hybridScopeCapabilities?.[item.scope] === false || !draftChoices[item.scope] || (draftChoices[item.scope] === scopes[item.scope] && conflictedScope !== item.scope)}
+                              onClick={() => void handleScopeChange(item.scope)}
+                            >
+                              {busyScope === item.scope ? 'Đang gửi…' : 'Ghi quyết định'}
+                            </button>
+                          </div>
+                          {hybridScopeCapabilities?.[item.scope] === false && <p className="mt-1 text-xs text-ink-muted">Máy chủ không cấp quyền quyết định phạm vi này.</p>}
+                          {hybridScopeDecisionDetails?.[item.scope] && <p className="mt-1 text-xs text-ink-muted">{hybridScopeDecisionDetails[item.scope].decidedByName ?? 'Người quyết định chưa được cung cấp'}{hybridScopeDecisionDetails[item.scope].decidedAt ? ` · ${dateTimeLabel(hybridScopeDecisionDetails[item.scope].decidedAt)}` : ''}</p>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </Table>
+            </div>
+
+            {pagination.showPagination && (
+              <div className="border-t border-hairline px-5 py-3">
+                <Pagination
+                  page={pagination.page}
+                  pages={pagination.totalPages}
+                  total={pagination.total}
+                  pageSize={pagination.pageSize}
+                  pageSizeOptions={[8, 16, 30]}
+                  onPage={pagination.setPage}
+                  onPageSizeChange={pagination.setPageSize}
+                />
+              </div>
+            )}
           </div>
 
-          <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
-              Liên kết phụ thuộc giữa các chuyên ngành (Cross-discipline Traceability)
-            </h4>
-            <div className="space-y-2 text-xs">
+          <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="bg-canvas/70 border-b border-hairline px-5 py-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
+                Liên kết phụ thuộc giữa các chuyên ngành (Cross-discipline Traceability)
+              </h4>
+            </div>
+            <div className="p-4 space-y-2 text-xs">
               {scopeKeys.map(s => (
                 <div key={s} className="flex flex-wrap gap-2 items-center justify-between rounded-lg border border-hairline bg-canvas p-2.5">
                   <span><strong>{scopeName(s)}</strong>: Yêu cầu chuẩn đầu ra chuyên ngành</span>
@@ -248,14 +293,16 @@ export function InterdisciplinaryGatePanel({
             <div className="mt-2 text-2xl font-black">
               {allPassed ? 'Các nhánh đã đạt' : hasRevision ? 'Có nhánh cần chỉnh sửa' : 'Chờ thẩm định'}
             </div>
-            <p className="mt-2 text-xs leading-relaxed opacity-90">
+            <p className="mt-2 text-xs leading-relaxed">
               Trạng thái từng nhánh do hệ thống trả về. Kết luận cổng và điều kiện chuyển tiếp được xác định bởi hệ thống và reviewer được phân công.
             </p>
           </div>
 
-          <div className="rounded-xl border border-hairline bg-card p-4 text-xs text-ink-muted space-y-2 shadow-xs">
-            <strong className="block font-bold text-ink">Phạm vi giám sát:</strong>
-            <p className="leading-relaxed">
+          <div className="overflow-hidden rounded-xl border border-hairline bg-card text-xs text-ink-muted shadow-xs">
+            <div className="bg-canvas/70 border-b border-hairline px-4 py-3">
+              <strong className="block font-bold text-ink">Phạm vi giám sát</strong>
+            </div>
+            <p className="p-4 leading-relaxed">
               Bảng này chỉ hiển thị tiến trình. Reviewer được phân công gửi quyết định tại hàng đợi thẩm định trong phạm vi được cấp.
             </p>
           </div>

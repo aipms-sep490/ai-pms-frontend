@@ -3,6 +3,9 @@ import { getAssignments } from '../../../services/api/supervisors.api'
 import type { SupervisorAssignmentDto } from '../../../types/backend'
 import * as api from '../api/assignment-management-api'
 import { Button } from '../../../components/ui/Button'
+import { Pagination } from '../../../components/ui/Pagination'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { readAllPages } from '../../../services/api/paged-read'
 import { HttpError } from '../../../services/http/http-client'
@@ -13,6 +16,7 @@ const allowed = (item: SupervisorAssignmentDto, code: string) => item.allowedAct
 export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' }: { projectId: number; canManage?: boolean; canEnd?: boolean; projectStatus?: string }) {
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([]), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('')
   const version = useRef(0), lock = useRef(false), { requestConfirmation, confirmationDialog } = useActionConfirmation()
+  const assignmentsPagination = useClientPagination(assignments, 8)
   const load = useCallback(async () => {
     const current = ++version.current; setLoading(true); setError(''); setAssignments([])
     try { const result = await readAllPages(page => getAssignments(projectId, { page, pageSize: 100 })); if (current === version.current) setAssignments(result) }
@@ -40,16 +44,34 @@ export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' 
       else setError(departmentError(reason).message)
     } finally { lock.current = false; setBusy(false) }
   }
-  return <section className="workspace-surface space-y-4 p-4 sm:p-6" aria-labelledby="assignment-management-title">{confirmationDialog}
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="assignment-management-title" className="font-semibold">Phân công hướng dẫn</h2><Button className="min-h-11" variant="secondary" disabled={busy || loading} onClick={() => void load()}>Tải lại</Button></div>
-    <p className="text-sm text-ink-muted">Quyền thay và kết thúc được hệ thống xác định cho từng phân công, theo khoa chủ trì hoặc khoa phụ trách ngành. Ứng viên được kiểm tra lại khi lưu.</p>
-    {loading && <p role="status">Đang tải phân công…</p>}{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{notice && <p role="status" className="text-sm text-status-success-text">{notice}</p>}
-    <ul className="divide-y divide-hairline">{assignments.map(item => <li key={item.id} className="space-y-3 py-4"><div className="flex flex-wrap justify-between gap-2"><strong className="break-words text-sm">{item.supervisorName}</strong><span className="text-xs text-ink-muted">{item.endedAt ? 'Đã kết thúc' : item.isPrimary ? 'Hướng dẫn chính' : 'Hướng dẫn chuyên ngành'}</span></div>
-      {item.endReason && <p className="break-words text-sm">Lý do kết thúc: {item.endReason}</p>}{item.replacesAssignmentId && <p className="text-sm">Thay thế phân công #{item.replacesAssignmentId}</p>}
-      {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'REPLACE') && <ReplacementPicker assignmentId={item.id} busy={busy} onReplace={id => void update(item, id)} />}
-      {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'END') && <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => void update(item)}>Kết thúc phân công</Button>}
-      {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-ink-muted">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem.' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
-    </li>)}</ul>{!loading && !error && !assignments.length && <p className="text-sm text-ink-muted">Chưa có phân công hướng dẫn.</p>}
+  return <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="assignment-management-title">{confirmationDialog}
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 id="assignment-management-title" className="text-base font-bold text-ink">Phân công hướng dẫn</h2>
+        <StatusBadge tone="neutral" label={`${assignments.length}`} />
+      </div>
+      <Button className="min-h-11" size="sm" variant="secondary" disabled={busy || loading} onClick={() => void load()}>Tải lại</Button>
+    </div>
+    <div className="space-y-4 p-5">
+      <p className="text-sm text-ink-muted">Quyền thay và kết thúc được hệ thống xác định cho từng phân công, theo khoa chủ trì hoặc khoa phụ trách ngành. Ứng viên được kiểm tra lại khi lưu.</p>
+      {loading && <p role="status">Đang tải phân công…</p>}{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{notice && <p role="status" className="text-sm text-status-success-text">{notice}</p>}
+      <ul className="divide-y divide-hairline">{assignmentsPagination.paginatedItems.map(item => <li key={item.id} className="space-y-3 py-4 first:pt-0 last:pb-0"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="break-words text-sm text-ink">{item.supervisorName}</strong><StatusBadge tone={item.endedAt ? 'neutral' : item.isPrimary ? 'info' : 'success'} label={item.endedAt ? 'Đã kết thúc' : item.isPrimary ? 'Hướng dẫn chính' : 'Hướng dẫn chuyên ngành'} /></div>
+        {item.endReason && <p className="break-words text-sm">Lý do kết thúc: {item.endReason}</p>}{item.replacesAssignmentId && <p className="text-sm">Thay thế phân công #{item.replacesAssignmentId}</p>}
+        {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'REPLACE') && <ReplacementPicker assignmentId={item.id} busy={busy} onReplace={id => void update(item, id)} />}
+        {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'END') && <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => void update(item)}>Kết thúc phân công</Button>}
+        {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-ink-muted">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem.' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
+      </li>)}</ul>
+      {assignmentsPagination.showPagination && (
+        <Pagination
+          page={assignmentsPagination.page}
+          pages={assignmentsPagination.totalPages}
+          total={assignmentsPagination.total}
+          pageSize={assignmentsPagination.pageSize}
+          onPage={assignmentsPagination.setPage}
+        />
+      )}
+      {!loading && !error && !assignments.length && <p className="text-sm text-ink-muted">Chưa có phân công hướng dẫn.</p>}
+    </div>
   </section>
 }
 
@@ -65,14 +87,27 @@ function ReplacementPicker({ assignmentId, busy, onReplace }: { assignmentId: nu
     return () => { requestVersion.current++ }
   }, [assignmentId, page, search, open, retry])
   const candidate = items.find(item => item.candidate.id === Number(selected))
+  const totalPages = Math.max(1, Math.ceil(total / 20))
   if (!open) return <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => setOpen(true)}>Chọn người thay thế</Button>
-  return <div className="space-y-3 rounded-lg border border-hairline p-3">
-    <label className="block text-sm">Tìm ứng viên<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline px-3" value={search} disabled={busy} onChange={event => { setSearch(event.target.value); setPage(1) }} /></label>
+  return <div className="space-y-3 rounded-lg border border-hairline bg-canvas/50 p-3.5">
+    <label className="block text-sm">Tìm ứng viên<input className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3" value={search} disabled={busy} onChange={event => { setSearch(event.target.value); setPage(1) }} /></label>
     {loading && <p role="status">Đang kiểm tra ứng viên…</p>}{error && <div role="alert"><p className="text-sm text-status-error-text">{error}</p><Button variant="secondary" disabled={busy || loading} onClick={() => setRetry(value => value + 1)}>Thử lại ứng viên</Button></div>}
-    {!loading && !error && <><label className="block text-sm">Giảng viên thay thế<select aria-label="Giảng viên thay thế" className="mt-1 min-h-11 w-full max-w-full rounded-lg border border-hairline px-3" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}><option value="">Chọn ứng viên</option>{items.map(item => <option key={item.candidate.id} value={item.candidate.id} disabled={!item.eligible}>{item.candidate.fullName} · {item.candidate.departmentName}</option>)}</select></label>
+    {!loading && !error && <><label className="block text-sm">Giảng viên thay thế<select aria-label="Giảng viên thay thế" className="mt-1 min-h-11 w-full max-w-full rounded-lg border border-hairline bg-card px-3" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}><option value="">Chọn ứng viên</option>{items.map(item => <option key={item.candidate.id} value={item.candidate.id} disabled={!item.eligible}>{item.candidate.fullName} · {item.candidate.departmentName}</option>)}</select></label>
       {candidate && <div className="break-words text-sm"><p>Còn {candidate.candidate.remainingSlots} suất · Đang hướng dẫn {candidate.candidate.activeProjects} đồ án · Trong kỳ {candidate.candidate.semesterActiveProjects}/{candidate.candidate.semesterLimit}</p><p>{candidate.expertiseMatch === 'MATCHED' ? 'Chuyên môn phù hợp ngành phụ trách' : candidate.expertiseMatch === 'NOT_REQUIRED' ? 'Phân công chính không yêu cầu đối chiếu chuyên môn ngành theo chính sách hiện hành' : 'Chưa có kết luận chuyên môn'} · Khoa phụ trách #{candidate.responsibleDepartmentId ?? '—'}</p>{candidate.reasons.length > 0 && <p>{candidate.reasons.join(' · ')}</p>}</div>}
       {!items.length && <p className="text-sm">Không có ứng viên đủ điều kiện với bộ lọc hiện tại.</p>}
-      <div className="flex flex-wrap items-center gap-3"><Button className="min-h-11" disabled={busy || !candidate?.eligible} onClick={() => candidate && onReplace(candidate.candidate.id)}>Thay giảng viên</Button><Button className="min-h-11" variant="secondary" disabled={busy || page <= 1} onClick={() => setPage(value => value - 1)}>Ứng viên trang trước</Button><span className="text-sm">Trang {page}/{Math.max(1, Math.ceil(total / 20))} · {total} ứng viên</span><Button className="min-h-11" variant="secondary" disabled={busy || page * 20 >= total} onClick={() => setPage(value => value + 1)}>Ứng viên trang sau</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button className="min-h-11" disabled={busy || !candidate?.eligible} onClick={() => candidate && onReplace(candidate.candidate.id)}>Thay giảng viên</Button>
+      </div>
+      {totalPages > 1 && (
+        <Pagination
+          page={page}
+          pages={totalPages}
+          total={total}
+          pageSize={20}
+          busy={busy || loading}
+          onPage={setPage}
+        />
+      )}
     </>}
   </div>
 }

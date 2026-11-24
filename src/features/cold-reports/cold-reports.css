@@ -1,28 +1,31 @@
-.cold-reports { max-width: 1360px; margin: 0 auto; padding: 0 0 48px; color: var(--color-ink); }
+.cold-reports { max-width: 100%; margin: 0; padding: 0 0 48px; color: var(--color-ink); }
 .cold-reports * { box-sizing: border-box; }
 .cold-reports a, .cold-reports button, .cold-reports input, .cold-reports textarea { transition: border-color 160ms, background-color 160ms, box-shadow 160ms; }
 .cold-reports :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
-.cold-panel { background: var(--color-card); border: 1px solid var(--color-line); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+.cold-panel { background: var(--color-card); border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
 .cold-panel--progress { margin-bottom: 16px; }
-.cold-panel-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--color-line); background: var(--color-canvas); }
+.cold-panel-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--color-line); background: color-mix(in oklab, var(--color-canvas) 70%, var(--color-card)); }
 .cold-panel-heading h2 { font-size: 15.5px; font-weight: 700; margin: 0; color: var(--color-ink); }
 .cold-panel-heading span { font-size: 12px; color: var(--color-ink-muted); font-family: var(--font-mono); }
 .cold-panel-heading .cold-progress-status { font-weight: 600; color: var(--color-ink-soft); }
 .cold-panel-heading .cold-locked-meta { margin-left: 12px; color: var(--color-status-success-text); font-weight: 600; }
-.cold-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 14px 24px; }
+.cold-progress-bar-wrap { padding: 14px 20px; display: grid; gap: 10px; }
+.cold-progress-track { height: 8px; border-radius: 999px; background: var(--color-canvas); overflow: hidden; border: 1px solid var(--color-hairline); }
+.cold-progress-fill { height: 100%; border-radius: 999px; background: var(--color-primary); transition: width 240ms ease; }
+.cold-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 14px 20px; border-top: 1px solid var(--color-hairline); }
 .cold-progress-metric small { display: block; font-size: 12px; color: var(--color-ink-muted); }
-.cold-progress-value { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--color-ink); }
+.cold-progress-value { margin: 4px 0 0; font-size: 18px; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
 .cold-progress-value--ready { color: var(--color-status-success-text); }
 .cold-list { list-style: none; padding: 0; margin: 0; }
 .cold-list > li { border-bottom: 1px solid var(--color-line); }
 .cold-list > li:last-child { border-bottom: 0; }
-.cold-row { padding: 18px 24px; }
-.cold-row-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.cold-row-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.cold-row { padding: 18px 20px; }
+.cold-row-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.cold-row-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
 .cold-row-meta span:first-child { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 12px; }
 .cold-row-meta span:last-child { color: var(--color-ink-muted); }
 .cold-row-head h3 { font-size: 15px; font-weight: 700; margin: 0; color: var(--color-ink); }
-.cold-row-state { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; white-space: nowrap; }
+.cold-row-state { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; white-space: nowrap; }
 .cold-badge { display: inline-flex; padding: 4px 10px; font-size: 12px; line-height: 1.3; font-weight: 600; border-radius: 6px; white-space: nowrap; }
 .cold-badge--draft { background: var(--color-canvas); color: var(--color-ink-soft); border: 1px solid var(--color-line-strong); }
 .cold-badge--submitted { background: var(--color-status-warning-bg); color: var(--color-status-warning-text); border: 1px solid var(--color-status-warning-border); }

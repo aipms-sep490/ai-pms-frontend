@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
+import { StatTileRow } from '../../components/ui/StatTileRow'
+import { StatusBadge } from '../../components/ui/StatusBadge'
 import { HttpError } from '../../services/http/http-client'
 import {
   downloadIndustrySharedFile,
@@ -186,6 +188,8 @@ export function IndustryExpertPortalPage() {
 
   const selectedAssignment = assignments.find((a) => a.id === selectedAssignmentId)
   const canFeedback = Boolean(selectedAssignment?.allowedActions.includes('SUBMIT_FEEDBACK')) && !assignmentRefreshError
+  const activeAssignmentsCount = assignments.filter((a) => a.status === 'ACTIVE').length
+  const feedbackEnabledAssignmentsCount = assignments.filter((a) => a.allowedActions.includes('SUBMIT_FEEDBACK')).length
 
   async function refreshSelectedAssignment(assignmentId: number) {
     const updated = await getIndustryAssignment(assignmentId)
@@ -271,150 +275,255 @@ export function IndustryExpertPortalPage() {
       eyebrow="Cố vấn chuyên môn · Advisory Only"
       description="Xem tài liệu được chia sẻ và đóng góp ý kiến nhận xét chuyên môn cho đồ án. Ý kiến cố vấn mang tính chất tham khảo, không phải điểm đánh giá chính thức."
     >
-      {loading && <p role="status" className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải phân công…</p>}
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="ml-2 min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadAssignments()}>Thử lại</button></p>}
+      {loading && <p role="status" className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">Đang tải phân công…</p>}
+      {error && (
+        <p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">
+          {error}{' '}
+          <button type="button" className="ml-2 min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadAssignments()}>
+            Thử lại
+          </button>
+        </p>
+      )}
+
+      {!loading && !error && (
+        <StatTileRow
+          tiles={[
+            {
+              icon: 'work',
+              label: 'Đồ án được phân công',
+              value: assignmentTotal || assignments.length,
+              caption: `${activeAssignmentsCount} phân công đang hiệu lực`,
+              hero: true,
+            },
+            {
+              icon: 'folder_shared',
+              label: 'Tài liệu được chia sẻ',
+              value: selectedAssignment ? (fileTotal || files.length) : 0,
+              tone: 'info',
+              caption: selectedAssignment ? `Thuộc ${selectedAssignment.projectCode}` : 'Chọn đồ án để xem tài liệu',
+            },
+            {
+              icon: 'rate_review',
+              label: 'Nhận xét đã gửi',
+              value: selectedAssignment ? (feedbackTotal || feedbackList.length) : 0,
+              tone: 'success',
+              caption: 'Lịch sử phiên bản phản hồi',
+            },
+            {
+              icon: 'verified_user',
+              label: 'Phân công mở góp ý',
+              value: feedbackEnabledAssignmentsCount,
+              tone: canFeedback ? 'success' : 'neutral',
+              caption: canFeedback ? 'Đồ án đang chọn cho phép gửi nhận xét' : 'Đồ án đang chọn chỉ đọc tài liệu',
+            },
+          ]}
+        />
+      )}
 
       {!loading && !error && assignments.length === 0 && (
-        <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">
+        <p className="rounded-xl border border-hairline bg-card p-5 text-sm text-ink-muted">
           Bạn chưa được phân công cố vấn đồ án nào. Hãy liên hệ bộ môn nếu bạn đã nhận được thư mời.
         </p>
       )}
 
       {!loading && assignments.length > 0 && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {/* Cột trái: Danh sách đồ án */}
-          <div className="space-y-3 lg:col-span-1">
-            <h2 className="text-sm font-bold text-ink">Đồ án được phân công</h2>
-            <ul className="space-y-2">
-              {assignments.map((a) => (
-                <li key={a.id}>
-                  <button type="button" onClick={() => selectAssignment(a.id)} aria-pressed={selectedAssignmentId === a.id}
-                  className={`w-full min-h-11 text-left cursor-pointer rounded-xl border p-4 shadow-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    selectedAssignmentId === a.id
-                      ? 'border-primary bg-primary-subtle/40'
-                      : 'border-hairline bg-card hover:bg-canvas'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
-                    <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
-                      {a.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : a.scope === 'COMMON' ? 'Chung' : a.scope}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-muted">Mã đồ án: {a.projectCode}</p>
-                  <p className="mt-1 text-xs text-ink-soft">
-                    {new Date(a.startsAt).toLocaleDateString('vi-VN')} – {new Date(a.endsAt).toLocaleDateString('vi-VN')}
-                  </p>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {assignments.length < assignmentTotal && <button type="button" disabled={loadingMoreAssignments} className="min-h-11 rounded-lg border border-hairline px-3 text-sm font-semibold text-primary disabled:opacity-50" onClick={() => void loadMoreAssignments()}>{loadingMoreAssignments ? 'Đang tải…' : `Xem thêm phân công (${assignments.length}/${assignmentTotal})`}</button>}
-            {assignmentMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang phân công tiếp theo. Hãy thử lại.</p>}
-          </div>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 items-start">
+          {/* Cột trái (4 cột): Danh sách đồ án được phân công */}
+          <section className="xl:col-span-4 overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+              <h2 className="text-sm font-bold text-ink">Đồ án được phân công</h2>
+              <StatusBadge tone="info" label={`${assignments.length}/${assignmentTotal || assignments.length}`} />
+            </div>
+            <div className="p-4 space-y-3">
+              <ul className="space-y-2">
+                {assignments.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectAssignment(a.id)}
+                      aria-pressed={selectedAssignmentId === a.id}
+                      className={`w-full min-h-11 text-left cursor-pointer rounded-xl border p-3.5 shadow-2xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        selectedAssignmentId === a.id
+                          ? 'border-primary bg-primary-subtle/50 ring-1 ring-primary'
+                          : 'border-hairline bg-card hover:bg-canvas'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-ink text-sm">{a.projectTitle}</h3>
+                        <span className="shrink-0 rounded bg-canvas px-1.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
+                          {a.scope === 'MAJOR_SPECIFIC' ? 'Theo chuyên ngành' : a.scope === 'COMMON' ? 'Chung' : a.scope}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs font-mono text-ink-muted">Mã đồ án: {a.projectCode}</p>
+                      <p className="mt-1 text-xs text-ink-soft">
+                        {new Date(a.startsAt).toLocaleDateString('vi-VN')} – {new Date(a.endsAt).toLocaleDateString('vi-VN')}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-          {/* Cột phải: Chi tiết đồ án, File và Nhận xét */}
+              {assignments.length < assignmentTotal && (
+                <button
+                  type="button"
+                  disabled={loadingMoreAssignments}
+                  className="min-h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50"
+                  onClick={() => void loadMoreAssignments()}
+                >
+                  {loadingMoreAssignments ? 'Đang tải…' : `Xem thêm phân công (${assignments.length}/${assignmentTotal})`}
+                </button>
+              )}
+              {assignmentMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang phân công tiếp theo. Hãy thử lại.</p>}
+            </div>
+          </section>
+
+          {/* Cột phải (8 cột): Chi tiết đồ án, Tài liệu chia sẻ và Nhận xét */}
           {selectedAssignment && (
-            <div className="space-y-5 lg:col-span-2">
+            <div className="space-y-5 xl:col-span-8">
               {/* Header chi tiết */}
-              <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+              <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
                   <h3 className="text-base font-bold text-ink">{selectedAssignment.projectTitle}</h3>
                   <span className="rounded-full bg-primary-subtle border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
                     Ý kiến tư vấn (Advisory Only)
                   </span>
                 </div>
-                <p className="text-xs text-ink-muted">
-                  Phạm vi cố vấn: <strong className="text-ink-soft">{selectedAssignment.scope === 'MAJOR_SPECIFIC' ? 'Theo ngành' : selectedAssignment.scope === 'COMMON' ? 'Chung' : selectedAssignment.scope}</strong>
-                  {selectedAssignment.majorId ? ` (Ngành #${selectedAssignment.majorId})` : ' (Toàn đồ án)'} · Trạng thái: <strong className="text-ink-soft">{selectedAssignment.status === 'ACTIVE' ? 'Đang hiệu lực' : selectedAssignment.status === 'REVOKED' ? 'Đã thu hồi' : selectedAssignment.status === 'EXPIRED' ? 'Hết hiệu lực' : selectedAssignment.status}</strong>
-                </p>
+                <div className="px-5 py-3.5">
+                  <p className="text-xs text-ink-muted">
+                    Phạm vi cố vấn: <strong className="text-ink-soft">{selectedAssignment.scope === 'MAJOR_SPECIFIC' ? 'Theo chuyên ngành' : selectedAssignment.scope === 'COMMON' ? 'Chung (toàn đồ án)' : selectedAssignment.scope}</strong>
+                    {' · '}Trạng thái: <strong className="text-ink-soft">{selectedAssignment.status === 'ACTIVE' ? 'Đang hiệu lực' : selectedAssignment.status === 'REVOKED' ? 'Đã thu hồi' : selectedAssignment.status === 'EXPIRED' ? 'Hết hiệu lực' : selectedAssignment.status}</strong>
+                  </p>
+                </div>
               </section>
 
               {/* Danh sách file chia sẻ */}
-              <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-3">
-                <h4 className="text-sm font-bold text-ink">Tài liệu & Minh chứng đồ án được chia sẻ</h4>
-                {loadingFiles && <p role="status" className="text-xs text-ink-muted">Đang tải tài liệu…</p>}
-                {filesError && <p role="alert" aria-label="Lỗi tải tài liệu" className="text-xs text-status-error-text">Chưa tải được tài liệu của đồ án này. <button type="button" className="font-semibold underline" onClick={() => void loadDetails(selectedAssignment.id)}>Thử lại</button></p>}
-                {!loadingFiles && !filesError && files.length === 0 && (
-                  <p className="text-xs text-ink-muted">Bộ môn chưa chia sẻ file bản nộp nào cho phạm vi này.</p>
-                )}
-                {!loadingFiles && !filesError && detailsForId === selectedAssignment.id && files.length > 0 && (
-                  <ul className="space-y-2">
-                    {files.map((f) => (
-                      <li key={f.id} className="flex items-center justify-between rounded-lg border border-hairline p-3 text-xs bg-canvas">
-                        <div>
-                          <p className="font-semibold text-ink">{f.fileName}</p>
-                          <p className="text-ink-muted text-xs">
-                            {f.contentType} · {(f.sizeBytes / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          className="min-h-11 rounded-lg bg-card border border-hairline px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                          onClick={() => void handleDownload(f)}
-                        >
-                          Tải về xem
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {downloadError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được tệp. Hãy thử lại.</p>}
-                {filesMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang tài liệu tiếp theo. Hãy thử lại.</p>}
-                {!filesError && !loadingFiles && detailsForId === selectedAssignment.id && files.length < fileTotal && <button type="button" disabled={loadingMoreFiles} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary disabled:opacity-50" onClick={() => void loadMoreFiles(selectedAssignment.id)}>{loadingMoreFiles ? 'Đang tải…' : `Xem thêm tài liệu (${files.length}/${fileTotal})`}</button>}
-              </section>
-
-              {/* Gửi nhận xét và Lịch sử nhận xét */}
-              <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs space-y-4">
-                <h4 className="text-sm font-bold text-ink">Đóng góp ý kiến chuyên môn</h4>
-                <div className="space-y-2">
-                  <label className="block text-xs text-ink-soft">
-                    Nội dung nhận xét chuyên gia
-                    <textarea
-                      className="mt-1 w-full rounded-lg border border-hairline p-3 text-sm"
-                      rows={4}
-                      placeholder="Góp ý chuyên môn về nghiệp vụ, tính khả thi hoặc công nghệ của đồ án…"
-                      value={feedbackContent}
-                      disabled={submittingFeedback || !canFeedback || detailsForId !== selectedAssignment.id || loadingFeedback || feedbackLoadError}
-                      onChange={(e) => setFeedbackContent(e.target.value)}
-                    />
-                  </label>
-                  {feedbackError && <p role="alert" className="text-xs text-status-error-text">{feedbackError}</p>}
-                  {assignmentRefreshError && <button type="button" className="min-h-11 text-xs font-semibold text-primary underline" onClick={() => void refreshSelectedAssignment(selectedAssignment.id).catch(() => setFeedbackError('Chưa làm mới được phân công. Hãy thử lại.'))}>Làm mới phân công</button>}
-                  {feedbackSuccess && <p role="status" className="text-xs text-status-success-text">{feedbackSuccess}</p>}
-                  <button
-                    type="button"
-                    className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    disabled={submittingFeedback || !canFeedback || detailsForId !== selectedAssignment.id || loadingFeedback || feedbackLoadError || !feedbackContent.trim()}
-                    onClick={() => void handleSubmitFeedback()}
-                  >
-                    {submittingFeedback ? 'Đang gửi…' : 'Gửi nhận xét'}
-                  </button>
-                  {!canFeedback && <p className="text-xs text-ink-muted">Phân công này hiện không cho phép gửi nhận xét.</p>}
+              <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+                  <h4 className="text-sm font-bold text-ink">Tài liệu & Minh chứng đồ án được chia sẻ</h4>
+                  <StatusBadge tone="neutral" label={`${files.length}/${fileTotal || files.length} tệp`} />
                 </div>
-
-                <div className="border-t border-hairline pt-3 space-y-3">
-                  <h5 className="text-xs font-semibold text-ink uppercase tracking-wide">Lịch sử các lần nhận xét</h5>
-                  {loadingFeedback && <p role="status" className="text-xs text-ink-muted">Đang tải lịch sử…</p>}
-                  {feedbackLoadError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được lịch sử nhận xét. Hãy thử lại trước khi gửi phiên bản mới. <button type="button" className="min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadDetails(selectedAssignment.id)}>Thử lại</button></p>}
-                  {!loadingFeedback && !feedbackLoadError && feedbackList.length === 0 && (
-                    <p className="text-xs text-ink-muted">Chưa có nhận xét nào được gửi.</p>
+                <div className="p-5 space-y-3">
+                  {loadingFiles && <p role="status" className="text-xs text-ink-muted">Đang tải tài liệu…</p>}
+                  {filesError && <p role="alert" aria-label="Lỗi tải tài liệu" className="text-xs text-status-error-text">Chưa tải được tài liệu của đồ án này. <button type="button" className="font-semibold underline" onClick={() => void loadDetails(selectedAssignment.id)}>Thử lại</button></p>}
+                  {!loadingFiles && !filesError && files.length === 0 && (
+                    <p className="text-xs text-ink-muted">Bộ môn chưa chia sẻ file bản nộp nào cho phạm vi này.</p>
                   )}
-                  {!loadingFeedback && !feedbackLoadError && detailsForId === selectedAssignment.id && feedbackList.length > 0 && (
+                  {!loadingFiles && !filesError && detailsForId === selectedAssignment.id && files.length > 0 && (
                     <ul className="space-y-2">
-                      {feedbackList.map((fb) => (
-                        <li key={fb.id} className="rounded-lg border border-hairline p-3 text-xs bg-canvas space-y-1">
-                          <div className="flex items-center justify-between text-ink-muted">
-                            <span className="font-semibold text-ink">Phiên bản #{fb.version}</span>
-                            <span>{new Date(fb.submittedAt).toLocaleString('vi-VN')}</span>
+                      {files.map((f) => (
+                        <li key={f.id} className="flex items-center justify-between gap-3 rounded-lg border border-hairline p-3 text-xs bg-canvas/60">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-ink truncate">{f.fileName}</p>
+                            <p className="text-ink-muted text-xs">
+                              {f.contentType} · {(f.sizeBytes / 1024).toFixed(1)} KB
+                            </p>
                           </div>
-                          <p className="text-ink leading-relaxed whitespace-pre-wrap">{fb.content}</p>
+                          <button
+                            type="button"
+                            className="min-h-11 shrink-0 rounded-lg bg-card border border-hairline px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                            onClick={() => void handleDownload(f)}
+                          >
+                            Tải về xem
+                          </button>
                         </li>
                       ))}
                     </ul>
                   )}
-                  {feedbackMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang nhận xét tiếp theo. Hãy thử lại.</p>}
-                  {!feedbackLoadError && !loadingFeedback && detailsForId === selectedAssignment.id && feedbackList.length < feedbackTotal && <button type="button" disabled={loadingMoreFeedback} className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary disabled:opacity-50" onClick={() => void loadMoreFeedback(selectedAssignment.id)}>{loadingMoreFeedback ? 'Đang tải…' : `Xem thêm nhận xét (${feedbackList.length}/${feedbackTotal})`}</button>}
+                  {downloadError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được tệp. Hãy thử lại.</p>}
+                  {filesMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang tài liệu tiếp theo. Hãy thử lại.</p>}
+                  {!filesError && !loadingFiles && detailsForId === selectedAssignment.id && files.length < fileTotal && (
+                    <button
+                      type="button"
+                      disabled={loadingMoreFiles}
+                      className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50"
+                      onClick={() => void loadMoreFiles(selectedAssignment.id)}
+                    >
+                      {loadingMoreFiles ? 'Đang tải…' : `Xem thêm tài liệu (${files.length}/${fileTotal})`}
+                    </button>
+                  )}
+                </div>
+              </section>
+
+              {/* Gửi nhận xét và Lịch sử nhận xét */}
+              <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
+                  <h4 className="text-sm font-bold text-ink">Đóng góp ý kiến chuyên môn</h4>
+                  <StatusBadge tone="neutral" label={`${feedbackList.length}/${feedbackTotal || feedbackList.length} phiên bản`} />
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="space-y-2.5">
+                    <label className="block text-xs font-medium text-ink-soft">
+                      Nội dung nhận xét chuyên gia
+                      <textarea
+                        className="mt-1.5 w-full rounded-lg border border-hairline bg-card p-3 text-sm text-ink focus:border-primary focus:outline-none"
+                        rows={4}
+                        placeholder="Góp ý chuyên môn về nghiệp vụ, tính khả thi hoặc công nghệ của đồ án…"
+                        value={feedbackContent}
+                        disabled={submittingFeedback || !canFeedback || detailsForId !== selectedAssignment.id || loadingFeedback || feedbackLoadError}
+                        onChange={(e) => setFeedbackContent(e.target.value)}
+                      />
+                    </label>
+                    {feedbackError && <p role="alert" className="text-xs text-status-error-text">{feedbackError}</p>}
+                    {assignmentRefreshError && (
+                      <button
+                        type="button"
+                        className="min-h-11 text-xs font-semibold text-primary underline"
+                        onClick={() => void refreshSelectedAssignment(selectedAssignment.id).catch(() => setFeedbackError('Chưa làm mới được phân công. Hãy thử lại.'))}
+                      >
+                        Làm mới phân công
+                      </button>
+                    )}
+                    {feedbackSuccess && <p role="status" className="text-xs text-status-success-text">{feedbackSuccess}</p>}
+                    <button
+                      type="button"
+                      className="min-h-11 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      disabled={submittingFeedback || !canFeedback || detailsForId !== selectedAssignment.id || loadingFeedback || feedbackLoadError || !feedbackContent.trim()}
+                      onClick={() => void handleSubmitFeedback()}
+                    >
+                      {submittingFeedback ? 'Đang gửi…' : 'Gửi nhận xét'}
+                    </button>
+                    {!canFeedback && <p className="text-xs text-ink-muted">Phân công này hiện không cho phép gửi nhận xét.</p>}
+                  </div>
+
+                  <div className="border-t border-hairline pt-4 space-y-3">
+                    <h5 className="text-xs font-semibold text-ink uppercase tracking-wide">Lịch sử các lần nhận xét</h5>
+                    {loadingFeedback && <p role="status" className="text-xs text-ink-muted">Đang tải lịch sử…</p>}
+                    {feedbackLoadError && (
+                      <p role="alert" className="text-xs text-status-error-text">
+                        Chưa tải được lịch sử nhận xét. Hãy thử lại trước khi gửi phiên bản mới.{' '}
+                        <button type="button" className="min-h-11 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" onClick={() => void loadDetails(selectedAssignment.id)}>
+                          Thử lại
+                        </button>
+                      </p>
+                    )}
+                    {!loadingFeedback && !feedbackLoadError && feedbackList.length === 0 && (
+                      <p className="text-xs text-ink-muted">Chưa có nhận xét nào được gửi.</p>
+                    )}
+                    {!loadingFeedback && !feedbackLoadError && detailsForId === selectedAssignment.id && feedbackList.length > 0 && (
+                      <ul className="space-y-2">
+                        {feedbackList.map((fb) => (
+                          <li key={fb.id} className="rounded-lg border border-hairline p-3 text-xs bg-canvas/60 space-y-1">
+                            <div className="flex items-center justify-between text-ink-muted">
+                              <span className="font-semibold text-ink">Phiên bản #{fb.version}</span>
+                              <span>{new Date(fb.submittedAt).toLocaleString('vi-VN')}</span>
+                            </div>
+                            <p className="text-ink leading-relaxed whitespace-pre-wrap">{fb.content}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {feedbackMoreError && <p role="alert" className="text-xs text-status-error-text">Chưa tải được trang nhận xét tiếp theo. Hãy thử lại.</p>}
+                    {!feedbackLoadError && !loadingFeedback && detailsForId === selectedAssignment.id && feedbackList.length < feedbackTotal && (
+                      <button
+                        type="button"
+                        disabled={loadingMoreFeedback}
+                        className="min-h-11 rounded-lg border border-hairline px-3 text-xs font-semibold text-primary hover:bg-primary-subtle disabled:opacity-50"
+                        onClick={() => void loadMoreFeedback(selectedAssignment.id)}
+                      >
+                        {loadingMoreFeedback ? 'Đang tải…' : `Xem thêm nhận xét (${feedbackList.length}/${feedbackTotal})`}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
             </div>

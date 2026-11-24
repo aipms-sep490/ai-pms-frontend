@@ -165,8 +165,9 @@ export function ReviewSubmissionModal({
     >
       <form onSubmit={handleSubmit} noValidate className="review-submission-form space-y-4">
         {!isPermitted && (
-          <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs font-semibold text-status-warning-text">
-            ⚠️ <strong>Quyền hạn:</strong> {blockingMessage || 'Bạn đang xem với vai trò Thành viên (Student Member). Quyền nộp hồ sơ review và bản sửa đổi chính thức thuộc về Trưởng nhóm (Student Leader).'}
+          <div className="flex items-start gap-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-xs font-semibold text-status-warning-text">
+            <span className="material-symbols-outlined text-base shrink-0" aria-hidden="true">warning</span>
+            <span><strong>Quyền hạn:</strong> {blockingMessage || 'Bạn đang xem với vai trò Thành viên (Student Member). Quyền nộp hồ sơ review và bản sửa đổi chính thức thuộc về Trưởng nhóm (Student Leader).'}</span>
           </div>
         )}
 

@@ -28,7 +28,7 @@ it('loads paginated assignment-specific candidates and confirms replacement', as
   fireEvent.click(await screen.findByRole('button', { name: 'Chọn người thay thế' }))
   fireEvent.change(await screen.findByLabelText('Giảng viên thay thế'), { target: { value: '9' } })
   expect(screen.getByText(/Còn 2 suất/)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Ứng viên trang sau' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Trang sau' }))
   await waitFor(() => expect(api.getReplacementCandidates).toHaveBeenLastCalledWith(4, 2, ''))
   fireEvent.change(await screen.findByLabelText('Giảng viên thay thế'), { target: { value: '9' } })
   fireEvent.click(screen.getByRole('button', { name: 'Thay giảng viên' }))

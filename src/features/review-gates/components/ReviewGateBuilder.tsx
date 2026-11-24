@@ -5,6 +5,9 @@ import type {
   ReviewGateTemplate,
 } from '../types/review-gates.types'
 import { GateRequirementDrawer } from './GateRequirementDrawer'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { displayLabel } from '../../../components/ui/display-label'
+import { requirementTypeLabel } from '../utils/review-gate-labels'
 import { env } from '../../../app/config/env'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
 
@@ -102,81 +105,87 @@ export function ReviewGateBuilder({
   }
 
   return (
-    <div className="review-gates-surface min-w-0 space-y-6">
+    <div className="review-gates-surface min-w-0 space-y-5">
       {/* Top Banner / Template Context */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-lg font-bold text-ink">{template.name}</h2>
-            <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline">
-              v{template.version}
-            </span>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                template.status === 'PUBLISHED'
-                  ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
-                  : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
-              }`}
-            >
-              {template.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
-            </span>
+      <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-canvas/70 border-b border-hairline px-5 py-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-lg font-bold text-ink">{template.name}</h2>
+              <span className="rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-ink-soft border border-hairline font-mono">
+                v{template.version}
+              </span>
+              <StatusBadge
+                tone={template.status === 'PUBLISHED' ? 'success' : 'warning'}
+                label={template.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
+              />
+            </div>
+            <p className="mt-1 text-xs text-ink-muted">
+              Chế độ: <strong className="text-ink-soft">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {template.major} · Mã: <span className="font-mono">{template.code}</span>
+            </p>
           </div>
-          <p className="mt-1 text-xs text-ink-muted">
-            Chế độ: <strong className="text-ink-soft">{template.mode === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}</strong> · Ngành: {template.major} · Mã: {template.code}
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {(template.status === 'PUBLISHED' || formError?.includes('nhân bản')) && onClone && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {(template.status === 'PUBLISHED' || formError?.includes('nhân bản')) && onClone && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onClone(template)}
+                className="min-h-10 rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2 text-xs font-bold text-primary hover:bg-primary/20"
+                title="Nhân bản tạo phiên bản nháp mới"
+              >
+                Nhân bản bản nháp mới
+              </button>
+            )}
             <button
               type="button"
-              disabled={busy}
-              onClick={() => onClone(template)}
-              className="min-h-10 rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2 text-xs font-bold text-primary hover:bg-primary/20"
-              title="Nhân bản tạo phiên bản nháp mới"
+              disabled={readOnly || Boolean(weightsError)}
+              onClick={onSaveDraft}
+              className="min-h-10 rounded-lg border border-hairline bg-card px-4 py-2 text-xs font-semibold text-ink-soft shadow-2xs hover:bg-canvas disabled:opacity-50"
             >
-              Nhân bản bản nháp mới
+              Lưu bản nháp
             </button>
-          )}
-          <button
-            type="button"
-            disabled={readOnly || Boolean(weightsError)}
-            onClick={onSaveDraft}
-            className="min-h-10 rounded-lg border border-hairline bg-card px-4 py-2 text-xs font-semibold text-ink-soft shadow-2xs hover:bg-canvas disabled:opacity-50"
-          >
-            Lưu bản nháp
-          </button>
-          <button
-            type="button"
-            disabled={readOnly || Boolean(weightsError)}
-            onClick={onPublish}
-            className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50"
-          >
-            Công bố chính sách
-          </button>
+            <button
+              type="button"
+              disabled={readOnly || Boolean(weightsError)}
+              onClick={onPublish}
+              className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary-hover disabled:opacity-50"
+            >
+              Công bố chính sách
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div id="gate-weights-help" className="rounded-lg border border-hairline bg-card p-4 text-sm text-ink-soft" aria-live="polite">
-        <p>Trọng số học vụ: để trống tất cả hoặc nhập đủ các cổng, mỗi cổng 0–100%, tổng đúng 100%.</p>
-        <p className="mt-1 font-semibold">Tổng hiện tại: {gateWeightTotal(template.gates)}% · {template.gates.filter(gate => gate.weight != null).length}/{template.gates.length} cổng đã nhập.</p>
-        {(weightsError || formError) && <p ref={formErrorRef} tabIndex={-1} id="gate-weights-error" role="alert" className="mt-2 text-status-error-text">{weightsError || formError}</p>}
+        <div id="gate-weights-help" className="px-5 py-3.5 text-sm text-ink-soft" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-ink-muted">Trọng số học vụ: để trống tất cả hoặc nhập đủ các cổng, mỗi cổng 0–100%, tổng đúng 100%.</p>
+            <p className="text-xs font-semibold tabular-nums text-ink">
+              Tổng hiện tại: {gateWeightTotal(template.gates)}% · {template.gates.filter(gate => gate.weight != null).length}/{template.gates.length} cổng đã nhập.
+            </p>
+          </div>
+          {(weightsError || formError) && (
+            <p ref={formErrorRef} tabIndex={-1} id="gate-weights-error" role="alert" className="mt-2 rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-xs font-semibold text-status-error-text">
+              {weightsError || formError}
+            </p>
+          )}
+        </div>
       </div>
 
       {template.status === 'PUBLISHED' && (
-        <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-center justify-between">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg p-3.5 text-xs text-status-success-text flex items-start gap-2">
+          <span className="material-symbols-outlined text-base shrink-0" aria-hidden="true">lock</span>
           <span>
-            🔒 <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
+            <strong>Mẫu tiến trình đã công bố chính thức:</strong> Cấu trúc các Review Gate đã được khóa bất biến. Để thay đổi yêu cầu hoặc bổ sung Gate cho đợt thẩm định tiếp theo, vui lòng chọn <strong>Nhân bản bản nháp mới</strong>.
           </span>
         </div>
       )}
 
       {/* Main Builder Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
         {/* Left Column: Gates Sequence List */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-xl border border-hairline bg-card p-4 shadow-xs">
-            <div className="mb-3 flex items-center justify-between border-b border-hairline pb-3">
+          <div className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-4 py-3.5">
               <h3 className="text-sm font-bold text-ink">Trình tự Review Gates</h3>
               <button
                 type="button"
@@ -188,7 +197,7 @@ export function ReviewGateBuilder({
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="p-4 space-y-2">
               {template.gates.map((gate, index) => {
                 const isSelected = selectedGateIndex === index
                 return (
@@ -198,11 +207,11 @@ export function ReviewGateBuilder({
                     onClick={() => setSelectedGateIndex(index)}
                     className={`flex w-full items-center justify-between rounded-lg p-3 text-left transition-all ${
                       isSelected
-                        ? 'border border-primary/40 bg-primary-subtle/60 shadow-2xs'
+                        ? 'border border-primary/40 bg-primary-subtle/60 shadow-2xs ring-1 ring-primary'
                         : 'border border-hairline bg-canvas/50 hover:bg-canvas'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                           isSelected ? 'bg-primary text-white' : 'border border-hairline bg-card text-ink-soft'
@@ -210,8 +219,8 @@ export function ReviewGateBuilder({
                       >
                         {gate.code}
                       </span>
-                      <div>
-                        <strong className="block text-xs font-semibold text-ink">
+                      <div className="min-w-0">
+                        <strong className="block truncate text-xs font-semibold text-ink">
                           {gate.title}
                         </strong>
                         <span className="text-xs text-ink-muted">
@@ -238,8 +247,8 @@ export function ReviewGateBuilder({
         {/* Right Column: Selected Gate Configuration & Requirements */}
         <div className="lg:col-span-8 space-y-5">
           {currentGate ? (
-            <fieldset disabled={readOnly} className="min-w-0 rounded-xl border border-hairline bg-card p-4 sm:p-6 shadow-xs space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-4">
+            <fieldset disabled={readOnly} className="min-w-0 overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-canvas/70 border-b border-hairline px-5 py-3.5">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-primary">
                     Chi tiết đợt thẩm định
@@ -248,175 +257,172 @@ export function ReviewGateBuilder({
                     {currentGate.code} · {currentGate.title}
                   </h3>
                 </div>
-                <span className="rounded-full border border-hairline bg-canvas px-3 py-1 text-xs font-semibold text-ink-soft">
+                <span className="rounded-full border border-hairline bg-card px-3 py-1 text-xs font-semibold text-ink-soft">
                   {currentGate.requirements.length} minh chứng
                 </span>
               </div>
 
-              {/* Form Fields */}
-              <div>
-                <label htmlFor="gate-weight" className="block text-xs font-semibold text-ink-soft">Trọng số học vụ của {currentGate.code} (%)</label>
-                <input id="gate-weight" type="number" min="0" max="100" step="any" value={currentGate.weight ?? ''}
-                  aria-describedby={`gate-weights-help${weightsError || formError ? ' gate-weights-error' : ''}`}
-                  aria-invalid={Boolean(weightsError)}
-                  onChange={event => updateCurrentGate('weight', event.target.value === '' ? undefined : event.target.valueAsNumber)}
-                  className="mt-1.5 min-h-10 w-full rounded-lg border border-line-strong bg-card p-2 text-sm text-ink" />
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="p-5 space-y-5">
+                {/* Form Fields */}
                 <div>
-                  <label htmlFor="gate-code" className="block text-xs font-semibold text-ink-soft">Mã Gate</label>
-                  <input id="gate-code"
-                    value={currentGate.code}
-                    readOnly
-                    className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-canvas p-2 text-xs font-mono text-ink-muted"
-                  />
+                  <label htmlFor="gate-weight" className="block text-xs font-semibold text-ink-soft">Trọng số học vụ của {currentGate.code} (%)</label>
+                  <input id="gate-weight" type="number" min="0" max="100" step="any" value={currentGate.weight ?? ''}
+                    aria-describedby={`gate-weights-help${weightsError || formError ? ' gate-weights-error' : ''}`}
+                    aria-invalid={Boolean(weightsError)}
+                    onChange={event => updateCurrentGate('weight', event.target.value === '' ? undefined : event.target.valueAsNumber)}
+                    className="mt-1.5 min-h-10 w-full rounded-lg border border-line-strong bg-card p-2 text-sm text-ink" />
                 </div>
-                <div>
-                  <label htmlFor="gate-title" className="block text-xs font-semibold text-ink-soft">Tên đợt thẩm định *</label>
-                  <input id="gate-title"
-                    value={currentGate.title}
-                    onChange={e => updateCurrentGate('title', e.target.value)}
-                    className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="gate-objective" className="block text-xs font-semibold text-ink-soft">Mục tiêu học thuật *</label>
-                <textarea id="gate-objective"
-                  rows={2}
-                  value={currentGate.objective}
-                  onChange={e => updateCurrentGate('objective', e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="gate-start" className="block text-xs font-semibold text-ink-soft">Bắt đầu nhận hồ sơ</label>
-                  <input id="gate-start"
-                    type="date"
-                    value={currentGate.start?.slice(0, 10) ?? ''}
-                    onChange={e => updateCurrentGate('start', e.target.value)}
-                    className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="gate-end" className="block text-xs font-semibold text-ink-soft">Kết thúc nhận hồ sơ</label>
-                  <input id="gate-end"
-                    type="date"
-                    value={currentGate.end?.slice(0, 10) ?? ''}
-                    onChange={e => updateCurrentGate('end', e.target.value)}
-                    className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-6 rounded-lg border border-hairline bg-canvas p-4">
-                <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={currentGate.required}
-                    onChange={e => updateCurrentGate('required', e.target.checked)}
-                    className="h-4 w-4 rounded text-primary"
-                  />
-                  Gate bắt buộc (Mandatory Gate)
-                </label>
-
-                <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={currentGate.blockNextGate}
-                    onChange={e => updateCurrentGate('blockNextGate', e.target.checked)}
-                    className="h-4 w-4 rounded text-primary"
-                  />
-                  Chặn Gate tiếp theo nếu chưa PASS
-                </label>
-
-                <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={currentGate.blocksDefense ?? false}
-                    onChange={e => updateCurrentGate('blocksDefense', e.target.checked)}
-                    className="h-4 w-4 rounded text-primary"
-                  />
-                  Điều kiện bắt buộc để được bảo vệ (Blocks Defense)
-                </label>
-              </div>
-
-              {/* Requirements Checklist */}
-              <div className="border-t border-hairline pt-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-                      Danh mục minh chứng đầu ra ({currentGate.requirements.length})
-                    </h4>
-                    <p className="text-xs text-ink-muted">
-                      Sinh viên nộp đủ các yêu cầu bắt buộc mới được phân công Reviewer thẩm định.
-                    </p>
+                    <label htmlFor="gate-code" className="block text-xs font-semibold text-ink-soft">Mã Gate</label>
+                    <input id="gate-code"
+                      value={currentGate.code}
+                      readOnly
+                      className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-canvas p-2 text-xs font-mono text-ink-muted"
+                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingRequirementIndex(null)
-                      setIsDrawerOpen(true)
-                    }}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover"
-                  >
-                    ＋ Thêm yêu cầu
-                  </button>
+                  <div>
+                    <label htmlFor="gate-title" className="block text-xs font-semibold text-ink-soft">Tên đợt thẩm định *</label>
+                    <input id="gate-title"
+                      value={currentGate.title}
+                      onChange={e => updateCurrentGate('title', e.target.value)}
+                      className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {currentGate.requirements.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-hairline p-6 text-center text-xs text-ink-muted">
-                      Chưa có yêu cầu nào trong Gate này. Bấm &quot;Thêm yêu cầu&quot; để thiết lập tiêu chí thẩm định.
+                <div>
+                  <label htmlFor="gate-objective" className="block text-xs font-semibold text-ink-soft">Mục tiêu học thuật *</label>
+                  <textarea id="gate-objective"
+                    rows={2}
+                    value={currentGate.objective}
+                    onChange={e => updateCurrentGate('objective', e.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="gate-start" className="block text-xs font-semibold text-ink-soft">Bắt đầu nhận hồ sơ</label>
+                    <input id="gate-start"
+                      type="date"
+                      value={currentGate.start?.slice(0, 10) ?? ''}
+                      onChange={e => updateCurrentGate('start', e.target.value)}
+                      className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="gate-end" className="block text-xs font-semibold text-ink-soft">Kết thúc nhận hồ sơ</label>
+                    <input id="gate-end"
+                      type="date"
+                      value={currentGate.end?.slice(0, 10) ?? ''}
+                      onChange={e => updateCurrentGate('end', e.target.value)}
+                      className="mt-1.5 min-h-10 w-full rounded-lg border border-hairline bg-card p-2 text-xs text-ink"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6 rounded-lg border border-hairline bg-canvas p-4">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentGate.required}
+                      onChange={e => updateCurrentGate('required', e.target.checked)}
+                      className="h-4 w-4 rounded text-primary"
+                    />
+                    Gate bắt buộc (Mandatory Gate)
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentGate.blockNextGate}
+                      onChange={e => updateCurrentGate('blockNextGate', e.target.checked)}
+                      className="h-4 w-4 rounded text-primary"
+                    />
+                    Chặn Gate tiếp theo nếu chưa PASS
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentGate.blocksDefense ?? false}
+                      onChange={e => updateCurrentGate('blocksDefense', e.target.checked)}
+                      className="h-4 w-4 rounded text-primary"
+                    />
+                    Điều kiện bắt buộc để được bảo vệ (Blocks Defense)
+                  </label>
+                </div>
+
+                {/* Requirements Checklist */}
+                <div className="border-t border-hairline pt-5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft">
+                        Danh mục minh chứng đầu ra ({currentGate.requirements.length})
+                      </h4>
+                      <p className="text-xs text-ink-muted">
+                        Sinh viên nộp đủ các yêu cầu bắt buộc mới được phân công Reviewer thẩm định.
+                      </p>
                     </div>
-                  ) : (
-                    currentGate.requirements.map((req, rIdx) => (
-                      <div
-                        key={req.id || rIdx}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-card p-3 hover:border-line-strong"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <strong className="block text-xs font-semibold text-ink">
-                            {req.title}
-                          </strong>
-                          <span className="text-xs text-ink-muted">
-                            Loại: {req.type} · Ngành: {req.scope} · Thẩm định: {req.verification}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                              req.required
-                                ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
-                                : 'border border-hairline bg-canvas text-ink-soft'
-                            }`}
-                          >
-                            {req.required ? 'BẮT BUỘC' : 'TÙY CHỌN'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingRequirementIndex(rIdx)
-                              setIsDrawerOpen(true)
-                            }}
-                            className="rounded px-2 py-1 text-xs font-semibold text-primary hover:bg-primary-subtle"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRequirement(rIdx)}
-                            className="rounded px-2 py-1 text-xs font-semibold text-status-error-text hover:bg-status-error-bg"
-                          >
-                            Xóa
-                          </button>
-                        </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingRequirementIndex(null)
+                        setIsDrawerOpen(true)
+                      }}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover"
+                    >
+                      ＋ Thêm yêu cầu
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {currentGate.requirements.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-hairline p-6 text-center text-xs text-ink-muted">
+                        Chưa có yêu cầu nào trong Gate này. Bấm &quot;Thêm yêu cầu&quot; để thiết lập tiêu chí thẩm định.
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      currentGate.requirements.map((req, rIdx) => (
+                        <div
+                          key={req.id || rIdx}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-card p-3 hover:border-line-strong"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <strong className="block text-xs font-semibold text-ink">
+                              {req.title}
+                            </strong>
+                            <span className="text-xs text-ink-muted">
+                              Loại: {requirementTypeLabel(req.type)} · Ngành: {displayLabel(req.scope)} · Thẩm định: {displayLabel(req.verification)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge
+                              tone={req.required ? 'danger' : 'neutral'}
+                              label={req.required ? 'BẮT BUỘC' : 'TÙY CHỌN'}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingRequirementIndex(rIdx)
+                                setIsDrawerOpen(true)
+                              }}
+                              className="rounded px-2 py-1 text-xs font-semibold text-primary hover:bg-primary-subtle"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRequirement(rIdx)}
+                              className="rounded px-2 py-1 text-xs font-semibold text-status-error-text hover:bg-status-error-bg"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </fieldset>

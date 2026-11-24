@@ -71,8 +71,9 @@ export function SupervisorGateFollowupPanel({
         </div>
       )}
 
-      <div className="rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink-soft">
-        ℹ️ <strong>Phạm vi vai trò:</strong> Giảng viên hướng dẫn (Primary Supervisor) có thẩm quyền đôn đốc, nhận xét, định hướng hành động (follow-up action items) cho nhóm sinh viên. Quyết định duyệt đạt Gate thuộc về Hội đồng / Giảng viên thẩm định độc lập được phân công.
+      <div className="flex items-start gap-2 rounded-lg border border-hairline bg-canvas p-3 text-xs text-ink-soft">
+        <span className="material-symbols-outlined text-base shrink-0 text-ink-muted" aria-hidden="true">info</span>
+        <span><strong>Phạm vi vai trò:</strong> Giảng viên hướng dẫn (Primary Supervisor) có thẩm quyền đôn đốc, nhận xét, định hướng hành động (follow-up action items) cho nhóm sinh viên. Quyết định duyệt đạt Gate thuộc về Hội đồng / Giảng viên thẩm định độc lập được phân công.</span>
       </div>
 
       {!onSendFeedback ? (

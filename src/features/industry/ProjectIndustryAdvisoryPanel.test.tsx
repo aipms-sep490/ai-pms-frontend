@@ -40,7 +40,7 @@ describe('ProjectIndustryAdvisoryPanel', () => {
   it('renders existing industry assignments for the project', async () => {
     render(<ProjectIndustryAdvisoryPanel projectId={9} />)
     expect(await screen.findByText('Chuyên gia #15')).toBeTruthy()
-    expect(screen.getByText(/Phạm vi: COMMON/)).toBeTruthy()
+    expect(screen.getByText(/Phạm vi: Chung \(toàn đồ án\)/)).toBeTruthy()
     expect(screen.getByText('Quản lý file chia sẻ')).toBeTruthy()
   })
 

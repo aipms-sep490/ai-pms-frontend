@@ -69,7 +69,6 @@ export function IndustryEnrollmentPage() {
       })
 
       setSuccess(`Kích hoạt tài khoản chuyên gia thành công cho ${res.user.email}! Đang chuyển hướng…`)
-      // Save token if token storage helper exists or let caller redirect
       setTimeout(() => {
         navigate('/industry/assignments')
       }, 1200)
@@ -91,63 +90,70 @@ export function IndustryEnrollmentPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-hairline bg-card p-6 shadow-xs sm:p-7">
-        <header className="space-y-2 text-center">
+    <div className="flex min-h-[80vh] items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-hairline bg-card shadow-sm">
+        <header className="bg-canvas/70 border-b border-hairline px-6 py-6 text-center space-y-2.5">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-primary/20 bg-primary-subtle text-primary">
+            <span className="material-symbols-outlined text-2xl" aria-hidden="true">verified_user</span>
+          </div>
           <div className="flex justify-center">
             <span className="workspace-kicker">Cố vấn doanh nghiệp</span>
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">Kích hoạt tài khoản Cố vấn Doanh nghiệp</h1>
-          <p className="text-sm leading-6 text-ink-muted">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-ink">
+            Kích hoạt tài khoản Cố vấn Doanh nghiệp
+          </h1>
+          <p className="mx-auto max-w-md text-sm leading-6 text-ink-muted">
             Xác thực tài khoản chuyên gia thông qua Google để bắt đầu tham gia cố vấn đồ án.
           </p>
         </header>
 
-        {!hasToken && (
-          <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-xs leading-relaxed text-status-error-text">
-            <strong>Không tìm thấy mã thư mời:</strong> Vui lòng truy cập lại liên kết từ email thư mời mà bạn đã nhận được (đường dẫn chứa mã thư mời).
-          </div>
-        )}
-
-        {hasToken && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-primary/20 bg-primary-subtle p-3 text-xs leading-relaxed text-primary">
-              ✓ Đã nhận diện mã thư mời bảo mật. Hãy đăng nhập tài khoản Google của bạn để hoàn tất kích hoạt.
+        <div className="p-6 space-y-5">
+          {!hasToken && (
+            <div role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-xs leading-relaxed text-status-error-text">
+              <strong>Không tìm thấy mã thư mời:</strong> Vui lòng truy cập lại liên kết từ email thư mời mà bạn đã nhận được (đường dẫn chứa mã thư mời).
             </div>
+          )}
 
-            {loadingChallenge && (
-              <p className="text-center text-xs text-ink-muted">Đang khởi tạo kết nối an toàn…</p>
-            )}
-
-            {!loadingChallenge && challenge && (
-              <div className="space-y-3">
-                <label className="block text-xs font-medium text-ink-soft">
-                  Mã xác thực Google (Google ID Token)
-                  <textarea
-                    className="mt-1.5 block w-full rounded-lg border border-hairline bg-card p-3 font-mono text-xs text-ink focus:border-primary focus:outline-none"
-                    rows={4}
-                    placeholder="Dán Google ID Token tại đây hoặc đăng nhập qua Google button…"
-                    value={googleIdToken}
-                    disabled={enrolling}
-                    onChange={(e) => setGoogleIdToken(e.target.value)}
-                  />
-                </label>
-
-                {error && <p role="alert" className="text-xs text-status-error-text">{error}</p>}
-                {success && <p role="status" className="text-xs text-status-success-text">{success}</p>}
-
-                <button
-                  type="button"
-                  className="min-h-11 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  disabled={enrolling || !googleIdToken.trim()}
-                  onClick={() => void handleEnroll()}
-                >
-                  {enrolling ? 'Đang kích hoạt tài khoản…' : 'Kích hoạt tài khoản Chuyên gia'}
-                </button>
+          {hasToken && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-primary/20 bg-primary-subtle p-3.5 text-xs leading-relaxed text-primary">
+                ✓ Đã nhận diện mã thư mời bảo mật. Hãy đăng nhập tài khoản Google của bạn để hoàn tất kích hoạt.
               </div>
-            )}
-          </div>
-        )}
+
+              {loadingChallenge && (
+                <p role="status" className="py-2 text-center text-xs text-ink-muted">Đang khởi tạo kết nối an toàn…</p>
+              )}
+
+              {!loadingChallenge && challenge && (
+                <div className="space-y-3.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    Mã xác thực Google (Google ID Token)
+                    <textarea
+                      className="mt-1.5 block w-full rounded-lg border border-line-strong bg-card p-3 font-mono text-xs font-normal normal-case tracking-normal text-ink focus:border-primary focus:outline-none"
+                      rows={4}
+                      placeholder="Dán Google ID Token tại đây hoặc đăng nhập qua Google button…"
+                      value={googleIdToken}
+                      disabled={enrolling}
+                      onChange={(e) => setGoogleIdToken(e.target.value)}
+                    />
+                  </label>
+
+                  {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">{error}</p>}
+                  {success && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-3 text-xs text-status-success-text">{success}</p>}
+
+                  <button
+                    type="button"
+                    className="min-h-11 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    disabled={enrolling || !googleIdToken.trim()}
+                    onClick={() => void handleEnroll()}
+                  >
+                    {enrolling ? 'Đang kích hoạt tài khoản…' : 'Kích hoạt tài khoản Chuyên gia'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

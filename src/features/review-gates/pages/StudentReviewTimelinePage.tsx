@@ -4,6 +4,7 @@ import { env } from '../../../app/config/env'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { getDefenseReadiness, getStudentReviewTimeline, submitGateForReview, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
 import type { DefenseReadinessSummary } from '../types/review-gates.types'
 import type { StudentReviewTimelineDto } from '../types/review-gates.types'
@@ -133,9 +134,15 @@ export function StudentReviewTimelinePage() {
   }
 
   const currentGate = timeline?.gates.find((g) => g.code === timeline.currentGateCode) || timeline?.gates[0]
+  const allRequirements = timeline ? timeline.gates.flatMap(g => g.requirements) : []
+  const passedGatesCount = timeline ? timeline.gates.filter(g => g.status === 'PASSED').length : 0
+  const acceptedEvidenceCount = allRequirements.filter(r => r.verificationStatus === 'ACCEPTED').length
+  const actionNeededEvidenceCount = allRequirements.filter(r => r.verificationStatus === 'REJECTED' || (!r.latestArtifact && r.isMandatory)).length
+  const effectiveDefenseReady = readiness?.isReady ?? timeline?.isDefenseReady
 
   return (
     <WorkspacePage
+      className="space-y-5"
       eyebrow={
         isLecturer
           ? 'Giảng viên Hướng dẫn · Tiến trình Thẩm định'
@@ -153,12 +160,15 @@ export function StudentReviewTimelinePage() {
       ]} /> : undefined}
     >
       <ReviewGatesMockNotice />
-      {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
-        <p>{feedbackRefreshWarning}</p>
-        <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
-          {feedbackRefreshing ? 'Đang tải lại nhận xét...' : 'Tải lại nhận xét'}
-        </Button>
-      </div>}
+      {feedbackRefreshWarning && (
+        <div role="alert" className="rounded-xl border border-status-warning-border bg-status-warning-bg p-3.5 text-sm text-status-warning-text">
+          <p>{feedbackRefreshWarning}</p>
+          <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
+            {feedbackRefreshing ? 'Đang tải lại nhận xét...' : 'Tải lại nhận xét'}
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="py-12">
           <PageLoading label="Đang tải tiến trình Review Gates của nhóm..." />
@@ -175,7 +185,46 @@ export function StudentReviewTimelinePage() {
           </button>
         </div>
       ) : timeline ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {timeline.gates.length > 0 && (
+            <StatTileRow
+              tiles={[
+                {
+                  icon: 'verified',
+                  label: 'Cổng đã vượt qua',
+                  value: passedGatesCount,
+                  caption: `Trên tổng ${timeline.gates.length} đợt thẩm định`,
+                  hero: true,
+                },
+                {
+                  icon: 'task_alt',
+                  label: 'Minh chứng đã duyệt',
+                  value: acceptedEvidenceCount,
+                  tone: acceptedEvidenceCount > 0 ? 'success' : 'neutral',
+                  caption: `Trên tổng ${allRequirements.length} yêu cầu minh chứng`,
+                },
+                {
+                  icon: 'pending_actions',
+                  label: 'Cần bổ sung / sửa',
+                  value: actionNeededEvidenceCount,
+                  tone: actionNeededEvidenceCount > 0 ? 'warning' : 'success',
+                  caption: actionNeededEvidenceCount > 0 ? 'Bị từ chối hoặc bắt buộc chưa nộp' : 'Đã đầy đủ minh chứng hiện tại',
+                },
+                {
+                  icon: 'school',
+                  label: 'Tiêu chí bảo vệ đạt',
+                  value: readiness ? readiness.conditions.filter(c => c.satisfied).length : null,
+                  tone: effectiveDefenseReady === true ? 'success' : effectiveDefenseReady === false ? 'warning' : 'info',
+                  caption: effectiveDefenseReady === true
+                    ? 'Đủ điều kiện bảo vệ (dự kiến)'
+                    : effectiveDefenseReady === false
+                    ? 'Còn điều kiện bảo vệ chưa hoàn tất'
+                    : 'Đánh giá tham khảo từ hệ thống',
+                },
+              ]}
+            />
+          )}
+
           {isLecturer && currentGate && (
             <SupervisorGateFollowupPanel
               key={`${timeline.projectId}-${currentGate.code}`}
@@ -199,21 +248,28 @@ export function StudentReviewTimelinePage() {
             />
           )}
 
-          {timeline.gates.length === 0 ? <WorkspaceEmptyState title="Mốc đánh giá chưa được công bố" message="Đồ án này chưa có cổng thẩm định trong tiến trình do máy chủ trả về. Theo dõi lại sau khi khoa công bố cấu hình phù hợp." /> : <StudentReviewTimeline
-            timeline={timeline}
-            isLeader={isLeader}
-            isAuthenticated={Boolean(auth?.session)}
-            onToggleRole={isLeaderToggleAllowed ? () => setMockLeaderOverride(!isLeader) : undefined}
-            onSubmitRevision={handleSubmitRevision}
-            readiness={readiness}
-            onReload={() => loadTimeline(true)}
-            onSubmitForReview={async (gateCode) => {
-              const generation = routeGeneration.current
-              const gate = timeline.gates.find(item => item.code === gateCode)
-              const updated = await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken })
-              if (generation === routeGeneration.current) applyTimeline(updated)
-            }}
-          />}
+          {timeline.gates.length === 0 ? (
+            <WorkspaceEmptyState
+              title="Mốc đánh giá chưa được công bố"
+              message="Đồ án này chưa có cổng thẩm định trong tiến trình do máy chủ trả về. Theo dõi lại sau khi khoa công bố cấu hình phù hợp."
+            />
+          ) : (
+            <StudentReviewTimeline
+              timeline={timeline}
+              isLeader={isLeader}
+              isAuthenticated={Boolean(auth?.session)}
+              onToggleRole={isLeaderToggleAllowed ? () => setMockLeaderOverride(!isLeader) : undefined}
+              onSubmitRevision={handleSubmitRevision}
+              readiness={readiness}
+              onReload={() => loadTimeline(true)}
+              onSubmitForReview={async (gateCode) => {
+                const generation = routeGeneration.current
+                const gate = timeline.gates.find(item => item.code === gateCode)
+                const updated = await submitGateForReview({ projectId: timeline.projectId, gateCode, concurrencyToken: gate?.concurrencyToken })
+                if (generation === routeGeneration.current) applyTimeline(updated)
+              }}
+            />
+          )}
         </div>
       ) : null}
     </WorkspacePage>

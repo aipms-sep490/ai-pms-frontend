@@ -1,39 +1,39 @@
-.lecturer-workspace .lecturer-projects:not(:has(.lecturer-project)) { padding: 24px; border: 1px solid var(--color-hairline); border-radius: 14px; background: var(--color-card); }
 .lecturer-workspace .lecturer-project-list:empty { display: none; margin: 0; }
-.lecturer-workspace .lecturer-project-list { margin-top: 20px; display: grid; gap: 20px; }
-.lecturer-workspace .lecturer-project { min-width: 0; background: var(--color-card); border: 1px solid var(--color-hairline); border-radius: 14px; padding: 28px; box-shadow: 0 2px 5px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
-.lecturer-project h3 { max-width: 76ch; font-size: 18px; line-height: 1.5; }
-.lecturer-signals { display: grid; grid-template-columns: 1fr 1fr 1.4fr 1fr; gap: 24px; margin: 24px 0; }
-.lecturer-signal { min-width: 0; font-size: 13px; line-height: 1.6; }
-.lecturer-signal dd { font-size: 15px; }
-.lecturer-project-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 20px; border-top: 1px solid var(--color-hairline); }
-.lecturer-action { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 40px; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--color-primary); background: var(--color-primary-subtle); text-decoration: none; }
+.lecturer-workspace .lecturer-project-list { display: grid; gap: 16px; }
+.lecturer-workspace .lecturer-project { min-width: 0; overflow: hidden; background: var(--color-card); border: 1px solid var(--color-hairline); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px color-mix(in oklab, var(--color-brand-navy) 5%, transparent); }
+.lecturer-project h3 { max-width: 76ch; font-size: 17px; line-height: 1.45; }
+.lecturer-signals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 18px 0; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--color-hairline); background: color-mix(in oklab, var(--color-canvas) 75%, var(--color-card)); }
+.lecturer-signal { min-width: 0; font-size: 13px; line-height: 1.5; }
+.lecturer-signal dd { font-size: 14px; font-variant-numeric: tabular-nums; }
+.lecturer-project-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 16px; border-top: 1px solid var(--color-hairline); }
+.lecturer-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--color-primary); background: var(--color-primary-subtle); text-decoration: none; border: 1px solid color-mix(in oklab, var(--color-primary) 16%, transparent); }
 .lecturer-action:hover { background: var(--color-hairline); color: var(--color-primary-hover); }
-.lecturer-action-primary { background: var(--color-primary); color: var(--color-card); }
+.lecturer-action-primary { background: var(--color-primary); color: var(--color-card); border-color: var(--color-primary); }
 .lecturer-action-primary:hover { background: var(--color-primary-hover); color: var(--color-card); }
 .lecturer-action:focus-visible, .lecturer-request-summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
-.lecturer-requests { padding: 24px; border: 1px solid var(--color-hairline); border-radius: 14px; background: var(--color-card); }
-.lecturer-request { padding: 18px 0; border-bottom: 1px solid var(--color-hairline); }
+.lecturer-request { padding: 14px 0; border-bottom: 1px solid var(--color-hairline); }
+.lecturer-request:last-child { border-bottom: 0; padding-bottom: 0; }
+.lecturer-request:first-child { padding-top: 0; }
 .lecturer-request-summary { cursor: pointer; list-style: none; position: relative; padding-right: 28px; }
-.lecturer-request-summary::after { content: '+'; position: absolute; right: 4px; top: 0; color: var(--color-primary); font-size: 20px; }
+.lecturer-request-summary::after { content: '+'; position: absolute; right: 4px; top: 0; color: var(--color-primary); font-size: 20px; line-height: 1.1; }
 .lecturer-request details[open] > summary::after { content: '−'; }
-.lecturer-request-summary strong { max-width: 85ch; line-height: 1.6; }
+.lecturer-request-summary strong { max-width: 85ch; line-height: 1.5; }
 .lecturer-request-summary span { color: var(--color-primary); font-size: 12px; white-space: nowrap; }
-.lecturer-team { padding-left: 16px; border-left: 2px solid var(--color-hairline); }
-@media (max-width: 720px) {
-  .lecturer-workspace .lecturer-project { padding: 20px; }
-  .lecturer-signals { grid-template-columns: 1fr 1fr; gap: 20px 16px; }
+.lecturer-team { padding-left: 14px; border-left: 2px solid var(--color-hairline); }
+@media (max-width: 768px) {
+  .lecturer-workspace .lecturer-project { padding: 16px; }
+  .lecturer-signals { grid-template-columns: 1fr 1fr; gap: 14px; }
   .lecturer-project h3 { font-size: 16px; }
   .lecturer-project-actions { align-items: stretch; }
   .lecturer-action { flex: 1 1 140px; }
 }
 
-.lecturer-project > div:first-child { margin: -28px -28px 0; padding: 24px 28px; background: var(--color-primary-subtle); border-radius: 13px 13px 0 0; border-bottom: 1px solid var(--color-hairline); }
-.lecturer-project > div:first-child > div { flex: 1 1 420px; }
-@media(max-width:720px) { .lecturer-project > div:first-child { margin:-20px -20px 0; padding:20px; } .lecturer-requests { padding:20px; } }
-.lecturer-roster { margin-top: 16px; border-top: 1px solid var(--color-hairline); padding-top: 14px; }
+.lecturer-project > div:first-child { margin: -20px -20px 0; padding: 16px 20px; background: color-mix(in oklab, var(--color-canvas) 70%, var(--color-card)); border-radius: 11px 11px 0 0; border-bottom: 1px solid var(--color-hairline); }
+.lecturer-project > div:first-child > div { flex: 1 1 320px; }
+@media(max-width:768px) { .lecturer-project > div:first-child { margin:-16px -16px 0; padding:16px; } }
+.lecturer-roster { margin-top: 14px; border-top: 1px solid var(--color-hairline); padding-top: 12px; }
 .lecturer-roster summary { width: fit-content; cursor: pointer; color: var(--color-primary); font-size: 13px; font-weight: 700; }
 .lecturer-roster summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
-.lecturer-roster ul { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.lecturer-roster ul { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
 .lecturer-roster li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--color-ink-soft); }
 .lecturer-roster-leader { border-radius: 999px; background: var(--color-primary-subtle); padding: 2px 8px; color: var(--color-primary); font-size: 12px; font-weight: 700; }
