@@ -45,24 +45,27 @@
 .calendar-page__notice {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  border: 1px solid var(--color-status-warning-border);
-  background: var(--color-status-warning-bg);
-  color: var(--color-status-warning-text);
+  gap: 0.55rem;
+  border: 1px solid var(--color-hairline);
+  border-left: 4px solid var(--color-status-warning-text);
+  background: var(--color-card);
+  color: var(--color-ink);
   padding: 0.75rem 0.9rem;
   border-radius: 0.65rem;
   font-size: 0.86rem;
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .calendar-page__notice .material-symbols-outlined {
   font-size: 1.05rem;
+  color: var(--color-status-warning-text);
 }
 
 .calendar-page__layout {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 0.85fr);
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .calendar-panel,
@@ -74,6 +77,13 @@
   box-shadow:
     0 4px 20px -4px color-mix(in oklab, var(--color-primary) 8%, transparent),
     0 1px 3px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
+}
+
+.calendar-panel,
+.attention-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .calendar-panel__toolbar,
@@ -525,6 +535,7 @@
   list-style: none;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: stretch;
   gap: 0.85rem;
   margin: 0.75rem 0 0;
   padding: 0;
@@ -577,15 +588,6 @@
   .attention-panel {
     position: sticky;
     top: 84px;
-    max-height: calc(100dvh - 108px);
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-  }
-
-  .attention-panel__heading {
-    position: sticky;
-    top: 0;
-    z-index: 1;
   }
 }
 
