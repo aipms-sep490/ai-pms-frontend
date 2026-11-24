@@ -16,9 +16,9 @@ const failed = <T,>(value: T, reason: unknown): Resource<T> => ({ state: 'error'
 
 export function useAdminWorkspace(filters: AdminListQuery = {}, auditFilters: AuditListQuery = {}) {
   const { session } = useAuthSession()
-  const [users, setUsers] = useState<Resource<Page<UserAccount>>>(() => loading({ items: [], page: 1, pageSize: 20, totalCount: 0 }))
+  const [users, setUsers] = useState<Resource<Page<UserAccount>>>(() => loading({ items: [], page: 1, pageSize: 10, totalCount: 0 }))
   const [rbac, setRbac] = useState<Resource<{ roles: Role[]; permissions: Permission[]; matrix: PermissionMatrix | null }>>(() => loading({ roles: [], permissions: [], matrix: null }))
-  const [audit, setAudit] = useState<Resource<Page<Awaited<ReturnType<typeof getAudit>>['items'][number]>>>(() => loading({ items: [], page: 1, pageSize: 20, totalCount: 0 }))
+  const [audit, setAudit] = useState<Resource<Page<Awaited<ReturnType<typeof getAudit>>['items'][number]>>>(() => loading({ items: [], page: 1, pageSize: 10, totalCount: 0 }))
   const [version, setVersion] = useState(0)
   const refresh = useCallback(() => setVersion((value) => value + 1), [])
   const filterKey = JSON.stringify(filters)
