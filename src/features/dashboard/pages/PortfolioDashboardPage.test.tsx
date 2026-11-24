@@ -14,7 +14,7 @@ vi.mock('../../projects/api/project-review-api', () => ({ getReviewActions: api.
 const dashboard = {
   asOfUtc: '2026-09-28T00:00:00Z', departmentId: 1,
   summary: { totalProjects: 1, projectStates: [{ status: 'ACTIVE', count: 1 }], majors: [{ majorId: 4, code: 'SE', name: 'Software Engineering', projectCount: 1 }], supervisors: [], riskLevels: [{ status: 'LOW', count: 1 }] },
-  projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Portfolio contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 0, departmentId: 1, departmentName: 'SE', majors: [], supervisor: null, analysis: { dataStatus: 'READY', riskLevel: 'LOW', trendStatus: 'STABLE', progressSummary: { progressPercentage: 50, overdueTasks: 0, blockedTasks: 0 } } }], page: 1, pageSize: 20, totalCount: 1, totalPages: 1 },
+  projects: { items: [{ id: 7, code: 'PRJ-7', title: 'Portfolio contract', status: 'ACTIVE', teamId: 2, semesterId: 1, pendingProgressReviews: 0, departmentId: 1, departmentName: 'SE', majors: [], supervisor: null, analysis: { dataStatus: 'READY', riskLevel: 'LOW', trendStatus: 'STABLE', progressSummary: { progressPercentage: 50, overdueTasks: 0, blockedTasks: 0 } } }], page: 1, pageSize: 10, totalCount: 1, totalPages: 1 },
 }
 
 beforeEach(() => { vi.clearAllMocks(); api.getWorkspaceRole.mockReturnValue('department'); api.getPortfolioDashboard.mockResolvedValue(dashboard); api.getReviewActions.mockResolvedValue({ actions: [{ code: 'archive_project', allowed: false, reasons: ['Chưa đủ điều kiện'] }] }) })
@@ -47,11 +47,11 @@ it('prevents duplicate export while a download is pending', async () => {
 describe('PortfolioDashboardPage', () => {
   it('filters the backend portfolio by a returned major without inventing a client dataset', async () => {
     render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
-    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenCalledWith('department', { page: 1, pageSize: 20 }))
+    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenCalledWith('department', { page: 1, pageSize: 10 }))
     expect(screen.getByRole('link', { name: 'Xem' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'SE' }))
-    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenLastCalledWith('department', { page: 1, pageSize: 20, majorId: 4 }))
+    await waitFor(() => expect(api.getPortfolioDashboard).toHaveBeenLastCalledWith('department', { page: 1, pageSize: 10, majorId: 4 }))
   })
   it('checks backend archive action lazily on click (no N+1 on mount) and confirms before archiving', async () => {
     api.getPortfolioDashboard.mockResolvedValue({ ...dashboard, projects: { ...dashboard.projects, items: [{ ...dashboard.projects.items[0], status: 'COMPLETED' }] } })
@@ -101,7 +101,7 @@ it('provides the admin dashboard without department workflow links or mutations'
   api.getWorkspaceRole.mockReturnValue('admin')
   render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
   await screen.findByText(/Portfolio contract/)
-  expect(api.getPortfolioDashboard).toHaveBeenCalledWith('admin', { page: 1, pageSize: 20 })
+  expect(api.getPortfolioDashboard).toHaveBeenCalledWith('admin', { page: 1, pageSize: 10 })
   expect(screen.queryByRole('link', { name: 'Xem' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Tệp' })).toBeNull()
   expect(screen.getByRole('link', { name: 'Phương án đánh giá' }).getAttribute('href')).toBe('/admin/projects/7/evaluation-schemes')

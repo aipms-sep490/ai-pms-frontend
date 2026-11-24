@@ -1,5 +1,7 @@
+import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -26,7 +28,7 @@ export function PortfolioDashboardPage() {
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const scope = role === 'admin' ? 'admin' : 'department'
-  const [filter, setFilter] = useState<DashboardFilter>({ page: 1, pageSize: 20 })
+  const [filter, setFilter] = useState<DashboardFilter>({ page: 1, pageSize: 10 })
   const [riskFilter, setRiskFilter] = useState<string>('ALL')
   const [supervisorFilter, setSupervisorFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<SortKey>('default')
@@ -121,11 +123,14 @@ export function PortfolioDashboardPage() {
 
   const supervisorOptions = useMemo(() => {
     const names = new Set<string>()
+    for (const s of data?.summary.supervisors ?? []) {
+      if (s.name) names.add(s.name)
+    }
     for (const p of data?.projects.items ?? []) {
       if (p.supervisor?.name) names.add(p.supervisor.name)
     }
     return [...names].sort((a, b) => a.localeCompare(b, 'vi'))
-  }, [data?.projects.items])
+  }, [data?.projects.items, data?.summary.supervisors])
 
   const visibleProjects = useMemo(() => {
     const raw = data?.projects.items ?? []
@@ -160,7 +165,7 @@ export function PortfolioDashboardPage() {
   ]
 
   function clearFilters() {
-    setFilter({ page: 1, pageSize: 20 })
+    setFilter({ page: 1, pageSize: 10 })
     setRiskFilter('ALL')
     setSupervisorFilter('ALL')
     setSortBy('default')
@@ -174,18 +179,26 @@ export function PortfolioDashboardPage() {
       eyebrow={scope === 'admin' ? 'Tổng quan nền tảng' : 'Phạm vi bộ môn'}
       description="Theo dõi trạng thái, mức rủi ro và tiến độ các đồ án trong phạm vi được cấp."
       action={
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="text-xs font-semibold text-ink-soft">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="refresh"
+            aria-label="Tải lại"
+            disabled={loading}
+            onClick={() => void load()}
+          />
+          <label className="inline-flex items-center gap-2 text-xs font-semibold text-ink-soft">
             Định dạng xuất
-            <select aria-label="Định dạng xuất" className="ml-2 min-h-10 rounded-lg border border-hairline bg-card px-3 font-normal text-ink" value={exportFormat} disabled={exporting} onChange={event => setExportFormat(event.target.value as PortfolioExportFormat)}>
+            <select aria-label="Định dạng xuất" className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 font-normal text-ink" value={exportFormat} disabled={exporting} onChange={event => setExportFormat(event.target.value as PortfolioExportFormat)}>
               <option value="csv">CSV</option>
               <option value="xlsx">Excel</option>
               <option value="pdf">PDF</option>
             </select>
           </label>
-          <button type="button" disabled={exporting || loading || !data} onClick={() => void download()} className="min-h-10 rounded-lg bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">
+          <Button size="sm" icon="download" disabled={exporting || loading || !data} onClick={() => void download()}>
             {exporting ? 'Đang xuất…' : `Xuất ${exportFormat.toUpperCase()}`}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -250,7 +263,12 @@ export function PortfolioDashboardPage() {
 
       {confirmationDialog}
       {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
-      {notice && <p role="status" className="rounded-lg border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">{notice}</p>}
+      {notice && (
+        <p role="status" className="flex items-start gap-2.5 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-sm text-ink shadow-2xs">
+          <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <span>{notice}</span>
+        </p>
+      )}
       {loading && <PageLoading label="Đang tải danh mục đồ án…" />}
       {!loading && data && <>
         <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
@@ -264,7 +282,7 @@ export function PortfolioDashboardPage() {
             ]}
           />
         </section>
-        <section className={`grid gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <section className={`grid items-stretch gap-4 ${env.aiAdvisoryEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <SummaryCard title="Theo trạng thái" items={data.summary.projectStates.map(item => ({ key: item.status, label: `${projectStatusLabel(item.status)}: ${item.count}`, active: filter.status === item.status, onClick: () => handleStatusChange(filter.status === item.status ? '' : item.status) }))} />
           {env.aiAdvisoryEnabled && <SummaryCard title="Theo rủi ro" items={data.summary.riskLevels.map(item => ({ key: item.status, label: `${displayLabel(item.status)}: ${item.count}`, active: riskFilter === item.status, onClick: () => setRiskFilter(riskFilter === item.status ? 'ALL' : item.status) }))} />}
           <SummaryCard title="Theo chuyên ngành" items={data.summary.majors.map(item => ({ key: String(item.majorId), label: `${item.code}: ${item.projectCount}`, active: filter.majorId === item.majorId, onClick: () => setFilter(c => ({ ...c, majorId: c.majorId === item.majorId ? undefined : item.majorId, page: 1 })) }))} />
@@ -294,7 +312,17 @@ export function PortfolioDashboardPage() {
             </ul>
           )}
         </section>
-        <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} onChange={page => setFilter(current => ({ ...current, page }))} />
+        {(data.projects.totalPages > 1 || data.projects.totalCount > data.projects.pageSize) && (
+          <Pagination
+            page={filter.page ?? 1}
+            pages={data.projects.totalPages}
+            total={data.projects.totalCount}
+            pageSize={filter.pageSize ?? data.projects.pageSize}
+            busy={loading}
+            onPage={(page) => setFilter(current => ({ ...current, page }))}
+            onPageSizeChange={(pageSize) => setFilter(current => ({ ...current, page: 1, pageSize }))}
+          />
+        )}
       </>}
     </WorkspacePage>
   )
@@ -302,7 +330,7 @@ export function PortfolioDashboardPage() {
 
 function SummaryCard({ title, items }: { title: string; items: Array<{ key: string; label: string; active?: boolean; onClick?: () => void }> }) {
   return (
-    <section className="workspace-summary">
+    <section className="workspace-summary flex h-full flex-col">
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-ink-muted">Chưa có dữ liệu.</p>
@@ -389,11 +417,6 @@ function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = f
       )}
     </li>
   )
-}
-
-function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
-  if (totalPages <= 1) return null
-  return <nav aria-label="Trang portfolio" className="flex items-center justify-between gap-3 text-sm"><button type="button" disabled={page <= 1} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page - 1)}>Trang trước</button><span className="tabular-nums text-ink-muted">Trang {page} / {totalPages}</span><button type="button" disabled={page >= totalPages} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page + 1)}>Trang sau</button></nav>
 }
 
 function formatAsOf(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date) }
