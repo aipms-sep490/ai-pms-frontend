@@ -580,7 +580,7 @@ export function MilestoneTemplatesPage() {
               {aiError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">{aiError}</p>}
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
                 <span className="text-xs text-ink-muted">
-                  Tất cả mốc lưu ở phiên bản DRAFT — Quản trị viên kiểm tra rồi mới bấm Công bố.
+                  Tất cả mốc lưu ở phiên bản DRAFT — Cán bộ bộ môn kiểm tra rồi mới bấm Công bố.
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {selected && (
