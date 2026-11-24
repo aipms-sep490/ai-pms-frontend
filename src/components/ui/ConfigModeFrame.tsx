@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { UnsavedChangesNotice } from './UnsavedChangesNotice'
 import { useActionConfirmation } from './useActionConfirmation'
 
-export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, blastRadius, saveLabel = 'Lưu cấu hình', breadcrumb, navigationGuard = true, editDisabled = false, allowSaveUnchanged = false, saveDisabled = false, children }: {
+export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, blastRadius, saveLabel = 'Lưu cấu hình', breadcrumb, extraActions, navigationGuard = true, editDisabled = false, allowSaveUnchanged = false, saveDisabled = false, children }: {
   mode: 'view' | 'edit'
   dirty: boolean
   busy: boolean
@@ -12,6 +12,7 @@ export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, b
   blastRadius: ReactNode
   saveLabel?: string
   breadcrumb?: ReactNode
+  extraActions?: ReactNode
   navigationGuard?: boolean
   editDisabled?: boolean
   allowSaveUnchanged?: boolean
@@ -43,6 +44,7 @@ export function ConfigModeFrame({ mode, dirty, busy, onEdit, onCancel, onSave, b
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {extraActions}
           {mode === 'view' ? (
             <button type="button" onClick={onEdit} disabled={busy || editDisabled} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50">Chỉnh sửa</button>
           ) : (

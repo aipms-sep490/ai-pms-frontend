@@ -322,117 +322,117 @@ export function AcademicKnowledgeManagementPage() {
         )}
       </section>
 
-      <div className="min-w-0 xl:sticky xl:top-6">
-        <ConfigModeFrame mode={mode} dirty={draftDirty} busy={busy} onEdit={() => { setDraftSnapshot(snapshot()); setMode('edit') }} onCancel={cancelDraft} onSave={() => formRef.current?.requestSubmit()} saveLabel={busy ? 'Đang xử lý…' : 'Lưu bản nháp'} editDisabled={!ready} saveDisabled={!ready || (!selected && !admin && !departmentId)} allowSaveUnchanged navigationGuard={false} blastRadius="Bản nháp mới chỉ nằm trong kho quản lý. Trợ lý AI chỉ dùng tài liệu sau khi công bố; phạm vi khoa, kỳ và thời gian hiệu lực quyết định tài liệu nào được dùng. Phiên bản đang công bố có thể bị thu hồi khi công bố bản mới.">
-        <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 className="font-heading text-lg font-semibold text-ink">{selected ? `Phiên bản mới: ${selected.title}` : 'Tạo tài liệu'}</h2>
-          <div className="mt-3 rounded-xl border border-primary/25 bg-primary-subtle/40 p-3.5 space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-bold text-primary">Trích xuất tự động từ tệp PDF / DOCX / XLSX</p>
-                <p className="text-xs text-ink-soft">AI tự đề xuất tên tài liệu, phân loại và tách thành các đoạn nguồn (chunks) có thể sửa/xóa trước khi lưu nháp.</p>
-              </div>
-              <input
-                ref={extractFileInputRef}
-                type="file"
-                className="sr-only"
-                accept=".pdf,.docx,.xlsx,.txt,.md,.csv,.json"
-                onChange={e => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (file) void runExtract({ file })
-                }}
-              />
-              <button
-                type="button"
-                disabled={busy || !ready || extractBusy}
-                onClick={() => extractFileInputRef.current?.click()}
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
-                {extractBusy ? 'Đang trích xuất…' : 'Chọn tệp để trích xuất'}
-              </button>
+      <div className="min-w-0 space-y-4 xl:sticky xl:top-6">
+        <div className="rounded-xl border border-primary/25 bg-primary-subtle/40 p-3.5 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold text-primary">Trích xuất tự động từ tệp PDF / DOCX / XLSX</p>
+              <p className="text-xs text-ink-soft">AI tự đề xuất tên tài liệu, phân loại và tách thành các đoạn nguồn (chunks) có thể sửa/xóa trước khi lưu nháp.</p>
             </div>
-            {extractError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-xs text-status-error-text">{extractError}</p>}
-            {sourceFileName && !extractPreview && (
-              <p className="text-xs text-ink-soft">
-                Nguồn đang nạp: <strong className="text-ink">{sourceFileName}</strong>
-                {customChunks ? ` · ${customChunks.length} đoạn nguồn đã chọn` : ''}
-              </p>
-            )}
-            {extractPreview && (
-              <div className="space-y-2.5 rounded-lg border border-hairline bg-card p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-semibold text-ink">
-                      Kết quả trích xuất: {extractPreview.sourceFileName} ({extractPreview.chunks.length} đoạn)
-                    </p>
-                    <p className="text-xs text-ink-muted">{extractPreview.summary}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="min-h-9 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:text-ink"
-                      onClick={() => setExtractPreview(null)}
-                    >
-                      Đóng xem trước
-                    </button>
-                    <button
-                      type="button"
-                      disabled={extractPreview.chunks.length === 0}
-                      className="min-h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
-                      onClick={applyExtractToForm}
-                    >
-                      Đổ vào bản nháp ({extractPreview.chunks.length} đoạn)
-                    </button>
-                  </div>
+            <input
+              ref={extractFileInputRef}
+              type="file"
+              className="sr-only"
+              accept=".pdf,.docx,.xlsx,.txt,.md,.csv,.json"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void runExtract({ file })
+              }}
+            />
+            <button
+              type="button"
+              disabled={busy || !ready || extractBusy}
+              onClick={() => extractFileInputRef.current?.click()}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
+              {extractBusy ? 'Đang trích xuất…' : 'Chọn tệp để trích xuất'}
+            </button>
+          </div>
+          {extractError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-xs text-status-error-text">{extractError}</p>}
+          {sourceFileName && !extractPreview && (
+            <p className="text-xs text-ink-soft">
+              Nguồn đang nạp: <strong className="text-ink">{sourceFileName}</strong>
+              {customChunks ? ` · ${customChunks.length} đoạn nguồn đã chọn` : ''}
+            </p>
+          )}
+          {extractPreview && (
+            <div className="space-y-2.5 rounded-lg border border-hairline bg-card p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-ink">
+                    Kết quả trích xuất: {extractPreview.sourceFileName} ({extractPreview.chunks.length} đoạn)
+                  </p>
+                  <p className="text-xs text-ink-muted">{extractPreview.summary}</p>
                 </div>
-                {extractPreview.warnings.length > 0 && (
-                  <ul className="space-y-1 rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-2 text-xs text-status-warning-text">
-                    {extractPreview.warnings.map((w, idx) => <li key={idx}>• {w}</li>)}
-                  </ul>
-                )}
-                <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                  {extractPreview.chunks.map((chunk, idx) => (
-                    <div key={idx} className="space-y-1.5 rounded-lg border border-hairline bg-canvas p-2.5">
-                      <div className="flex items-center gap-2">
-                        <input
-                          aria-label={`Tiêu đề đoạn ${idx + 1}`}
-                          placeholder="Tiêu đề mục"
-                          value={chunk.heading ?? ''}
-                          onChange={e => setExtractPreview(prev => prev ? {
-                            ...prev,
-                            chunks: prev.chunks.map((c, i) => (i === idx ? { ...c, heading: e.target.value } : c)),
-                          } : prev)}
-                          className="min-h-8 flex-1 rounded border border-hairline bg-card px-2 text-xs font-semibold text-ink"
-                        />
-                        {chunk.pageNumber && <span className="text-xs text-ink-muted">Trang {chunk.pageNumber}</span>}
-                        <button
-                          type="button"
-                          onClick={() => setExtractPreview(prev => prev ? {
-                            ...prev,
-                            chunks: prev.chunks.filter((_, i) => i !== idx),
-                          } : prev)}
-                          className="rounded border border-hairline px-2 py-1 text-xs font-semibold text-status-error-text hover:bg-status-error-bg"
-                        >
-                          Bỏ đoạn
-                        </button>
-                      </div>
-                      <textarea
-                        aria-label={`Nội dung đoạn ${idx + 1}`}
-                        rows={3}
-                        value={chunk.content}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="min-h-9 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:text-ink"
+                    onClick={() => setExtractPreview(null)}
+                  >
+                    Đóng xem trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={extractPreview.chunks.length === 0}
+                    className="min-h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+                    onClick={applyExtractToForm}
+                  >
+                    Đổ vào bản nháp ({extractPreview.chunks.length} đoạn)
+                  </button>
+                </div>
+              </div>
+              {extractPreview.warnings.length > 0 && (
+                <ul className="space-y-1 rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-2 text-xs text-status-warning-text">
+                  {extractPreview.warnings.map((w, idx) => <li key={idx}>• {w}</li>)}
+                </ul>
+              )}
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {extractPreview.chunks.map((chunk, idx) => (
+                  <div key={idx} className="space-y-1.5 rounded-lg border border-hairline bg-canvas p-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        aria-label={`Tiêu đề đoạn ${idx + 1}`}
+                        placeholder="Tiêu đề mục"
+                        value={chunk.heading ?? ''}
                         onChange={e => setExtractPreview(prev => prev ? {
                           ...prev,
-                          chunks: prev.chunks.map((c, i) => (i === idx ? { ...c, content: e.target.value } : c)),
+                          chunks: prev.chunks.map((c, i) => (i === idx ? { ...c, heading: e.target.value } : c)),
                         } : prev)}
-                        className="w-full rounded border border-hairline bg-card p-2 text-xs text-ink"
+                        className="min-h-8 flex-1 rounded border border-hairline bg-card px-2 text-xs font-semibold text-ink"
                       />
+                      {chunk.pageNumber && <span className="text-xs text-ink-muted">Trang {chunk.pageNumber}</span>}
+                      <button
+                        type="button"
+                        onClick={() => setExtractPreview(prev => prev ? {
+                          ...prev,
+                          chunks: prev.chunks.filter((_, i) => i !== idx),
+                        } : prev)}
+                        className="rounded border border-hairline px-2 py-1 text-xs font-semibold text-status-error-text hover:bg-status-error-bg"
+                      >
+                        Bỏ đoạn
+                      </button>
                     </div>
-                  ))}
-                </div>
+                    <textarea
+                      aria-label={`Nội dung đoạn ${idx + 1}`}
+                      rows={3}
+                      value={chunk.content}
+                      onChange={e => setExtractPreview(prev => prev ? {
+                        ...prev,
+                        chunks: prev.chunks.map((c, i) => (i === idx ? { ...c, content: e.target.value } : c)),
+                      } : prev)}
+                      className="w-full rounded border border-hairline bg-card p-2 text-xs text-ink"
+                    />
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+        <ConfigModeFrame mode={mode} dirty={draftDirty} busy={busy} onEdit={() => { setDraftSnapshot(snapshot()); setMode('edit') }} onCancel={cancelDraft} onSave={() => formRef.current?.requestSubmit()} saveLabel={busy ? 'Đang xử lý…' : 'Lưu bản nháp'} editDisabled={!ready} saveDisabled={!ready || (!selected && !admin && !departmentId)} allowSaveUnchanged navigationGuard={false} blastRadius="Bản nháp mới chỉ nằm trong kho quản lý. Trợ lý AI chỉ dùng tài liệu sau khi công bố; phạm vi khoa, kỳ và thời gian hiệu lực quyết định tài liệu nào được dùng. Phiên bản đang công bố có thể bị thu hồi khi công bố bản mới.">
+        <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs"><h2 className="font-heading text-lg font-semibold text-ink">{selected ? `Phiên bản mới: ${selected.title}` : 'Tạo tài liệu'}</h2>
           <form ref={formRef} onSubmit={event => { event.preventDefault(); void save() }} className="mt-4 space-y-3">
             <fieldset disabled={busy || !ready} className="min-w-0 space-y-3">
             {!selected && <div className="grid gap-3 md:grid-cols-2">

@@ -36,6 +36,12 @@ describe('ColdTemplateManagementPage', () => {
     await screen.findAllByRole('option', { name: 'Marketing (MKT)' })
     expect(screen.getByText('Chế độ xem')).toBeTruthy()
     expect(screen.getByLabelText('Tên template').matches(':disabled')).toBe(true)
+    const aiButtons = screen.getAllByRole('button', { name: /Soạn mẫu bằng AI/ }) as HTMLButtonElement[]
+    expect(aiButtons.length).toBeGreaterThanOrEqual(1)
+    expect(aiButtons.every(btn => !btn.matches(':disabled'))).toBe(true)
+    fireEvent.click(aiButtons[0])
+    expect(await screen.findByText('Soạn mẫu hồ sơ chấm nguội bằng AI')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng hộp thoại' }))
     fireEvent.change(screen.getByLabelText('Ngành áp dụng'), { target: { value: '12' } })
     fireEvent.change(screen.getByLabelText('Kỳ đồ án áp dụng'), { target: { value: '34' } })
     expect((screen.getByRole('button', { name: 'Tìm' }) as HTMLButtonElement).disabled).toBe(false)
