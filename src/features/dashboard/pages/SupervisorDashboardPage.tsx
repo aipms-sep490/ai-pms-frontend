@@ -9,6 +9,7 @@ import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { Pagination } from '../../../components/ui/Pagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { ActorDashboardCard } from '../components/ActorDashboardCard'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
@@ -20,8 +21,9 @@ const riskOrder: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW
 
 export function SupervisorDashboardPage() {
   const [data, setData] = useState<SupervisorDashboard | null>(null)
-  const [filter, setFilter] = useState<DashboardFilter>({ page: 1, pageSize: 20 })
+  const [filter, setFilter] = useState<DashboardFilter>({ page: 1, pageSize: 10 })
   const [onlyAttention, setOnlyAttention] = useState(false)
+  const [riskFilter, setRiskFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<SortKey>('default')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,15 +72,19 @@ export function SupervisorDashboardPage() {
 
   const visibleProjects = useMemo(() => {
     const raw = data?.projects.items ?? []
-    const list = onlyAttention
-      ? raw.filter((p) =>
+    const list = raw.filter((p) => {
+      if (riskFilter !== 'ALL' && (p.analysis?.riskLevel ?? 'NONE') !== riskFilter) return false
+      if (onlyAttention) {
+        return (
           p.pendingProgressReviews > 0
           || (p.analysis?.progressSummary?.overdueTasks ?? 0) > 0
           || (p.analysis?.progressSummary?.blockedTasks ?? 0) > 0
           || p.analysis?.riskLevel === 'HIGH'
-          || p.analysis?.riskLevel === 'CRITICAL',
+          || p.analysis?.riskLevel === 'CRITICAL'
         )
-      : raw
+      }
+      return true
+    })
 
     if (sortBy === 'risk') {
       return [...list].sort((a, b) => (riskOrder[b.analysis?.riskLevel ?? ''] ?? 0) - (riskOrder[a.analysis?.riskLevel ?? ''] ?? 0))
@@ -90,21 +96,23 @@ export function SupervisorDashboardPage() {
       return [...list].sort((a, b) => (a.analysis?.progressSummary?.progressPercentage ?? 101) - (b.analysis?.progressSummary?.progressPercentage ?? 101))
     }
     return list
-  }, [data?.projects.items, onlyAttention, sortBy])
+  }, [data?.projects.items, onlyAttention, riskFilter, sortBy])
 
   const activeChips = [
     ...(filter.search ? [{ id: 'search', label: 'Từ khóa', value: filter.search }] : []),
     ...(filter.status ? [{ id: 'status', label: 'Trạng thái', value: projectStatusLabel(filter.status) }] : []),
+    ...(riskFilter !== 'ALL' ? [{ id: 'risk', label: 'Rủi ro', value: displayLabel(riskFilter) }] : []),
     ...(onlyAttention ? [{ id: 'attention', label: 'Ưu tiên', value: 'Cần chú ý / Rủi ro cao' }] : []),
   ]
 
   function clearFilters() {
-    setFilter({ page: 1, pageSize: 20 })
+    setFilter({ page: 1, pageSize: 10 })
     setOnlyAttention(false)
+    setRiskFilter('ALL')
     setSortBy('default')
   }
 
-  return <WorkspacePage size="wide" className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="outline" icon="refresh" disabled={loading} onClick={() => void load()}>Tải lại</Button>}>
+  return <WorkspacePage size="wide" className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}>
     <ActorDashboardCard />
     <FilterToolbar
       search={filter.search ?? ''}
@@ -126,6 +134,23 @@ export function SupervisorDashboardPage() {
               {statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}
             </select>
           </label>
+          {env.aiAdvisoryEnabled && (
+            <label className="ft-select-wrap">
+              <span className="sr-only">Mức rủi ro</span>
+              <select
+                aria-label="Mức rủi ro"
+                className="ft-select"
+                value={riskFilter}
+                onChange={(event) => setRiskFilter(event.target.value)}
+              >
+                <option value="ALL">Mọi mức rủi ro</option>
+                <option value="CRITICAL">{displayLabel('CRITICAL')}</option>
+                <option value="HIGH">{displayLabel('HIGH')}</option>
+                <option value="MEDIUM">{displayLabel('MEDIUM')}</option>
+                <option value="LOW">{displayLabel('LOW')}</option>
+              </select>
+            </label>
+          )}
           <button
             type="button"
             aria-pressed={onlyAttention}
@@ -151,6 +176,7 @@ export function SupervisorDashboardPage() {
       onRemoveChip={(id) => {
         if (id === 'search') handleSearchChange('')
         if (id === 'status') handleStatusChange('')
+        if (id === 'risk') setRiskFilter('ALL')
         if (id === 'attention') setOnlyAttention(false)
       }}
       onClearAll={clearFilters}
@@ -180,31 +206,31 @@ export function SupervisorDashboardPage() {
         )
         if (!urgentProjects.length) return null
         return (
-          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-warning-strong bg-status-warning-bg/70 p-5 shadow-xs">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-status-warning-border/80 pb-3">
-              <div className="flex items-center gap-2">
+          <section aria-label="Hộp thư duyệt nhanh" className="rounded-xl border border-hairline border-l-4 border-l-warning-strong bg-card p-5 shadow-xs">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-hairline pb-3">
+              <div className="flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-status-warning-text text-xl" aria-hidden="true">
                   mark_email_unread
                 </span>
                 <div>
-                  <h2 className="text-base font-bold text-status-warning-text">
+                  <h2 className="text-base font-bold text-ink">
                     Hộp thư duyệt nhanh &amp; Việc khẩn cấp
                   </h2>
-                  <p className="text-xs text-status-warning-text">
+                  <p className="text-xs text-ink-muted">
                     Có {urgentProjects.length} đồ án đang có báo cáo tiến độ chờ xác nhận hoặc công việc quá hạn/vướng mắc.
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center rounded-full bg-status-warning-bg px-3 py-1 text-xs font-bold text-status-warning-text">
+              <span className="inline-flex items-center rounded-full border border-status-warning-border bg-status-warning-bg px-3 py-1 text-xs font-bold text-status-warning-text">
                 {data.pendingProgressReviews} báo cáo chờ phản hồi
               </span>
             </div>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid items-stretch gap-3 sm:grid-cols-2">
               {urgentProjects.map(proj => (
                 <div
                   key={proj.id}
-                  className="flex flex-col justify-between rounded-lg border border-status-warning-border bg-card p-4 shadow-2xs"
+                  className="flex h-full flex-col justify-between rounded-lg border border-hairline bg-canvas/50 p-4 shadow-2xs"
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
@@ -247,7 +273,7 @@ export function SupervisorDashboardPage() {
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-status-warning-text italic">
+            <p className="mt-3 text-xs text-ink-muted italic">
               * Nhận xét và xác nhận báo cáo của Giảng viên hướng dẫn ghi nhận sự đồng hành chuyên môn; thẩm định đạt cổng chính thức do Thẩm định viên độc lập phê duyệt.
             </p>
           </section>
@@ -274,7 +300,17 @@ export function SupervisorDashboardPage() {
           </ul>
         )}
       </section>
-      <Pagination page={filter.page ?? 1} totalPages={data.projects.totalPages} disabled={loading} onChange={page => setFilter(current => ({ ...current, page }))} />
+      {(data.projects.totalPages > 1 || data.projects.totalCount > data.projects.pageSize) && (
+        <Pagination
+          page={filter.page ?? 1}
+          pages={data.projects.totalPages}
+          total={data.projects.totalCount}
+          pageSize={filter.pageSize ?? data.projects.pageSize}
+          busy={loading}
+          onPage={(page) => setFilter(current => ({ ...current, page }))}
+          onPageSizeChange={(pageSize) => setFilter(current => ({ ...current, page: 1, pageSize }))}
+        />
+      )}
     </>}
   </WorkspacePage>
 }
@@ -356,11 +392,6 @@ function ProjectRow({ project }: { project: DashboardProject }) {
       </Link>
     ) : null}
   </li>
-}
-
-function Pagination({ page, totalPages, disabled, onChange }: { page: number; totalPages: number; disabled: boolean; onChange: (page: number) => void }) {
-  if (totalPages <= 1) return null
-  return <nav aria-label="Trang đồ án phụ trách" className="flex items-center justify-between gap-3 text-sm"><button type="button" disabled={disabled || page <= 1} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page - 1)}>Trang trước</button><span className="tabular-nums text-ink-muted">Trang {page} / {totalPages}</span><button type="button" disabled={disabled || page >= totalPages} className="min-h-11 rounded-lg border border-hairline px-4 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onChange(page + 1)}>Trang sau</button></nav>
 }
 
 function formatAsOf(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date) }
