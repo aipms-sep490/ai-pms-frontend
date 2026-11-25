@@ -136,6 +136,7 @@ export function AccessEventsPanel({
       <div className="mt-4">
         <FilterToolbar
           embedded
+          layout="stacked"
           ariaLabel="Bộ lọc nhật ký truy cập"
           search={searchInput}
           onSearchChange={(value) => updateFilters({ accessSearch: value.trim() })}
@@ -193,6 +194,7 @@ export function AccessEventsPanel({
           onClearAll={() => updateFilters({ accessSearch: '', accessEvent: '', accessOutcome: '', accessFrom: '', accessTo: '' })}
           hasActiveFilters={accessChips.length > 0}
           clearAllLabel="Đặt lại truy cập"
+          pagination={data ? { page: data.page, pages: Math.max(1, Math.ceil(data.totalCount / Math.max(1, data.pageSize))), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (next) => updateFilters({ accessPage: String(next) }) } : undefined}
         />
       </div>
 

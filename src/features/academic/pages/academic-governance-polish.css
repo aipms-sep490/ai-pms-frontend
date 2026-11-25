@@ -30,11 +30,12 @@
 .governance-status > .governance-badge--active { border-color:var(--color-status-success-border); color:var(--color-status-success-text); background:var(--color-status-success-bg); }
 .governance-status > .governance-badge--closed { border-color:var(--color-hairline); color:var(--color-ink-soft); background:var(--color-canvas); }
 .governance-status > .governance-badge--archived { border-color:color-mix(in oklab, var(--color-brand-navy) 28%, var(--color-hairline)); color:var(--color-brand-navy); background:color-mix(in oklab, var(--color-brand-navy) 10%, var(--color-canvas)); }
-.governance-status select { min-height:44px; max-width:100%; padding:6px 10px; border:1px solid var(--color-hairline); border-radius:8px; background:var(--color-card); color:var(--color-ink); font-size:12px; font-weight:400; }
+.governance-status select { min-height:44px; max-width:100%; padding:6px 32px 6px 10px; border:1px solid var(--color-hairline); border-radius:8px; background-color:var(--color-card); color:var(--color-ink); font-size:12px; font-weight:400; }
 .governance-editor form { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .governance-editor label { display:flex; flex-direction:column; gap:8px; min-width:0; font-size:13px; color: var(--color-ink-soft); }
-.governance-editor :is(input,select) { width:100%; min-height:44px; padding:10px 12px; background:var(--color-card); border:1px solid var(--color-hairline); border-radius:8px; font:inherit; font-weight:400; color: var(--color-ink); }
-.governance-editor :is(input,select):disabled { background:var(--color-canvas); color:var(--color-ink-muted); }
+.governance-editor :is(input,select) { width:100%; min-height:44px; padding:10px 12px; background-color:var(--color-card); border:1px solid var(--color-hairline); border-radius:8px; font:inherit; font-weight:400; color: var(--color-ink); }
+.governance-editor select { padding-right:34px; }
+.governance-editor :is(input,select):disabled { background-color:var(--color-canvas); color:var(--color-ink-muted); }
 .governance-editor form > :is(p,button) { grid-column:1/-1; }
 .governance-editor form > button { justify-self:end; }
 @media(max-width:900px) { .governance-periods { grid-template-columns:1fr; } }

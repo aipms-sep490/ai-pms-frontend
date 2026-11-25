@@ -1,0 +1,157 @@
+/* Unified Application Shell — Single source of truth for sidebar width, header rhythm, and safe floating-dock padding */
+.collaboration-shell {
+  --shell-sidebar-width: 276px;
+  --cw-ink: var(--color-ink);
+  --cw-muted: var(--color-ink-muted);
+  --cw-line: var(--color-hairline);
+  --cw-accent: var(--color-primary);
+  --cw-accent-soft: var(--color-primary-subtle);
+  color: var(--cw-ink);
+  background: var(--color-canvas);
+}
+
+.collaboration-shell.is-sidebar-collapsed {
+  --shell-sidebar-width: 68px;
+}
+
+.collaboration-shell .sidebar-rail {
+  width: 276px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-brand-navy) 16%, transparent) transparent;
+  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.collaboration-shell .sidebar-rail nav {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-brand-navy) 16%, transparent) transparent;
+}
+
+.collaboration-shell .sidebar-nav-link {
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.collaboration-shell .sidebar-nav-link:active {
+  transform: scale(0.985);
+}
+
+@media (min-width: 1024px) {
+  .collaboration-shell .sidebar-rail {
+    width: var(--shell-sidebar-width);
+  }
+  .collaboration-shell .app-workspace {
+    padding-left: var(--shell-sidebar-width);
+    transition: padding-left 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Collapsed desktop icon rail */
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-brand-full,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-context-badge,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-section-label,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-group-header,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-item-label,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-item-badge,
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-profile-meta {
+    display: none;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-brand-mini {
+    display: flex;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-header-box {
+    padding: 12px 10px;
+    align-items: center;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed nav {
+    padding: 10px 8px;
+    align-items: center;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-nav-list {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: 0;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-nav-link {
+    width: 44px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    justify-content: center;
+    position: relative;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-item-dot {
+    display: block;
+  }
+
+  .collaboration-shell .sidebar-rail.is-collapsed .sidebar-profile-footer {
+    flex-direction: column;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+}
+
+.sidebar-brand-mini,
+.sidebar-item-dot {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collaboration-shell .sidebar-rail,
+  .collaboration-shell .app-workspace {
+    transition: none;
+  }
+}
+
+.collaboration-shell .sidebar-rail [class*="rounded"]:not(.rounded-full),
+.collaboration-shell .app-top-header [class*="rounded"]:not(.rounded-full) {
+  border-radius: 8px;
+}
+
+.collaboration-shell .sidebar-rail [class*="shadow"] {
+  box-shadow: none;
+}
+
+.collaboration-shell .sidebar-rail nav > div {
+  color: var(--cw-muted);
+}
+
+.collaboration-shell .app-top-header {
+  height: 56px;
+  background: color-mix(in oklab, var(--color-card) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-brand-navy) 10%, var(--color-hairline));
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--color-brand-navy) 3%, transparent);
+}
+
+.collaboration-shell .app-top-header nav .font-mono {
+  font-family: var(--font-sans);
+  color: var(--cw-ink);
+}
+
+/* Preserve generous bottom clearance for ChatDock and AssistantDock across all viewports;
+   full-page chat & AI assistant routes keep their native full-height padding untouched. */
+.collaboration-shell .app-page-content:not(.is-full-chat) {
+  padding: 22px 28px 112px;
+}
+
+@media (max-width: 1023px) {
+  .collaboration-shell .app-workspace {
+    padding-left: 0;
+  }
+  .collaboration-shell .app-page-content:not(.is-full-chat) {
+    padding: 18px 20px 104px;
+  }
+}
+
+@media (max-width: 639px) {
+  .collaboration-shell .app-page-content:not(.is-full-chat) {
+    padding: 16px 16px 96px;
+  }
+}

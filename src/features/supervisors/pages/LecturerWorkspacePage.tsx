@@ -13,6 +13,7 @@ import { Pagination } from '../../../components/ui/Pagination'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { WorkspaceTabs } from '../../../components/ui/WorkspaceTabs'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisorInbox } from '../hooks/useSupervisorInbox'
 import { useSupervisorProjectSummaries, type SupervisorProjectResource } from '../hooks/useSupervisorProjectSummaries'
@@ -233,15 +234,15 @@ export function LecturerWorkspacePage() {
       description="Theo dõi tiến độ, góp ý cho nhóm và xử lý các đề nghị hướng dẫn."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/review/gate-assignments" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={inbox.loading} onClick={() => void inbox.refresh()} />
+          <Link to="/review/gate-assignments" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-1.5 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">fact_check</span>
             Cổng thẩm định
           </Link>
-          <Link to="/evaluator/workspace" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
+          <Link to="/evaluator/workspace" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-1.5 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">grading</span>
             Đánh giá đồ án
           </Link>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={inbox.loading} onClick={() => void inbox.refresh()} />
         </div>
       }
     >
@@ -250,43 +251,22 @@ export function LecturerWorkspacePage() {
       <StatTileRow
         tiles={[
           { icon: 'folder_managed', label: 'Đồ án được phân công', value: assignedProjects.length, hero: true, caption: 'Tổng số đồ án trong phạm vi hướng dẫn.' },
+          { icon: 'play_circle', label: 'Đang thực hiện', value: projectStatusCounts.ACTIVE, tone: 'success', caption: `${projectStatusCounts.FINALSUBMISSION} bàn giao · ${projectStatusCounts.COMPLETED} hoàn thành.` },
           { icon: 'mail', label: 'Yêu cầu chờ phản hồi', value: pendingRequestCount, tone: pendingRequestCount > 0 ? 'warning' : 'neutral', caption: `${inbox.requests.length} tổng yêu cầu hướng dẫn.` },
           { icon: 'manage_accounts', label: 'Đề nghị đổi trưởng nhóm', value: leaderChangeRequests.length, tone: leaderChangeRequests.length > 0 ? 'warning' : 'neutral', caption: leaderChangeRequests.length > 0 ? 'Cần xem xét và phê duyệt.' : 'Không có đề nghị tồn đọng.' },
         ]}
       />
 
-      <div role="tablist" aria-label="Khu vực làm việc giảng viên" className="flex flex-wrap items-center gap-2 border-b border-hairline pb-3">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'projects'}
-          onClick={() => setTabOverride('projects')}
-          className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'projects' ? 'bg-primary text-white shadow-xs' : 'border border-hairline bg-card text-ink-soft hover:border-primary hover:text-primary'}`}
-        >
-          <span>Đồ án đang hướng dẫn</span>
-          <span className={`rounded-full px-2 py-0.5 font-mono text-xs font-bold ${activeTab === 'projects' ? 'bg-white/20 text-white' : 'bg-canvas text-ink-soft'}`}>{assignedProjects.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'requests'}
-          onClick={() => setTabOverride('requests')}
-          className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'requests' ? 'bg-primary text-white shadow-xs' : 'border border-hairline bg-card text-ink-soft hover:border-primary hover:text-primary'}`}
-        >
-          <span>Yêu cầu hướng dẫn</span>
-          <span className={`rounded-full px-2 py-0.5 font-mono text-xs font-bold ${activeTab === 'requests' ? 'bg-white/20 text-white' : pendingRequestCount > 0 ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>{inbox.requests.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'leader-changes'}
-          onClick={() => setTabOverride('leader-changes')}
-          className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'leader-changes' ? 'bg-primary text-white shadow-xs' : 'border border-hairline bg-card text-ink-soft hover:border-primary hover:text-primary'}`}
-        >
-          <span>Đề nghị đổi trưởng nhóm</span>
-          <span className={`rounded-full px-2 py-0.5 font-mono text-xs font-bold ${activeTab === 'leader-changes' ? 'bg-white/20 text-white' : leaderChangeRequests.length > 0 ? 'bg-status-warning-bg text-status-warning-text' : 'bg-canvas text-ink-soft'}`}>{leaderChangeRequests.length}</span>
-        </button>
-      </div>
+      <WorkspaceTabs
+        ariaLabel="Khu vực làm việc giảng viên"
+        activeId={activeTab}
+        onChange={(id) => setTabOverride(id)}
+        tabs={[
+          { id: 'projects' as const, label: 'Đồ án đang hướng dẫn', icon: 'folder_managed', count: assignedProjects.length },
+          { id: 'requests' as const, label: 'Yêu cầu hướng dẫn', icon: 'mail', count: inbox.requests.length, badgeTone: pendingRequestCount > 0 ? 'warning' : 'default' },
+          { id: 'leader-changes' as const, label: 'Đề nghị đổi trưởng nhóm', icon: 'manage_accounts', count: leaderChangeRequests.length, badgeTone: leaderChangeRequests.length > 0 ? 'warning' : 'default' },
+        ]}
+      />
 
       {activeTab === 'projects' && (
         <section className="lecturer-projects space-y-4" aria-labelledby="assigned-projects">
@@ -341,6 +321,7 @@ export function LecturerWorkspacePage() {
               onClearAll={() => { setProjectSearch(''); setProjectStatus('ALL'); setProjectRole('ALL'); setProjectSort('default') }}
               hasActiveFilters={projectActiveChips.length > 0}
               resultSummary={projectActiveChips.length > 0 ? `Hiển thị ${filteredProjects.length} / ${assignedProjects.length} đồ án` : undefined}
+              pagination={projectPager.showPagination ? { page: projectPager.page, pages: projectPager.pages, total: projectPager.total, pageSize: projectPager.pageSize, onPage: projectPager.setPage } : undefined}
             />
           )}
 
@@ -455,6 +436,7 @@ export function LecturerWorkspacePage() {
               onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}
               hasActiveFilters={requestActiveChips.length > 0 || requestSort !== 'pending-first'}
               resultSummary={requestActiveChips.length > 0 ? `Hiển thị ${filteredRequests.length} / ${inbox.requests.length} yêu cầu` : undefined}
+              pagination={requestPager.showPagination ? { page: requestPager.page, pages: requestPager.pages, total: requestPager.total, pageSize: requestPager.pageSize, onPage: requestPager.setPage } : undefined}
             />
           )}
 
@@ -630,7 +612,7 @@ export function LecturerWorkspacePage() {
 function ProjectSignals({ summary }: { summary?: ReturnType<typeof useSupervisorProjectSummaries>[number] }) {
   if (!summary) return <p role="status" className="mt-4 text-xs text-ink-muted">Đang tải tiến độ và lịch theo dữ liệu hệ thống…</p>
   return <dl className="lecturer-signals">
-    <Signal label="Tiến độ" resource={summary.progress} render={data => `${data.percentage}% · ${data.doneTasks}/${data.totalTasks} việc`} />
+    <Signal label="Tiến độ" resource={summary.progress} render={data => `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(data.percentage)}% · ${data.doneTasks}/${data.totalTasks} việc`} />
     <Signal label="Cần lưu ý" resource={summary.attention} render={data => `${data.overdue} quá hạn · ${data.blocked} vướng mắc`} />
     <Signal label="Lịch họp sắp tới" resource={summary.meetings} render={data => data.nextAt ? formatMeetingTime(data.nextAt) : 'Chưa có lịch họp sắp tới'} />
     <Signal label="Báo cáo tiến độ" resource={summary.reports} render={data => `${data.count} báo cáo`} />

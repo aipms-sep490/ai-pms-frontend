@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { getAssignedReviewPage, submitGateDecision, verifyEvidence } from '../api/review-gates-api'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import type { AssignedReviewItem } from '../types/review-gates.types'
 import { AssignedReviewQueue } from '../components/AssignedReviewQueue'
 import { HttpError } from '../../../services/http/http-client'
@@ -114,6 +115,16 @@ export function AssignedGateReviewPage() {
             Thử lại
           </button>
         </div>
+      )}
+      {hasLoaded && (
+        <StatTileRow
+          tiles={[
+            { icon: 'fact_check', label: 'Tổng đợt phân công', value: totalCount, hero: true, caption: 'Các đồ án được giao thẩm định.' },
+            { icon: 'pending_actions', label: 'Đang chờ quyết định', value: assignments.filter(a => a.status === 'PENDING_REVIEW' || a.status === 'IN_REVIEW').length, tone: 'warning', caption: 'Cần xem minh chứng và kết luận trên trang này.' },
+            { icon: 'verified', label: 'Đã đạt (Passed)', value: assignments.filter(a => a.latestDecision === 'PASSED').length, tone: 'success', caption: 'Đã thẩm định đạt trên trang này.' },
+            { icon: 'edit_note', label: 'Yêu cầu chỉnh sửa', value: assignments.filter(a => a.latestDecision === 'REVISION_REQUIRED').length, tone: 'danger', caption: 'Nhóm cần bổ sung và nộp lại.' },
+          ]}
+        />
       )}
       {hasLoaded && <div aria-busy={loading}>
         <AssignedReviewQueue

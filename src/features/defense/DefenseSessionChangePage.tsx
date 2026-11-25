@@ -133,12 +133,14 @@ export function DefenseSessionChangePage() {
   }
 
   if (!Number.isSafeInteger(sessionId) || sessionId < 1)
-    return <WorkspacePage title="Phiên bảo vệ"><p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã phiên bảo vệ không hợp lệ.</p></WorkspacePage>
+    return <WorkspacePage title="Phiên bảo vệ" backTo="/calendar" backLabel="Lịch tổng hợp"><p role="alert" className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã phiên bảo vệ không hợp lệ.</p></WorkspacePage>
 
   return <WorkspacePage
     size="standard"
     title="Phiên bảo vệ & yêu cầu đổi lịch"
     eyebrow={defense?.projectCode ?? 'Điều chỉnh lịch bảo vệ'}
+    backTo="/calendar"
+    backLabel="Lịch tổng hợp"
     description="Lịch chính thức được đọc từ hệ thống. Chủ tọa và thư ký có thể đề xuất đổi phòng hoặc ca trước khi phiên kết thúc."
     action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || busy} onClick={reload} />}
   >

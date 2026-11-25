@@ -1,6 +1,7 @@
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useEffect, useMemo, useState } from 'react'
@@ -161,11 +162,21 @@ export function AcademicStructurePage() {
         <section className="academic-state-panel academic-error-panel" role="alert"><div><strong>Lỗi tải dữ liệu</strong><p>{getErrorMessage(academic.error)}</p></div><Button onClick={academic.retry}>Thử lại</Button></section>
       ) : (
         <>
+          <div className="mb-5">
+            <StatTileRow
+              tiles={[
+                { icon: 'account_balance', label: 'Tổ chức đào tạo', value: academic.isLoading ? null : (academic.hierarchy?.length ?? 0), hero: true, caption: 'Đơn vị cơ sở trong phạm vi quản lý.' },
+                { icon: 'apartment', label: 'Bộ môn / Khoa', value: academic.isLoading ? null : totalDepartments, tone: 'info', caption: 'Đơn vị phụ trách đồ án và giảng viên.' },
+                { icon: 'school', label: 'Chuyên ngành', value: academic.isLoading ? null : totalMajors, tone: 'success', caption: 'Ngành áp dụng cho đơn ngành & liên ngành.' },
+              ]}
+            />
+          </div>
           <FilterToolbar
+            className="ft-bar--compact"
             search={filters.search}
             onSearchChange={value => setFilters(current => ({ ...current, search: value }))}
             searchLabel="Tìm theo mã hoặc tên"
-            searchPlaceholder="Tìm tổ chức, bộ môn, chuyên ngành (VD: SE, CNTT)..."
+            searchPlaceholder="Tìm tổ chức, bộ môn, ngành…"
             debounceMs={0}
             controls={
               <>
@@ -185,7 +196,7 @@ export function AcademicStructurePage() {
                     ))}
                   </select>
                 </label>
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft hover:border-primary/40">
+                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg border border-hairline bg-card px-2.5 text-xs font-semibold text-ink-soft hover:border-primary/40">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-primary"

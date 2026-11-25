@@ -1,8 +1,11 @@
 import { reportError } from './report-errors'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Avatar } from '../../components/ui/Avatar'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import * as api from '../../services/api/progress-reports.api'
 import type { PagedResult } from '../../types/backend'
@@ -93,6 +96,10 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
   }, [status, reportType, search, lateOnly])
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'newest'
+  const pageReports = data?.items ?? []
+  const reviewedCount = pageReports.filter((r) => r.status === 'REVIEWED').length
+  const submittedCount = pageReports.filter((r) => r.status === 'SUBMITTED').length
+  const draftOrLateCount = pageReports.filter((r) => r.status === 'DRAFT' || r.isLate === true).length
 
   return (
     <ReportShell
@@ -102,13 +109,27 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
       description={actor === 'student' ? 'Ghi lại kết quả, lên kế hoạch tiếp theo và trao đổi với giảng viên hướng dẫn.' : 'Theo dõi kết quả từng kỳ và gửi nhận xét để nhóm triển khai bước tiếp theo.'}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button className="report-button report-button--secondary" type="button" disabled={loading} onClick={() => setRevision((value) => value + 1)}>
-            Làm mới
-          </button>
-          {canCreate && <Link className="report-button" to={`${routeBase}/reports/new`}>+ Tạo báo cáo</Link>}
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => setRevision((value) => value + 1)} />
+          {canCreate && (
+            <Link className="report-button" to={`${routeBase}/reports/new`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+              <span>Tạo báo cáo</span>
+            </Link>
+          )}
         </div>
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'description', label: 'Tổng báo cáo', value: data ? data.totalCount : null, caption: 'Theo phạm vi bộ lọc hiện tại', hero: true },
+            { icon: 'mark_email_read', label: 'Chờ nhận xét', value: data ? submittedCount : null, caption: 'Đã nộp cho GVHD trên trang này', tone: submittedCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'verified', label: 'Đã có nhận xét', value: data ? reviewedCount : null, caption: 'GVHD đã phản hồi trên trang này', tone: 'success' },
+            { icon: 'edit_note', label: 'Nháp / Trễ hạn', value: data ? draftOrLateCount : null, caption: 'Cần hoàn thiện hoặc lưu ý hạn nộp', tone: draftOrLateCount > 0 ? 'danger' : 'neutral' },
+          ]}
+        />
+      </div>
+
       <section className="report-panel" aria-label="Danh sách báo cáo">
         <FilterToolbar
           embedded
@@ -120,7 +141,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           onTabChange={(val) => filter('status', val)}
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Tìm theo tóm tắt, kỳ báo cáo hoặc người nộp…"
+          searchPlaceholder="Tìm báo cáo…"
           controls={
             <>
               <select aria-label="Loại báo cáo" value={reportType ?? ''} onChange={(event) => filter('reportType', event.target.value)}>
@@ -155,6 +176,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAll}
           resultSummary={data ? `${visibleItems.length} / ${data.totalCount} báo cáo` : undefined}
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (next) => filter('page', String(next)) } : undefined}
         />
 
         {loading ? (
@@ -163,7 +185,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           <ReportError message={error} retry={() => setRevision((value) => value + 1)} />
         ) : data && (
           <>
-            <div className="report-list-heading"><h2>Lịch sử báo cáo</h2><span>{data.totalCount} báo cáo{hasActiveFilters ? ' phù hợp' : ''}</span></div>
+            <h2 className="sr-only">Lịch sử báo cáo</h2>
             {visibleItems.length === 0 ? (
               <div className="report-empty">
                 <span className="material-symbols-outlined" aria-hidden="true">description</span>
@@ -174,32 +196,52 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
               </div>
             ) : (
               <ul className="report-list">
-                {visibleItems.map((report) => (
-                  <li key={report.id}>
-                    <Link to={`${routeBase}/reports/${report.id}`} className="report-row">
-                      <div className="report-row-icon" aria-hidden="true"><span className="material-symbols-outlined">article</span></div>
-                      <div className="report-row-main">
-                        <div className="report-row-meta"><span className="workspace-kicker">{reportTypeLabels[report.reportType]}</span></div>
-                        <h3>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h3>
-                        <p>{report.summary}</p>
-                        <small>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}</small>
-                      </div>
-                      <div className="report-row-state">
-                        <ReportBadge status={report.status} />
-                        {report.isLate === true && <small className="report-late">Nộp trễ hạn</small>}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                {visibleItems.map((report) => {
+                  const startFmt = formatReportDate(report.periodStart)
+                  const endFmt = formatReportDate(report.periodEnd)
+                  const shortRange = `${startFmt.slice(0, 5)} – ${endFmt.slice(0, 5)}`
+                  const yearText = endFmt.slice(-4)
+                  return (
+                    <li key={report.id}>
+                      <Link to={`${routeBase}/reports/${report.id}`} className="report-row">
+                        <div className="report-period-tile">
+                          <span className="report-type-pill">{reportTypeLabels[report.reportType]}</span>
+                          <strong>{shortRange}</strong>
+                          <small>{yearText}</small>
+                        </div>
+                        <div className="report-row-main">
+                          <h3>{report.summary || `${startFmt} – ${endFmt}`}</h3>
+                          <div className="report-row-sub">
+                            <span>Kỳ {startFmt} – {endFmt}</span>
+                            {report.isLate === true && <span className="report-late-pill">Nộp trễ hạn</span>}
+                          </div>
+                        </div>
+                        <div className="report-row-author">
+                          <Avatar name={report.submittedByName} size="xs" shape="circle" />
+                          <div className="min-w-0">
+                            <strong className="block truncate">{report.submittedByName}</strong>
+                            <span>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}</span>
+                          </div>
+                        </div>
+                        <div className="report-row-state">
+                          <ReportBadge status={report.status} />
+                          <span className="report-row-chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             )}
-            <nav className="report-pagination" aria-label="Phân trang báo cáo">
-              <span>Trang {page} / {Math.max(1, data.totalPages)}</span>
-              <div>
-                <button type="button" className="report-button report-button--secondary" disabled={page <= 1} onClick={() => filter('page', String(page - 1))}>Trang trước</button>
-                <button type="button" className="report-button report-button--secondary" disabled={page >= data.totalPages} onClick={() => filter('page', String(page + 1))}>Trang sau</button>
-              </div>
-            </nav>
+            {data.totalPages > 1 && (
+              <nav className="report-pagination" aria-label="Phân trang báo cáo">
+                <span>Trang {page} / {Math.max(1, data.totalPages)}</span>
+                <div>
+                  <button type="button" className="report-button report-button--secondary" disabled={page <= 1} onClick={() => filter('page', String(page - 1))}>Trang trước</button>
+                  <button type="button" className="report-button report-button--secondary" disabled={page >= data.totalPages} onClick={() => filter('page', String(page + 1))}>Trang sau</button>
+                </div>
+              </nav>
+            )}
           </>
         )}
       </section>

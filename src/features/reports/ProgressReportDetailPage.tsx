@@ -293,8 +293,8 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
             </div>
           )}
 
-          <div className={`report-detail-grid${editable ? '' : ' report-detail-grid--reading'}`}>
-            <div className="report-main">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+            <div className="report-main xl:col-span-8 min-w-0">
               {editable ? (
                 <ReportEditor
                   key={`${editorVersion}:${create ? assistant.key : 'existing'}`}
@@ -345,7 +345,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
               )}
             </div>
 
-            <aside className="report-aside">
+            <aside className="report-aside xl:col-span-4 space-y-5 min-w-0">
               <section className="report-panel report-action-panel">
                 <h2>{report?.status === 'DRAFT' || create ? 'Trước khi nộp' : 'Trạng thái báo cáo'}</h2>
                 {create ? (

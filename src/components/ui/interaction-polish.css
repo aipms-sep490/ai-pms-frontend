@@ -5,7 +5,8 @@
 @media(hover:hover) and (pointer:fine) { .workspace-launchpad .workspace-spotlight:hover .workspace-feature-watermark { transform:rotate(0deg) scale(1.08); opacity:.11; } }
 .workspace-launchpad .workspace-spotlight .workspace-action-link { background:var(--color-primary); color:white; border:1px solid transparent; box-shadow:0 3px 7px -4px color-mix(in oklab, var(--color-primary) 44%, transparent); }
 .workspace-launchpad .workspace-spotlight .workspace-action-link .material-symbols-outlined { display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:rgb(255 255 255 / 15%); font-size:16px; }
-.ui-button-primary { position:relative; isolation:isolate; overflow:hidden; }
+.ui-button-primary { position:relative; isolation:isolate; overflow:hidden; transition:transform 140ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease, box-shadow 180ms ease; }
+.ui-button-primary:active:not(:disabled) { transform:scale(0.985); }
 .ui-button-primary::before { content:''; position:absolute; inset:-60% -30%; background:linear-gradient(110deg,transparent 35%,rgb(255 255 255 / 18%) 48%,transparent 60%); transform:translateX(-110%); pointer-events:none; z-index:-1; }
 @media(hover:hover) and (pointer:fine) { .ui-button-primary:hover:not(:disabled)::before { transform:translateX(110%); transition:transform 550ms ease; } }
 .ui-button-primary:focus-visible::before { transform:translateX(110%); transition:transform 550ms ease; }

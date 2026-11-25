@@ -8,6 +8,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { buttonClassName } from '../../../components/ui/button-styles'
@@ -101,7 +102,15 @@ export function ArchivedProjectsPage() {
       )}
 
       {!loading && data && (
-        <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+        <>
+          <StatTileRow
+            tiles={[
+              { icon: 'inventory_2', label: 'Đồ án đã lưu trữ', value: data.projects.totalCount, hero: true, caption: 'Hồ sơ chỉ đọc trong phạm vi hiện tại.' },
+              { icon: 'filter_alt', label: 'Khớp bộ lọc', value: filteredItems.length, tone: 'info', caption: 'Hiển thị theo từ khóa và bộ môn đã chọn.' },
+              { icon: 'apartment', label: 'Bộ môn liên quan', value: departments.length, tone: 'neutral', caption: 'Các bộ môn có hồ sơ lưu trữ.' },
+            ]}
+          />
+          <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
           <div className="border-b border-hairline px-5 py-4">
             <p className="text-sm font-semibold text-ink-soft">{data.projects.totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
           </div>
@@ -136,6 +145,7 @@ export function ArchivedProjectsPage() {
               onClearAll={clearFilters}
               hasActiveFilters={activeChips.length > 0}
               resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${data.projects.items.length} đồ án` : undefined}
+              pagination={pagination.showPagination ? { page: pagination.page, pages: pagination.pages, total: pagination.total, pageSize: pagination.pageSize, onPage: pagination.setPage } : undefined}
             />
           )}
           <div className="p-5">
@@ -183,6 +193,7 @@ export function ArchivedProjectsPage() {
             )}
           </div>
         </section>
+        </>
       )}
     </WorkspacePage>
   )

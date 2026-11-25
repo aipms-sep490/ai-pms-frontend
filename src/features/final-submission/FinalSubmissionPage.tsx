@@ -6,9 +6,12 @@ import { useStudentJourney } from '../../app/context'
 import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { PageLoading } from '../../components/ui/PageLoading'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { services } from '../../services/service-gateway'
 import type { Deliverable, DeliverableVersion } from '../deliverables/deliverable-types'
 import * as api from './final-submission-api'
@@ -202,6 +205,14 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     {loading && <ListLoading label="Đang tải hồ sơ bàn giao…" />}
     {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
     {!loading && loaded && !locked && <>
+      <StatTileRow
+        tiles={[
+          { icon: 'inventory_2', label: 'Trạng thái bàn giao', value: draft ? 'Đang soạn nháp' : 'Chưa khởi tạo', hero: true, caption: canSubmit ? 'Sẵn sàng khóa và nộp gói cuối.' : 'Hoàn thiện checklist trước khi nộp.' },
+          { icon: 'checklist', label: 'Hạng mục đã đủ', value: checklist ? `${checklist.items.filter(i => i.isComplete).length}/${checklist.items.length}` : '—', tone: 'success', caption: 'Theo danh mục yêu cầu bắt buộc.' },
+          { icon: 'layers', label: 'Phiên bản đã chọn', value: Object.keys(selectedVersionIds).length, tone: 'info', caption: 'Số sản phẩm đính kèm vào gói cuối.' },
+          { icon: 'warning', label: 'Điều kiện chưa đạt', value: submissionReasons.length, tone: submissionReasons.length > 0 ? 'warning' : 'success', caption: submissionReasons.length > 0 ? 'Cần xử lý trước khi khóa gói.' : 'Không còn vướng mắc.' },
+        ]}
+      />
       {(draft?.editBlockers.includes('LEADER_REQUIRED') || checklist?.blockers.includes('LEADER_REQUIRED')) && (
         <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 text-xs text-primary shadow-2xs">
           <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.
@@ -230,6 +241,7 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
 export function LockedPackageView({ projectId, packageData }: { projectId: number; packageData: LockedFinalSubmission }) {
   const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const [previewFile, setPreviewFile] = useState<{ id: number; fileName: string; contentType?: string; sizeBytes?: number } | null>(null)
   const download = async (fileId: number, fileName: string) => {
     setDownloadingId(fileId)
     try {
@@ -255,7 +267,7 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
       <p className="mt-1.5 text-sm text-ink-soft">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p>
       <p className="mt-1 text-xs font-medium text-status-success-text">Bản bàn giao đã chốt · Không có thao tác sửa, xóa hoặc nộp lại.</p>
       {packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}
-      {error && <p role="alert" className="mt-3 text-sm text-status-error-text">{error}</p>}
+      {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
       <ul className="mt-3 space-y-3 text-sm">
         {packageData.items.map(item => (
           <li key={item.deliverableVersionId} className="rounded-lg border border-hairline bg-canvas p-3">
@@ -268,12 +280,39 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
             {item.files.length === 0 ? (
               <p className="mt-2 text-xs text-ink-muted">Bản bàn giao này không có tệp để tải xuống.</p>
             ) : (
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-2.5 space-y-1.5">
                 {item.files.map(file => (
-                  <li key={file.id}>
-                    <button type="button" disabled={downloadingId !== null} className="min-h-11 text-left font-semibold text-primary hover:underline disabled:opacity-50" onClick={() => void download(file.id, file.fileName)}>
-                      {downloadingId === file.id ? 'Đang tải…' : `${file.fileName}${file.sizeBytes ? ` · ${formatBytes(file.sizeBytes)}` : ''}`}
+                  <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-card px-3 py-2">
+                    <button
+                      type="button"
+                      className="inline-flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left font-semibold text-ink transition-colors hover:text-primary hover:underline"
+                      onClick={() => setPreviewFile(file)}
+                      title="Nhấn để xem trước tài liệu"
+                    >
+                      <span className="material-symbols-outlined shrink-0 text-[18px] text-primary" aria-hidden="true">description</span>
+                      <span className="truncate">{file.fileName}</span>
+                      {file.sizeBytes ? <span className="shrink-0 font-mono text-xs font-normal text-ink-muted">· {formatBytes(file.sizeBytes)}</span> : null}
                     </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={downloadingId !== null}
+                        className="inline-flex min-h-9 items-center gap-1 rounded-md border border-primary/25 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+                        onClick={() => setPreviewFile(file)}
+                      >
+                        <span className="material-symbols-outlined text-[15px]" aria-hidden="true">visibility</span>
+                        <span>Xem trước</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={downloadingId !== null}
+                        className="inline-flex min-h-9 items-center gap-1 rounded-md border border-hairline bg-card px-2.5 py-1 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/35 hover:text-primary disabled:opacity-50"
+                        onClick={() => void download(file.id, file.fileName)}
+                      >
+                        <span className="material-symbols-outlined text-[15px]" aria-hidden="true">download</span>
+                        <span>{downloadingId === file.id ? 'Đang tải…' : 'Tải xuống'}</span>
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -281,6 +320,18 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
           </li>
         ))}
       </ul>
+      {previewFile && (
+        <DocumentPreviewModal
+          open
+          fileId={previewFile.id}
+          fileName={previewFile.fileName}
+          fileSize={previewFile.sizeBytes}
+          contentType={previewFile.contentType}
+          loadBlob={() => api.downloadLockedFile(projectId, previewFile.id)}
+          onDownload={() => void download(previewFile.id, previewFile.fileName)}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </section>
   )
 }
@@ -313,10 +364,19 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
       className="space-y-5"
       title="Gói bàn giao cuối"
       eyebrow={projectMeta?.code ?? 'Bàn giao cuối kỳ'}
+      backTo={assignmentReturn ?? backTo}
+      backLabel={assignmentReturn ? 'Quay lại chấm điểm' : backLabel}
       description={projectMeta ? `${projectMeta.title} · Nội dung và tệp trong bản bàn giao đã chốt.` : 'Nội dung và tệp trong bản bàn giao đã chốt.'}
     >
       {loading && <ListLoading label="Đang tải gói bàn giao đã khóa…" />}
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && (
+        <InlineAlert
+          tone="error"
+          action={<button type="button" className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80" onClick={() => void load()}>Tải lại</button>}
+        >
+          {error}
+        </InlineAlert>
+      )}
       {!loading && !error && !packageData && (
         <section className="rounded-2xl border border-hairline bg-card p-8 text-center shadow-xs">
           <span className="material-symbols-outlined text-4xl text-ink-muted" aria-hidden="true">inventory_2</span>
@@ -325,12 +385,6 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
         </section>
       )}
       {!loading && packageData && <LockedPackageView projectId={projectId} packageData={packageData} />}
-      <div>
-        <Link to={assignmentReturn ?? backTo} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-hairline bg-card px-3.5 py-2 text-sm font-semibold text-ink-soft transition-all hover:bg-canvas">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
-          <span>{assignmentReturn ? 'Quay lại chấm điểm' : backLabel}</span>
-        </Link>
-      </div>
     </WorkspacePage>
   )
 }
@@ -375,9 +429,18 @@ export function FinalRequirementsPage() {
       className="space-y-5"
       title="Yêu cầu bàn giao"
       eyebrow={projectMeta?.code ?? 'Cấu hình bàn giao'}
+      backTo="/department/portfolio"
+      backLabel="Danh mục đồ án"
       description={projectMeta ? `${projectMeta.title} · Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.` : 'Chọn các hạng mục nhóm cần nộp trước khi chốt bàn giao.'}
     >
-      {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+      {error && (
+        <InlineAlert
+          tone="error"
+          action={<button type="button" className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80" onClick={() => void load()}>Tải lại</button>}
+        >
+          {error}
+        </InlineAlert>
+      )}
       {success && (
         <p role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
           <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>

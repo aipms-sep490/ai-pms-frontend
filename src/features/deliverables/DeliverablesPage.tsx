@@ -2,6 +2,7 @@ import { getUploadPolicy, validateUploadFile } from '../../services/api/upload-p
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { utcTimestamp } from '../projects/utils/collaboration-workspace'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { displayLabel } from '../../components/ui/display-label'
@@ -244,6 +245,10 @@ function DeliverablesView() {
   }, [search, status, deliverableType])
 
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
+  const pageDeliverables = data?.items ?? []
+  const submittedCount = pageDeliverables.filter((item) => item.status === 'SUBMITTED').length
+  const acceptedCount = pageDeliverables.filter((item) => item.status === 'ACCEPTED' || item.status === 'CLOSED').length
+  const rejectedCount = pageDeliverables.filter((item) => item.status === 'REJECTED').length
 
   return (
     <ExecutionPage
@@ -253,8 +258,8 @@ function DeliverablesView() {
       description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
       action={
         <>
-          <button className="ex-button" type="button" disabled={loading} onClick={() => setRevision(v => v + 1)}>
-            <ExIcon name="refresh" />Làm mới
+          <button className="ex-button ex-button-icon" type="button" aria-label="Làm mới" title="Làm mới" disabled={loading} onClick={() => setRevision(v => v + 1)}>
+            <ExIcon name="refresh" />
           </button>
           {canManageStructure && (
             <button className="ex-button ex-button-primary" type="button" onClick={() => { setError(null); setShowCreate(true); setEditing(null) }}>
@@ -358,6 +363,17 @@ function DeliverablesView() {
         </Modal>
       )}
 
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'inventory_2', label: 'Tổng hạng mục', value: data ? data.totalCount : null, caption: 'Đầu ra cần nộp theo bộ lọc hiện tại', hero: true },
+            { icon: 'hourglass_top', label: 'Chờ duyệt', value: data ? submittedCount : null, caption: 'Đã nộp phiên bản, chờ GVHD nhận xét', tone: submittedCount > 0 ? 'warning' : 'neutral' },
+            { icon: 'verified', label: 'Đã chấp nhận', value: data ? acceptedCount : null, caption: 'Đạt yêu cầu hoặc đã khóa trên trang này', tone: 'success' },
+            { icon: 'edit_note', label: 'Cần chỉnh sửa', value: data ? rejectedCount : null, caption: 'Cần bổ sung và nộp lại phiên bản mới', tone: rejectedCount > 0 ? 'danger' : 'neutral' },
+          ]}
+        />
+      </div>
+
       <section className="ex-panel" aria-label="Danh sách hạng mục cần nộp">
         <FilterToolbar
           embedded
@@ -392,6 +408,7 @@ function DeliverablesView() {
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAll}
           resultSummary={data ? `${sortedItems.length} / ${data.totalCount} hạng mục` : undefined}
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) } } : undefined}
         />
 
         {loading ? (
@@ -434,7 +451,9 @@ function DeliverablesView() {
                 </article>
               ))}
             </div>
-            <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
+            {data.totalPages > 1 && (
+              <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
+            )}
           </>
         )}
       </section>

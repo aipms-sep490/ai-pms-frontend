@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { useExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import { HttpError } from '../../services/http/http-client'
@@ -104,15 +106,11 @@ export function ProjectGatesPage() {
     description="Kế hoạch theo dõi và kết luận từng giai đoạn. Quá hạn chưa có kết luận chỉ là cảnh báo rủi ro, không làm đồ án trượt."
     action={
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" disabled={loading} onClick={reload} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-          Làm mới
-        </button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={reload} />
         {actor !== 'student' && (
-          <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+          <Button variant="primary" size="sm" icon="add" onClick={() => setCreateOpen(true)}>
             Tạo checkpoint mới
-          </button>
+          </Button>
         )}
       </div>
     }
@@ -144,6 +142,14 @@ export function ProjectGatesPage() {
     {!loading && !error && checkpoints && checkpoints.length === 0 && <p className="rounded-lg border border-hairline bg-card p-5 text-sm text-ink-muted">Đồ án chưa có checkpoint theo dõi nào.</p>}
     {!loading && !error && checkpoints && checkpoints.length > 0 && (
       <>
+        <StatTileRow
+          tiles={[
+            { icon: 'flag', label: 'Tổng checkpoint', value: checkpoints.length, hero: true, caption: 'Các mốc theo dõi tiến độ định kỳ.' },
+            { icon: 'verified', label: 'Đã đạt', value: checkpoints.filter(c => c.decisions.at(-1)?.decision === 'MET').length, tone: 'success', caption: 'Các mốc đã được xác nhận đạt.' },
+            { icon: 'schedule', label: 'Quá hạn chưa chốt', value: checkpoints.filter(c => c.isOverdue && !c.decisions.some(d => d.decision === 'MET' || d.decision === 'CANCELLED')).length, tone: checkpoints.some(c => c.isOverdue && !c.decisions.some(d => d.decision === 'MET' || d.decision === 'CANCELLED')) ? 'danger' : 'neutral', caption: 'Cảnh báo rủi ro tiến độ cần theo dõi.' },
+            { icon: 'pending_actions', label: 'Chưa kết luận', value: checkpoints.filter(c => c.decisions.length === 0).length, tone: 'warning', caption: 'Chưa có nhận xét đánh giá từ GVHD.' },
+          ]}
+        />
         <FilterToolbar
           tabs={[
             { value: '', label: 'Tất cả', count: checkpoints.length },

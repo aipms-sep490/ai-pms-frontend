@@ -12,7 +12,10 @@ vi.mock('../../features/notifications/notifications-api', () => ({
   getNotifications: vi.fn().mockResolvedValue({ items: [] }),
   markNotificationRead: vi.fn(),
 }))
-beforeEach(() => { notificationMocks.unread.mockReset().mockResolvedValue(0) })
+beforeEach(() => {
+  notificationMocks.unread.mockReset().mockResolvedValue(0)
+  window.localStorage.removeItem('aipms.sidebar.collapsed')
+})
 afterEach(cleanup)
 
 function renderAppLayout(initialEntries = ['/project/overview'], roles: string[] = ['STUDENT'], journey: StudentJourneyContextValue | null = null) {
@@ -145,5 +148,23 @@ describe('AppLayout & Navigation Shell', () => {
     expect(screen.getByRole('link', { name: 'Đóng góp thành viên' }).getAttribute('href')).toBe('/project/contributions')
     expect(screen.getByRole('link', { name: 'Bàn giao cuối kỳ' }).getAttribute('href')).toBe('/project/final-submission')
     expect(screen.getByRole('link', { name: 'Kết quả đồ án' }).getAttribute('href')).toBe('/project/result')
+  })
+
+  it('toggles desktop sidebar collapse via header button and Ctrl+B shortcut with localStorage persistence', () => {
+    const { container } = renderAppLayout()
+    const shell = container.querySelector('.collaboration-shell')
+    expect(shell?.classList.contains('is-sidebar-collapsed')).toBe(false)
+
+    const toggleBtn = screen.getByRole('button', { name: 'Thu gọn thanh điều hướng' })
+    expect(toggleBtn.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(toggleBtn)
+
+    expect(shell?.classList.contains('is-sidebar-collapsed')).toBe(true)
+    expect(window.localStorage.getItem('aipms.sidebar.collapsed')).toBe('1')
+    expect(screen.getByRole('button', { name: 'Mở rộng thanh điều hướng' }).getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true })
+    expect(shell?.classList.contains('is-sidebar-collapsed')).toBe(false)
+    expect(window.localStorage.getItem('aipms.sidebar.collapsed')).toBe('0')
   })
 })

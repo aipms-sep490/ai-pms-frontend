@@ -1,5 +1,5 @@
 .admin-workspace {
-  max-width: 1440px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 0 48px;
   color: var(--color-ink);
@@ -16,7 +16,7 @@
   outline-offset: 2px;
 }
 
-.admin-workspace :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+.admin-workspace :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   min-width: 0;
   min-height: 40px;
   width: 100%;
@@ -30,28 +30,26 @@
   font-weight: 400;
 }
 
+.admin-workspace :where(select:not([multiple])) {
+  padding-right: 34px;
+}
+
 .admin-workspace .ft-bar :is(input[type="date"], select) {
   width: auto;
   min-height: 36px;
   height: 36px;
-  padding: 5px 10px;
   border-color: var(--color-hairline);
   border-radius: 8px;
   font-size: 12.5px;
 }
 
-.admin-workspace .ft-bar select {
-  padding-right: 28px;
-}
-
-.admin-workspace .ft-bar .ft-sort-select {
-  padding-left: 28px;
+.admin-workspace .ft-bar--compact .ft-controls select {
+  max-width: 185px;
 }
 
 .admin-workspace .ft-bar .ft-search-input {
   min-height: 36px;
   height: 36px;
-  padding: 6px 32px 6px 33px;
   border-color: var(--color-hairline);
   border-radius: 8px;
   font-size: 13px;
@@ -361,13 +359,18 @@
   justify-self: start;
 }
 
-.admin-form .admin-create-fields {
+.admin-form fieldset.admin-create-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   min-width: 0;
   padding: 0;
   border: 0;
+  background: transparent;
+}
+
+.app-modal .admin-form {
+  margin-top: 0;
 }
 
 .admin-create-fields > :is(.academic-scope-fields, fieldset, p, .admin-actions) {
@@ -456,9 +459,10 @@
   width: auto;
   min-height: 32px;
   height: 32px;
-  padding: 2px 24px 2px 8px;
+  padding: 2px 30px 2px 10px;
   border-color: var(--color-hairline);
   border-radius: 7px;
+  background-color: var(--color-card);
   font-size: 12px;
 }
 
@@ -467,15 +471,15 @@
   align-items: flex-start;
   gap: 10px;
   margin-top: 14px;
-  border: 1px solid var(--color-hairline);
-  border-left: 4px solid var(--color-status-success-text);
-  border-radius: 10px;
-  background: var(--color-card);
-  color: var(--color-ink);
-  padding: 12px 14px;
-  font-size: 13.5px;
+  border: 1px solid color-mix(in oklab, var(--color-status-success-border) 80%, transparent);
+  border-left: 3px solid var(--color-status-success-text);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-status-success-bg) 80%, var(--color-card));
+  color: var(--color-status-success-text);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
   font-weight: 500;
-  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 4%, transparent);
 }
 
 .admin-notice__icon {
@@ -487,13 +491,14 @@
 
 .admin-error {
   margin-top: 14px;
-  border: 1px solid var(--color-status-error-border);
-  border-left: 4px solid var(--color-status-error-text);
-  border-radius: 10px;
-  background: var(--color-status-error-bg);
+  border: 1px solid color-mix(in oklab, var(--color-status-error-border) 80%, transparent);
+  border-left: 3px solid var(--color-status-error-text);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--color-status-error-bg) 80%, var(--color-card));
   color: var(--color-status-error-text);
-  padding: 12px 14px;
-  font-size: 13.5px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
   font-weight: 500;
 }
 

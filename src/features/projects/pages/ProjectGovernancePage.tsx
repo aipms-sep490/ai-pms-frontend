@@ -3,7 +3,9 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { WorkspaceTabs } from '../../../components/ui/WorkspaceTabs'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { AssignmentManagementPanel } from '../../supervisors/components/AssignmentManagementPanel'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -196,6 +198,8 @@ export function ProjectGovernancePage() {
       title="Điều phối đồ án"
       description="Theo dõi lịch báo cáo, việc cần làm sau trao đổi và minh chứng của nhóm."
       eyebrow={eyebrow}
+      backTo="/department/portfolio"
+      backLabel="Danh mục đồ án"
       className="execution-page space-y-6"
       action={
         <div className="flex flex-wrap items-center gap-2">
@@ -230,6 +234,14 @@ export function ProjectGovernancePage() {
 
       {data && (
         <div className="space-y-6">
+          <StatTileRow
+            tiles={[
+              { icon: 'event_repeat', label: 'Lịch nộp báo cáo', value: data.totals.cycles, hero: true, caption: 'Các kỳ báo cáo đã thiết lập cho đồ án.' },
+              { icon: 'task_alt', label: 'Công việc sau trao đổi', value: data.totals.actions, tone: 'info', caption: 'Đầu việc hành động từ họp và báo cáo.' },
+              { icon: 'fact_check', label: 'Minh chứng học thuật', value: data.totals.evidence, tone: 'success', caption: 'Tài liệu đối chiếu trong sổ minh chứng.' },
+              { icon: 'admin_panel_settings', label: 'Quyền điều phối', value: canManage ? 'Chủ trì' : 'Chỉ xem', tone: canManage ? 'success' : 'neutral', caption: canManage ? 'Bộ môn chủ trì có quyền thiết lập.' : 'Chế độ theo dõi theo phạm vi.' },
+            ]}
+          />
           <DepartmentGovernanceOverview governance={data.governance} />
           {!canManage && (
             <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text" role="status">
@@ -238,42 +250,18 @@ export function ProjectGovernancePage() {
           )}
 
           {/* 3-Tab Governance Workspace with independent pagination per tab */}
+          <WorkspaceTabs
+            ariaLabel="Danh mục điều phối đồ án"
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id)}
+            tabs={[
+              { id: 'cycles' as const, label: 'Lịch báo cáo', icon: 'event_repeat', count: data.totals.cycles },
+              { id: 'actions' as const, label: 'Công việc sau trao đổi', icon: 'add_task', count: data.totals.actions },
+              { id: 'evidence' as const, label: 'Sổ minh chứng đồ án', icon: 'fact_check', count: data.totals.evidence },
+            ]}
+          />
           <section className="rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline bg-canvas/50 px-4 py-3">
-              <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Danh mục điều phối đồ án">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'cycles'}
-                  onClick={() => setActiveTab('cycles')}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors ${activeTab === 'cycles' ? 'bg-primary text-white shadow-2xs' : 'text-ink-soft hover:bg-card hover:text-ink'}`}
-                >
-                  <span>Lịch báo cáo</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${activeTab === 'cycles' ? 'bg-card/20 text-white' : 'bg-hairline text-ink-soft'}`}>{data.totals.cycles}</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'actions'}
-                  onClick={() => setActiveTab('actions')}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors ${activeTab === 'actions' ? 'bg-primary text-white shadow-2xs' : 'text-ink-soft hover:bg-card hover:text-ink'}`}
-                >
-                  <span>Công việc sau trao đổi</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${activeTab === 'actions' ? 'bg-card/20 text-white' : 'bg-hairline text-ink-soft'}`}>{data.totals.actions}</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'evidence'}
-                  onClick={() => setActiveTab('evidence')}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors ${activeTab === 'evidence' ? 'bg-primary text-white shadow-2xs' : 'text-ink-soft hover:bg-card hover:text-ink'}`}
-                >
-                  <span>Sổ minh chứng đồ án</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${activeTab === 'evidence' ? 'bg-card/20 text-white' : 'bg-hairline text-ink-soft'}`}>{data.totals.evidence}</span>
-                </button>
-              </div>
-              {loading && <span className="text-xs text-ink-muted">Đang đồng bộ…</span>}
-            </div>
+            {loading && <div className="border-b border-hairline bg-canvas/50 px-5 py-2 text-xs text-ink-muted">Đang đồng bộ…</div>}
 
             <div className="p-5 space-y-4">
               {activeTab === 'cycles' && (

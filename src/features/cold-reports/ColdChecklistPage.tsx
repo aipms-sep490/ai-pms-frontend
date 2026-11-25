@@ -5,10 +5,12 @@ import type { ColdChecklist, ColdChecklistItem, ColdSubmission } from '../../ser
 import { coldScopeLabel, formatColdDateTime, formatFileSize } from './cold-types'
 import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
+import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { Modal } from '../../components/ui/Modal'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { WorkspaceEmptyState } from '../../components/ui/WorkspaceState'
 import { displayLabel } from '../../components/ui/display-label'
 import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
@@ -154,10 +156,7 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
     backTo={actor === 'student' ? undefined : `${routeBase}/workspace`}
     description={actor === 'student' ? 'Nộp từng báo cáo theo ngành hoặc cá nhân được giao trước hạn. Hội đồng sẽ chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}
     action={
-      <button type="button" className="cold-button cold-button--secondary" onClick={reload} disabled={loading}>
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-        Làm mới
-      </button>
+      <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" onClick={reload} disabled={loading} />
     }
   >
     {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : !checklist ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Hệ thống chưa trả về checklist chấm nguội cho đồ án này." /> : <>
@@ -171,19 +170,18 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
         />
       )}
       {lockError && <ColdError message={lockError} />}
-      {progress && <div className="cold-panel cold-panel--progress">
-        <div className="cold-panel-heading">
-          <h2>Tiến độ gói chấm nguội</h2>
-          <span className="cold-progress-status">Trạng thái: {displayLabel(progress.packageStatus)}</span>
+      {progress && (
+        <div className="mb-5 space-y-2">
+          <StatTileRow
+            tiles={[
+              { icon: 'inventory', label: 'Báo cáo hiển thị', value: progress.visibleReports, hero: true, caption: `Trạng thái gói: ${displayLabel(progress.packageStatus)}` },
+              { icon: 'upload_file', label: 'Đã nộp', value: progress.submittedReports, tone: 'info', caption: 'Báo cáo đã gửi vào hệ thống.' },
+              { icon: 'lock', label: 'Đã khóa', value: progress.lockedReports, tone: 'success', caption: 'Sẵn sàng chuyển hội đồng chấm.' },
+              { icon: 'verified', label: 'Sẵn sàng chấm', value: progress.ready ? 'Đạt' : 'Chưa đạt', tone: progress.ready ? 'success' : 'warning', caption: actor === 'student' ? 'Điểm chấm nguội được ẩn tới khi công bố chính thức.' : 'Kiểm tra đủ điều kiện trước khi chấm.' },
+            ]}
+          />
         </div>
-        <dl className="cold-progress-grid">
-          <div className="cold-progress-stat"><dt>Báo cáo hiển thị</dt><dd>{progress.visibleReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Đã nộp</dt><dd>{progress.submittedReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Đã khóa</dt><dd>{progress.lockedReports}</dd></div>
-          <div className="cold-progress-stat"><dt>Sẵn sàng chấm</dt><dd className={progress.ready ? 'is-ready' : ''}>{progress.ready ? 'Đạt' : 'Chưa đạt'}</dd></div>
-        </dl>
-        {actor === 'student' && <p className="px-5 pb-4 text-xs text-ink-muted">Điểm chấm nguội (Cold) được hệ thống ẩn hoàn toàn với sinh viên trước khi bộ môn công bố kết quả chính thức.</p>}
-      </div>}
+      )}
 
       <div className="cold-panel">
         <div className="cold-panel-heading">

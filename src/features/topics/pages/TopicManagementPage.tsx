@@ -9,6 +9,7 @@ import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useTopics } from '../hooks/useTopics'
 import { TopicContentForm } from '../components/TopicContentForm'
 import { useTopicCatalog } from '../hooks/useTopicCatalog'
@@ -437,7 +438,19 @@ export function TopicManagementPage() {
     >
       {confirmationDialog}
 
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'lightbulb', label: 'Tổng đề tài', value: topics.loading ? null : topics.totalCount, hero: true, caption: 'Trong phạm vi bộ môn và bộ lọc hiện tại.' },
+            { icon: 'verified', label: 'Đã công bố', value: topics.loading ? null : topics.items.filter(t => t.status === 'PUBLISHED').length, tone: 'success', caption: 'Đề tài sinh viên có thể đăng ký trên trang này.' },
+            { icon: 'edit_note', label: 'Bản nháp', value: topics.loading ? null : topics.items.filter(t => t.status === 'DRAFT').length, tone: 'warning', caption: 'Chờ hoàn thiện đề cương và công bố.' },
+            { icon: 'lock', label: 'Đã đóng', value: topics.loading ? null : topics.items.filter(t => t.status === 'CLOSED').length, tone: 'neutral', caption: 'Đề tài đã kết thúc tiếp nhận trên trang này.' },
+          ]}
+        />
+      </div>
+
       <FilterToolbar
+        className="ft-bar--compact"
         search={topics.filters.search ?? ''}
         onSearchChange={value => topics.setFilters({ ...topics.filters, search: value || undefined, page: 1 })}
         searchLabel="Tìm đề tài"
@@ -513,7 +526,7 @@ export function TopicManagementPage() {
           value: sortBy,
           onChange: value => setSortBy(value as TopicSort),
           options: [
-            { value: 'default', label: 'Mặc định hệ thống' },
+            { value: 'default', label: 'Mặc định' },
             { value: 'title_asc', label: 'Tên đề tài A–Z' },
             { value: 'code_asc', label: 'Mã đề tài A–Z' },
           ],
@@ -533,6 +546,7 @@ export function TopicManagementPage() {
         }}
         hasActiveFilters={hasActiveFilters}
         resultSummary={`${visibleTopics.length} / ${topics.totalCount} đề tài`}
+        pagination={totalPages > 1 ? { page: topics.page, pages: totalPages, total: topics.totalCount, pageSize: topics.pageSize, busy: topics.loading, onPage: nextPage => topics.setFilters({ ...topics.filters, page: nextPage }) } : undefined}
       />
 
       {createOpen && (

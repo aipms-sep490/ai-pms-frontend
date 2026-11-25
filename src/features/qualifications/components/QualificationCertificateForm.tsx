@@ -10,6 +10,7 @@ const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-hairline bg-ca
 export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { onSubmitted: (value: StudentQualificationDto) => void; onBusyChange?: (busy: boolean) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [fileName, setFileName] = useState('Chưa chọn tệp')
   const [policy, setPolicy] = useState<UploadPolicy | null>(null)
   useEffect(() => { if (!env.isMockMode) void getUploadPolicy('STUDENT_QUALIFICATION').then(setPolicy).catch(() => {}) }, [])
   const pending = useRef(false)
@@ -36,6 +37,7 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
         expiresAt: expires ? new Date(`${expires}T00:00:00+07:00`).toISOString() : undefined,
       })
       form.reset()
+      setFileName('Chưa chọn tệp')
       onSubmitted(value)
     } catch (reason) { fail(uploadError(reason)) }
     finally { pending.current = false; setBusy(false); onBusyChange?.(false) }
@@ -45,7 +47,14 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
     <p id="certificate-help" className="mt-1 text-sm leading-6 text-ink-muted">{policy ? uploadPolicyLabel(policy) : 'Giới hạn tệp theo chính sách máy chủ.'} Hồ sơ sẽ chờ bộ môn xác minh; nộp tệp chưa xác nhận đủ điều kiện đăng ký.</p>
     {env.isMockMode && <p role="status" className="mt-2 text-sm text-ink-muted">Chức năng nộp chứng nhận chỉ khả dụng khi kết nối máy chủ chính thức.</p>}
     <fieldset disabled={busy || env.isMockMode} className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
-      <label className="min-w-0 text-sm font-medium text-ink-soft sm:col-span-2">Tệp chứng nhận<input name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className={`${inputClass} min-w-0 max-w-full file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary`} /></label>
+      <div className="min-w-0 sm:col-span-2">
+        <label htmlFor="qualification-certificate-file" className="block text-sm font-medium text-ink-soft">Tệp chứng nhận</label>
+        <div className="relative mt-1 grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+          <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
+          <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{fileName}</span>
+          <input id="qualification-certificate-file" name="file" type="file" accept="application/pdf,image/png,image/jpeg" aria-describedby="certificate-help certificate-error" className="absolute inset-0 cursor-pointer opacity-0" onChange={event => setFileName(event.target.files?.[0]?.name || 'Chưa chọn tệp')} />
+        </div>
+      </div>
       <label className="text-sm font-medium text-ink-soft sm:col-span-2">Số chứng nhận (không bắt buộc)<input name="certificateNumber" maxLength={100} className={inputClass} /></label>
       <label className="text-sm font-medium text-ink-soft">Ngày cấp (không bắt buộc)<input name="issuedAt" type="date" className={inputClass} /></label>
       <label className="text-sm font-medium text-ink-soft">Ngày hết hạn (không bắt buộc)<input name="expiresAt" type="date" className={inputClass} /></label>

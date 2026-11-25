@@ -292,7 +292,7 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                   <>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold text-tag-se flex items-center gap-1.5">
-                        <span>🌐</span>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">public</span>
                         <span>Họp Trực tuyến qua LiveKit</span>
                       </span>
                       <span className="text-xs text-status-success-text font-medium">● Ghi nhận thời lượng tự động</span>
@@ -319,7 +319,7 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                   <>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold text-status-success-text flex items-center gap-1.5">
-                        <span>🏛️</span>
+                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">apartment</span>
                         <span>Bảo vệ Trực tiếp tại trường</span>
                       </span>
                       <span className="text-xs text-status-success-text font-bold">✓ Tự động phân chia phòng</span>
@@ -358,9 +358,10 @@ export const ReviewGateModeConfigPanel: React.FC<ReviewGateModeConfigPanelProps>
                 <button
                   type="button"
                   onClick={() => handleOpenScript(gate)}
-                  className="min-h-10 rounded-xl border border-hairline bg-card px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors shadow-xs"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-hairline bg-card px-3.5 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors shadow-xs"
                 >
-                  📝 Kịch bản & Biên bản phiên {gate.gateCode}
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">edit_note</span>
+                  <span>Kịch bản & Biên bản phiên {gate.gateCode}</span>
                 </button>
               </div>
             </div>

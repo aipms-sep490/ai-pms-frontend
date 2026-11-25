@@ -3,6 +3,7 @@ import { Link, useInRouterContext } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -253,12 +254,12 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       </div>
     }
   >
-    {catalogError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{catalogError}</p>}
+    {catalogError && <InlineAlert tone="error">{catalogError}</InlineAlert>}
 
     {manager && !unsupported && uploadOpen && (
       <Modal open title="Tải lên phiên bản mới" description="PDF, DOCX hoặc XLSX; tối đa 20 MB. Cùng mã tài liệu sẽ tạo phiên bản kế tiếp trong ngành và kỳ đã chọn." busy={uploading} onClose={() => setUploadOpen(false)}>
         <form className="space-y-4" onSubmit={event => void submitUpload(event)}>
-          {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
+          {error && <InlineAlert tone="error">{error}</InlineAlert>}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium text-ink-soft">Mã tài liệu
               <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={code} onChange={event => setCode(event.target.value)} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
@@ -267,10 +268,15 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
               <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={title} onChange={event => setTitle(event.target.value)} minLength={2} maxLength={200} required />
             </label>
           </div>
-          <label className="block text-sm font-medium text-ink-soft">Tệp mẫu
-            <input id="department-document-file" type="file" className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink file:mr-3 file:rounded-md file:border-0 file:bg-primary-subtle file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" accept=".pdf,.docx,.xlsx" required
-              onChange={event => setFile(event.target.files?.[0] ?? null)} />
-          </label>
+          <div>
+            <label htmlFor="department-document-file" className="block text-sm font-medium text-ink-soft">Tệp mẫu</label>
+            <div className="relative mt-1 grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+              <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
+              <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{file ? file.name : 'Chưa chọn tệp'}</span>
+              <input id="department-document-file" type="file" className="absolute inset-0 cursor-pointer opacity-0" accept=".pdf,.docx,.xlsx" required
+                onChange={event => setFile(event.target.files?.[0] ?? null)} />
+            </div>
+          </div>
           <div className="app-modal__actions">
             {uploadedNeedsReload ? (
               <button type="button" className="app-modal__button" onClick={() => void retryList()} disabled={loading}>Tải lại danh sách</button>
@@ -286,11 +292,11 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     )}
 
     <section className="workspace-surface overflow-hidden" aria-label="Danh sách tài liệu">
-      <div className="border-b border-hairline px-5 py-4">
-        <h2 className="text-lg font-semibold text-ink">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
-      </div>
+      <h2 className="sr-only">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
       <FilterToolbar
         embedded
+        layout="stacked"
+        className={manager ? 'ft-bar--compact' : undefined}
         tabs={manager ? [
           { value: '', label: 'Tất cả' },
           { value: 'PUBLISHED', label: 'Đã công bố' },
@@ -302,7 +308,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         search={search}
         onSearchChange={setSearch}
         searchLabel="Tìm tài liệu"
-        searchPlaceholder="Tìm theo tên, mã tài liệu hoặc tên tệp…"
+        searchPlaceholder="Tìm tên, mã tài liệu…"
         controls={
           <>
             <select aria-label="Ngành" value={majorId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setMajorId(event.target.value) }}>
@@ -311,7 +317,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
             </select>
             {manager && (
               <select aria-label="Kỳ đồ án" value={periodId} disabled={uploadedNeedsReload || uploading || busyId !== null} onChange={event => { setActionError(''); setPeriodId(event.target.value) }}>
-                <option value="">Tất cả kỳ và tài liệu dùng chung</option>
+                <option value="">Tất cả kỳ & dùng chung</option>
                 {periods.map(period => <option key={period.id} value={period.id}>{period.name} ({period.code})</option>)}
               </select>
             )}
@@ -329,16 +335,12 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         hasActiveFilters={hasLocalFilters}
         onClearAll={clearLocalFilters}
         resultSummary={rows ? `${filteredRows.length} / ${rows.length} tài liệu` : undefined}
+        pagination={docPager.showPagination ? { page: docPager.page, pages: docPager.pages, total: docPager.total, pageSize: docPager.pageSize, busy: loading, onPage: docPager.setPage } : undefined}
       />
 
       <div className="space-y-3 p-5">
-        {error && !uploadOpen && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
-        {success && (
-          <div className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3 text-sm text-ink">
-            <span className="material-symbols-outlined shrink-0 text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-            <p role="status">{success}</p>
-          </div>
-        )}
+        {error && !uploadOpen && <InlineAlert tone="error">{error}</InlineAlert>}
+        {success && <InlineAlert tone="success">{success}</InlineAlert>}
         {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
         {!loading && !error && rows?.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
         {!loading && !error && rows && rows.length > 0 && filteredRows.length === 0 && (
@@ -350,7 +352,11 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         {docPager.paginatedItems.map(row => <article key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-card p-4 transition-colors hover:border-primary/30">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-semibold text-ink">{row.title}</h3>
+              <h3 className="font-semibold text-ink">
+                <button type="button" className="text-left transition-colors hover:text-primary hover:underline" onClick={() => setPreview(row)}>
+                  {row.title}
+                </button>
+              </h3>
               <StatusBadge tone={row.status === 'PUBLISHED' ? 'success' : row.status === 'DRAFT' ? 'warning' : 'neutral'} label={row.status === 'PUBLISHED' ? 'Đã công bố' : row.status === 'DRAFT' ? 'Bản nháp' : 'Đã thu hồi'} />
             </div>
             <p className="mt-1 text-sm text-ink-muted">{row.code} · v{row.version} · {row.fileName}</p>

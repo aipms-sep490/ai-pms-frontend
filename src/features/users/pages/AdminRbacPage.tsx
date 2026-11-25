@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
+import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
@@ -174,7 +175,14 @@ export function AdminRbacPage() {
     <div className="workspace-page admin-workspace" aria-labelledby="rbac-title">
       <header className="admin-heading">
         <div>
-          <p className="admin-kicker">Phân quyền nền tảng</p>
+          <div className="workspace-context">
+            <BackLink className="workspace-back-inline" fallback="/admin/access">
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span>Về tổng quan</span>
+            </BackLink>
+            <span className="workspace-context-sep" aria-hidden="true" />
+            <p className="admin-kicker !m-0">Phân quyền nền tảng</p>
+          </div>
           <h1 id="rbac-title">Vai trò và quyền truy cập</h1>
           <p>
             {canEdit ? 'Quản lý quyền truy cập của từng vai trò.' : 'Xem quyền truy cập của từng vai trò (chỉ đọc).'} Phân công trong đồ án được quản lý ở không gian học vụ.
@@ -182,7 +190,6 @@ export function AdminRbacPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={admin.refresh} />
-          <Link className="admin-link-button" to="/admin/access">Về tổng quan</Link>
         </div>
       </header>
 
@@ -202,20 +209,16 @@ export function AdminRbacPage() {
       ) : null}
 
       {admin.rbac.state === 'ready' ? (
-        <section className="admin-overview" aria-label="Tổng quan phân quyền">
-          <div>
-            <span>Tổng vai trò</span>
-            <strong>{roles.length}</strong>
-          </div>
-          <div>
-            <span>Quyền toàn hệ thống</span>
-            <strong>{allPermissions.length}</strong>
-          </div>
-          <div>
-            <span>Quyền đã cấp cho vai trò chọn</span>
-            <strong>{selectedRole ? `${selectedPermissionIds.size}/${allPermissions.length}` : '—'}</strong>
-          </div>
-        </section>
+        <div className="mt-5">
+          <StatTileRow
+            tiles={[
+              { icon: 'admin_panel_settings', label: 'Tổng vai trò', value: roles.length, hero: true, caption: 'Các vai trò đang quản lý trong hệ thống.' },
+              { icon: 'key', label: 'Quyền toàn hệ thống', value: allPermissions.length, tone: 'info', caption: 'Toàn bộ mã quyền theo phân hệ.' },
+              { icon: 'verified_user', label: 'Quyền vai trò chọn', value: selectedRole ? `${selectedPermissionIds.size}/${allPermissions.length}` : '—', tone: 'success', caption: selectedRole ? displayLabel(selectedRole.code) : 'Chọn một vai trò để xem.' },
+              { icon: 'lock', label: 'Chế độ phân quyền', value: canEdit ? 'Cho phép sửa' : 'Chỉ đọc', tone: canEdit ? 'warning' : 'neutral', caption: canEdit ? 'Mọi thay đổi yêu cầu xác nhận.' : 'Bảo vệ chống chỉnh sửa ngoài ý muốn.' },
+            ]}
+          />
+        </div>
       ) : null}
 
       {admin.rbac.state !== 'error' ? (

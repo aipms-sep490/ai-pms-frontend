@@ -17,6 +17,7 @@ import {
 } from '../../academic/api/profile-verification-api'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { QualificationCertificateViewer } from '../../qualifications/components/QualificationCertificateViewer'
+import { projectStatusLabel } from '../../projects/utils/project-status'
 import {
   getDepartmentStudentDetail,
   listSpecializations,
@@ -206,15 +207,11 @@ export function DepartmentStudentDetailPage() {
     <WorkspacePage
       title={summary ? summary.fullName : 'Chi tiết sinh viên'}
       eyebrow={summary?.studentCode ? `MSSV ${summary.studentCode}` : 'Hồ sơ 360° sinh viên Khoa'}
+      backTo="/department/students"
+      backLabel="Danh sách sinh viên Khoa"
       description="Xem toàn diện thông tin danh tính, cập nhật lớp/chuyên ngành hẹp/khung CTĐT, xác minh hồ sơ học vụ và theo dõi trạng thái nhóm đồ án."
       action={
-        <div className="flex flex-wrap gap-2">
-          <Link className="inline-flex items-center gap-1 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-medium text-ink hover:border-primary" to="/department/students">
-            <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
-            Danh sách sinh viên Khoa
-          </Link>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />
-        </div>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading || saving} onClick={() => void load()} />
       }
     >
       {confirmationDialog}
@@ -261,16 +258,28 @@ export function DepartmentStudentDetailPage() {
             </div>
 
             <form className="grid gap-3 sm:grid-cols-2" onSubmit={event => void handleSaveAcademic(event)}>
-              <label className="text-sm font-medium">
+              <label className="text-sm font-medium sm:col-span-2">
                 Ngành đào tạo
                 <select
-                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-hairline py-2 pl-3 pr-9 text-sm"
                   value={draftMajorId}
                   onChange={event => { setDraftMajorId(event.target.value); setDraftSpecId('') }}
                   disabled={saving}
                 >
                   <option value="">Chọn ngành</option>
                   {majors.map(m => <option key={m.id} value={m.id}>{m.code} · {m.name}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-medium sm:col-span-2">
+                Chuyên ngành hẹp
+                <select
+                  className="mt-1 block w-full rounded-lg border border-hairline py-2 pl-3 pr-9 text-sm"
+                  value={draftSpecId}
+                  onChange={event => setDraftSpecId(event.target.value)}
+                  disabled={saving}
+                >
+                  <option value="">Chưa chọn chuyên ngành hẹp</option>
+                  {filteredSpecs.map(s => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
                 </select>
               </label>
               <label className="text-sm font-medium">
@@ -283,18 +292,6 @@ export function DepartmentStudentDetailPage() {
                   maxLength={50}
                   disabled={saving}
                 />
-              </label>
-              <label className="text-sm font-medium">
-                Chuyên ngành hẹp
-                <select
-                  className="mt-1 block w-full rounded-lg border border-hairline px-3 py-2 text-sm"
-                  value={draftSpecId}
-                  onChange={event => setDraftSpecId(event.target.value)}
-                  disabled={saving}
-                >
-                  <option value="">Chưa chọn chuyên ngành hẹp</option>
-                  {filteredSpecs.map(s => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
-                </select>
               </label>
               <label className="text-sm font-medium">
                 Khung CTĐT
@@ -351,7 +348,7 @@ export function DepartmentStudentDetailPage() {
                 <div><dt className="text-xs text-ink-muted">Nhóm</dt><dd className="font-medium">{summary.teamCode}</dd></div>
                 <div><dt className="text-xs text-ink-muted">Vai trò trong nhóm</dt><dd>{summary.isTeamLeader ? 'Trưởng nhóm' : 'Thành viên'}</dd></div>
                 <div><dt className="text-xs text-ink-muted">Mã đồ án</dt><dd className="font-mono">{summary.projectCode ?? 'Chưa đăng ký đồ án'}</dd></div>
-                <div><dt className="text-xs text-ink-muted">Trạng thái / Hướng đồ án</dt><dd>{[summary.projectStatus, detail.trackCode].filter(Boolean).join(' · ') || '—'}</dd></div>
+                <div><dt className="text-xs text-ink-muted">Trạng thái / Hướng đồ án</dt><dd>{[summary.projectStatus ? projectStatusLabel(summary.projectStatus) : null, detail.trackCode].filter(Boolean).join(' · ') || '—'}</dd></div>
                 {detail.projectTitle && (
                   <div className="sm:col-span-2"><dt className="text-xs text-ink-muted">Tên đồ án</dt><dd className="font-medium">{detail.projectTitle}</dd></div>
                 )}

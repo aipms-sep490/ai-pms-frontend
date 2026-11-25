@@ -26,7 +26,7 @@ export function ActorDashboardCard() {
       <h2 className="font-heading text-sm font-semibold text-ink">Tổng quan nhanh · {scopeLabel[data.scope] ?? data.scope}</h2>
       {!data.complete && <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">Số liệu chưa đầy đủ</span>}
     </div>
-    <div className="mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:grid-cols-6">
+    <div className={`mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 ${data.activeAccounts !== null ? 'md:grid-cols-6' : 'md:grid-cols-5'}`}>
       <ActorMetric label="Đồ án" value={data.projectCount} />
       <ActorMetric label="Việc đang mở" value={data.openTasks} />
       <ActorMetric label="Việc quá hạn" value={data.overdueTasks} tone={data.overdueTasks > 0 ? 'error' : 'neutral'} />

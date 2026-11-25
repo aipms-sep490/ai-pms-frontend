@@ -29,7 +29,7 @@ function appealStatusTone(status: string): BadgeTone {
 export function ResultCorrectionsPage() {
   const projectId = Number(useParams().projectId)
   const { session } = useAuthSession()
-  return Number.isSafeInteger(projectId) && projectId > 0 ? <CorrectionsWorkspace key={`${projectId}:${session?.user.id}`} projectId={projectId} /> : <WorkspacePage size="wide" title="Phúc khảo và đính chính"><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
+  return Number.isSafeInteger(projectId) && projectId > 0 ? <CorrectionsWorkspace key={`${projectId}:${session?.user.id}`} projectId={projectId} /> : <WorkspacePage size="wide" title="Phúc khảo và đính chính" backTo="/department/portfolio" backLabel="Danh mục đồ án"><p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">Mã đồ án không hợp lệ.</p></WorkspacePage>
 }
 function CorrectionsWorkspace({ projectId }: { projectId: number }) {
   const { session } = useAuthSession(), capabilities = useProjectCapabilities(projectId)
@@ -73,7 +73,7 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
   if (statusFilter !== 'ALL') chips.push({ id: 'status', label: 'Trạng thái', value: displayLabel(statusFilter) })
 
   const select = (id: number) => setParams({ request: String(id) })
-  return <WorkspacePage size="wide" title="Phúc khảo và đính chính" eyebrow={projectLabel ?? 'Hồ sơ đồ án'} description="Xử lý yêu cầu theo phạm vi, phiên bản kết quả và thao tác được hệ thống cấp." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại danh sách" disabled={loading} onClick={() => { capabilities.retry(); setRevision(value => value + 1) }} />}>
+  return <WorkspacePage size="wide" title="Phúc khảo và đính chính" eyebrow={projectLabel ?? 'Hồ sơ đồ án'} backTo={`/department/projects/${projectId}/result`} backLabel="Kết quả đồ án" description="Xử lý yêu cầu theo phạm vi, phiên bản kết quả và thao tác được hệ thống cấp." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại danh sách" disabled={loading} onClick={() => { capabilities.retry(); setRevision(value => value + 1) }} />}>
     <div className="space-y-5">
       {canManage && <AppealManagementPanel projectId={projectId} onCreated={id => { select(id); setRevision(value => value + 1) }} />}
       <section className="workspace-surface space-y-4 p-5">
@@ -105,6 +105,13 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
             onClearAll={() => { setSearch(''); setStatusFilter('ALL') }}
             hasActiveFilters={hasFilters}
             resultSummary={`${filteredRequests.length} / ${requests.totalCount} yêu cầu`}
+            pagination={
+              useServerPaging
+                ? { page, pages: Math.max(1, Math.ceil(requests.totalCount / 20)), total: requests.totalCount, pageSize: 20, busy: loading, onPage: setPage }
+                : requestPager.showPagination
+                  ? { page: requestPager.page, pages: requestPager.pages, total: requestPager.total, pageSize: requestPager.pageSize, onPage: requestPager.setPage }
+                  : undefined
+            }
           />
         )}
         {loading && <ListLoading label="Đang tải danh sách yêu cầu…" />}

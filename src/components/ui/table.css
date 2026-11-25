@@ -4,6 +4,11 @@
 }
 .ai-table__head--band th {
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink-muted);
 }
 
 /* Stack-to-card layout for <Table stack>, opt-in below 640px: each row becomes a bordered
@@ -28,7 +33,9 @@
   .ai-table--stack tr:last-child {
     margin-bottom: 0;
   }
-  .ai-table--stack td {
+  .ai-table--stack td,
+  .ai-table--stack td:first-child,
+  .ai-table--stack td:last-child {
     display: flex;
     align-items: baseline;
     justify-content: space-between;

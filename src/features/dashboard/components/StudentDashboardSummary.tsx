@@ -79,7 +79,8 @@ export function StudentDashboardSummary() {
   const analysis = project?.analysis
   const taskProgress = analysis?.progressSummary?.progressPercentage
   const academicProgress = timeline?.academicProgress
-  const isDefenseReady = timeline?.isDefenseReady
+  const blockingReasonsCount = timeline?.capabilities?.blockingReasons?.length ?? 0
+  const isDefenseReady = timeline?.isDefenseReady === true && blockingReasonsCount === 0
 
   // Evidence counts from all available gates in review timeline
   const allRequirements = timeline?.gates.flatMap(g => g.requirements) ?? []
@@ -130,14 +131,14 @@ export function StudentDashboardSummary() {
 
         <div className="grid grid-cols-1 items-stretch gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Gauge 1: Tiến độ công việc (Tasks %) */}
-          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <div className="flex h-full flex-col justify-between rounded-xl border border-line-strong/75 border-t-[3px] border-t-primary bg-card p-4 shadow-xs">
             <div>
-              <div className="flex items-center justify-between text-xs text-ink-muted">
-                <span className="font-semibold">Tiến độ công việc</span>
-                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">task_alt</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.04em] text-ink-muted">Tiến độ công việc</span>
+                <span className="material-symbols-outlined grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-subtle text-[18px] text-primary" aria-hidden="true">task_alt</span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                <span className="text-2xl font-bold tracking-tight text-ink tabular-nums">
                   {taskProgress != null ? `${taskProgress.toFixed(0)}%` : '—'}
                 </span>
                 <span className="text-xs text-ink-muted">
@@ -160,14 +161,14 @@ export function StudentDashboardSummary() {
           </div>
 
           {/* Gauge 2: Tiến độ cổng kiểm duyệt */}
-          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <div className="flex h-full flex-col justify-between rounded-xl border border-line-strong/75 border-t-[3px] border-t-status-success-text bg-card p-4 shadow-xs">
             <div>
-              <div className="flex items-center justify-between text-xs text-ink-muted">
-                <span className="font-semibold">Tiến độ cổng kiểm duyệt</span>
-                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">verified</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.04em] text-ink-muted">Tiến độ cổng kiểm duyệt</span>
+                <span className="material-symbols-outlined grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-status-success-bg text-[18px] text-status-success-text" aria-hidden="true">verified</span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                <span className="text-2xl font-bold tracking-tight text-ink tabular-nums">
                   {academicProgress != null ? `${academicProgress.toFixed(0)}%` : '—'}
                 </span>
                 <span className="text-xs text-ink-muted">
@@ -187,14 +188,14 @@ export function StudentDashboardSummary() {
           </div>
 
           {/* Gauge 3: Minh chứng đã duyệt */}
-          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <div className="flex h-full flex-col justify-between rounded-xl border border-line-strong/75 border-t-[3px] border-t-primary bg-card p-4 shadow-xs">
             <div>
-              <div className="flex items-center justify-between text-xs text-ink-muted">
-                <span className="font-semibold">Minh chứng đã duyệt</span>
-                <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">fact_check</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.04em] text-ink-muted">Minh chứng đã duyệt</span>
+                <span className="material-symbols-outlined grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-subtle text-[18px] text-primary" aria-hidden="true">fact_check</span>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-ink tabular-nums">
+                <span className="text-2xl font-bold tracking-tight text-ink tabular-nums">
                   {totalRequirements > 0 ? `${acceptedRequirements}/${totalRequirements}` : '—'}
                 </span>
                 <span className="text-xs text-ink-muted">
@@ -214,30 +215,30 @@ export function StudentDashboardSummary() {
           </div>
 
           {/* Gauge 4: Điều kiện bảo vệ */}
-          <div className="card-hover-lift flex h-full flex-col justify-between rounded-xl border border-hairline bg-card p-4 shadow-2xs">
+          <div className={`flex h-full flex-col justify-between rounded-xl border border-line-strong/75 border-t-[3px] ${isDefenseReady ? 'border-t-status-success-text' : 'border-t-status-warning-text'} bg-card p-4 shadow-xs`}>
             <div>
-              <div className="flex items-center justify-between text-xs text-ink-muted">
-                <span className="font-semibold">Điều kiện bảo vệ</span>
-                <span className="material-symbols-outlined text-[18px] text-status-warning-text" aria-hidden="true">gavel</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.04em] text-ink-muted">Điều kiện bảo vệ</span>
+                <span className={`material-symbols-outlined grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[18px] ${isDefenseReady ? 'bg-status-success-bg text-status-success-text' : 'bg-status-warning-bg text-status-warning-text'}`} aria-hidden="true">gavel</span>
               </div>
               <div className="mt-2.5 flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold ${
-                    isDefenseReady === true
+                    isDefenseReady
                       ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
                       : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
                   }`}
                 >
-                  {isDefenseReady !== true && (
+                  {!isDefenseReady && (
                     <span className="pulse-indicator h-1.5 w-1.5 bg-warning-strong" aria-hidden="true" />
                   )}
-                  {isDefenseReady === true ? 'SẴN SÀNG BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
+                  {isDefenseReady ? 'SẴN SÀNG BẢO VỆ' : 'CHƯA ĐỦ ĐIỀU KIỆN'}
                 </span>
               </div>
             </div>
             <p className="mt-2.5 truncate text-xs text-ink-muted" title={timeline?.defenseReadinessStatus ?? 'Đang trong tiến trình học kỳ'}>
-              {timeline?.capabilities?.blockingReasons?.length
-                ? `Còn ${timeline.capabilities.blockingReasons.length} điều kiện cần hoàn thiện`
+              {blockingReasonsCount > 0
+                ? `Còn ${blockingReasonsCount} điều kiện cần hoàn thiện`
                 : 'Theo dõi qua các cổng kiểm duyệt'}
             </p>
           </div>
@@ -476,7 +477,7 @@ function DeadlineList({
   items: Array<{ id: number; title: string; date: string; overdue: boolean; href: string }>
 }) {
   return (
-    <section className="card-hover-lift flex h-full flex-col rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
+    <section className="flex h-full flex-col rounded-2xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
       <h3 className="font-heading text-sm font-bold text-ink">{title}</h3>
       {items.length === 0 ? (
         <p className="mt-2 text-xs text-ink-muted">{empty}</p>

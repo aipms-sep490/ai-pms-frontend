@@ -53,6 +53,8 @@ export function SupervisorProgressReviewPage() {
     })
   }, [items, search, sortBy, statusFilter, typeFilter])
 
+  const reportPager = useClientPagination(filteredReports, 10)
+
   const activeChips = [
     ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
     ...(statusFilter !== 'ALL' ? [{ id: 'status', label: 'Trạng thái', value: ({ SUBMITTED: 'Đã nộp', REVIEWED: 'Đã nhận xét', DRAFT: 'Bản nháp' })[statusFilter] }] : []),
@@ -72,6 +74,8 @@ export function SupervisorProgressReviewPage() {
       className="space-y-6"
       title="Theo dõi tiến độ và báo cáo"
       eyebrow={`Giám sát tiến độ · ${project.code}`}
+      backTo={`${routeBase}/workspace`}
+      backLabel="Tổng quan đồ án"
       description="Theo dõi kết quả thực hiện, những việc cần lưu ý và gửi phản hồi cho nhóm."
       action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới dữ liệu" onClick={review.reload} />}
     >
@@ -137,10 +141,11 @@ export function SupervisorProgressReviewPage() {
             onClearAll={clearFilters}
             hasActiveFilters={activeChips.length > 0}
             resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredReports.length} / ${items.length} báo cáo` : undefined}
+            pagination={reportPager.showPagination ? { page: reportPager.page, pages: reportPager.pages, total: reportPager.total, pageSize: reportPager.pageSize, onPage: reportPager.setPage } : undefined}
           />
         )}
 
-        <ReportList resource={review.reports} filteredItems={filteredReports} onClearFilters={clearFilters} hasFilters={activeChips.length > 0} routeBase={routeBase} />
+        <ReportList resource={review.reports} filteredItems={filteredReports} pager={reportPager} onClearFilters={clearFilters} hasFilters={activeChips.length > 0} routeBase={routeBase} />
       </section>
     </WorkspacePage>
   )
@@ -150,14 +155,14 @@ function ResourceCard<T>({ label, resource, render }: { label: string; resource:
   return <section className="flex h-full min-w-0 flex-col justify-between workspace-surface p-5"><h3 className="text-sm font-semibold text-ink">{label}</h3>{resource.state === 'loading' ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải…</p> : resource.state === 'error' ? <p role="alert" className="mt-3 break-words text-sm text-status-error-text">{resource.message}</p> : <div className="mt-3 break-words text-sm leading-6 text-ink-muted">{render(resource.data)}</div>}</section>
 }
 
-function ReportList({ resource, filteredItems, hasFilters, onClearFilters, routeBase }: {
+function ReportList({ resource, filteredItems, pager, hasFilters, onClearFilters, routeBase }: {
   resource: ProgressReviewResource<{ items: ProgressReport[]; totalCount: number }>
   filteredItems: ProgressReport[]
+  pager: ReturnType<typeof useClientPagination<ProgressReport>>
   hasFilters: boolean
   onClearFilters: () => void
   routeBase: string
 }) {
-  const pager = useClientPagination(filteredItems, 10)
   if (resource.state === 'loading') return <p role="status" className="p-5 text-sm text-ink-muted">Đang tải báo cáo tiến độ…</p>
   if (resource.state === 'error') return <p role="alert" className="p-5 text-sm text-status-error-text">{resource.message}</p>
   if (resource.data.items.length === 0) return <p className="p-5 text-sm text-ink-muted">Chưa có báo cáo tiến độ trong phạm vi dữ liệu hiện có.</p>

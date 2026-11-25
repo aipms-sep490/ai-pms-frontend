@@ -55,5 +55,6 @@
 .deliverable-history-detail .ex-panel-heading { padding:20px 0 12px; }
 .deliverable-history-detail .deliverable-feedback { padding:0; }
 
-.deliverable-review :is(input,select) { display:block; width:100%; min-width:0; min-height:40px; padding:8px 12px; border:1px solid var(--color-hairline); border-radius:8px; background:var(--color-card); color:var(--color-ink); font:inherit; font-size:13px; font-weight:400; text-transform:none; letter-spacing:normal; }
+.deliverable-review :is(input,select) { display:block; width:100%; min-width:0; min-height:40px; padding:8px 12px; border:1px solid var(--color-hairline); border-radius:8px; background-color:var(--color-card); color:var(--color-ink); font:inherit; font-size:13px; font-weight:400; text-transform:none; letter-spacing:normal; }
+.deliverable-review select { padding-right:34px; }
 .deliverable-review :is(input,select):focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }

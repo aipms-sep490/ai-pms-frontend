@@ -6,7 +6,9 @@ import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import '../../../components/ui/workspace-tabs.css'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../../components/ui/Table'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
@@ -351,18 +353,6 @@ export function AdminWorkspacePage() {
         </div>
       </header>
 
-      <nav className="admin-tabs" aria-label="Khu vực quản trị">
-        <div className="admin-tab-group">
-          <button type="button" className={`admin-tab-btn ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>Tài khoản người dùng</button>
-          <button type="button" className={`admin-tab-btn ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>Nhật ký truy cập</button>
-          <button type="button" className={`admin-tab-btn ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>Nhật ký bảo mật</button>
-        </div>
-        <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
-          <Link to="/admin/access/rbac">Phân quyền</Link>
-          <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
-        </div>
-      </nav>
-
       {notice ? (
         <p className="admin-notice" role="status">
           <span className="material-symbols-outlined admin-notice__icon" aria-hidden="true">check_circle</span>
@@ -370,14 +360,64 @@ export function AdminWorkspacePage() {
         </p>
       ) : null}
       {errorNotice ? <p className="admin-error" role="alert">{errorNotice}</p> : null}
+
+      <div className="mt-5">
+        <StatTileRow
+          tiles={[
+            {
+              icon: 'group',
+              label: 'Tài khoản theo bộ lọc',
+              value: admin.users.state === 'ready' ? admin.users.value.totalCount : admin.users.state === 'error' ? 'Lỗi' : null,
+              hero: true,
+              caption: admin.users.state === 'error' ? 'Chưa tải được danh sách tài khoản.' : 'Tài khoản trong phạm vi bộ lọc hiện tại.',
+            },
+            {
+              icon: 'admin_panel_settings',
+              label: 'Vai trò hệ thống',
+              value: admin.rbac.state === 'ready' ? globalRoles.length : admin.rbac.state === 'error' ? 'Lỗi' : null,
+              tone: 'info',
+              caption: admin.rbac.state === 'error' ? 'Chưa tải được danh mục vai trò.' : 'Vai trò toàn cục được phép gán.',
+            },
+            {
+              icon: 'verified_user',
+              label: 'Hoạt động đã ghi nhận',
+              value: admin.audit.state === 'ready' ? admin.audit.value.totalCount : admin.audit.state === 'error' ? 'Lỗi' : null,
+              tone: 'neutral',
+              caption: admin.audit.state === 'error' ? 'Chưa tải được nhật ký bảo mật.' : 'Sự kiện quản trị và bảo mật hệ thống.',
+            },
+            {
+              icon: 'key',
+              label: 'Danh mục quyền',
+              value: admin.rbac.state === 'ready' ? (admin.rbac.value?.permissions.length ?? 0) : admin.rbac.state === 'error' ? 'Lỗi' : null,
+              tone: 'success',
+              caption: 'Tổng quyền phân hệ đang được áp dụng.',
+            },
+          ]}
+        />
+      </div>
+
       <SystemStatusPanel />
 
-      <section className="admin-overview" aria-label="Tổng quan vận hành">
-        <Fact label="Tài khoản theo bộ lọc" value={admin.users.state === 'ready' ? String(admin.users.value.totalCount) : admin.users.state === 'error' ? 'Chưa tải được' : '—'} />
-        <Fact label="Vai trò hệ thống" value={admin.rbac.state === 'ready' ? String(globalRoles.length) : admin.rbac.state === 'error' ? 'Chưa tải được' : '—'} />
-        <Fact label="Hoạt động đã ghi nhận" value={admin.audit.state === 'ready' ? String(admin.audit.value.totalCount) : admin.audit.state === 'error' ? 'Chưa tải được' : '—'} />
-        <p className="admin-boundary">Theo dõi tài khoản, vai trò và hoạt động quản trị trên hệ thống.</p>
-      </section>
+      <nav className="mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Khu vực quản trị">
+        <div className="ui-workspace-tabs">
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'accounts' ? 'is-active' : ''}`} aria-controls="accounts" aria-pressed={activeTab === 'accounts'} onClick={() => setFilter({ tab: 'accounts' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">group</span>
+            <span>Tài khoản người dùng</span>
+          </button>
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'access' ? 'is-active' : ''}`} aria-controls="access-events" aria-pressed={activeTab === 'access'} onClick={() => setFilter({ tab: 'access' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">login</span>
+            <span>Nhật ký truy cập</span>
+          </button>
+          <button type="button" className={`ui-workspace-tab ${activeTab === 'audit' ? 'is-active' : ''}`} aria-controls="audit" aria-pressed={activeTab === 'audit'} onClick={() => setFilter({ tab: 'audit' })}>
+            <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">security</span>
+            <span>Nhật ký bảo mật</span>
+          </button>
+        </div>
+        <div className="admin-nav-links" aria-label="Trang quản trị liên quan">
+          <Link to="/admin/access/rbac">Phân quyền</Link>
+          <Link to="/academic/governance">Học kỳ & Kỳ đồ án</Link>
+        </div>
+      </nav>
 
       <section id="accounts" className="admin-panel" aria-labelledby="accounts-title" hidden={activeTab !== 'accounts'}>
         <div className="admin-panel-heading admin-roster-heading">
@@ -398,10 +438,11 @@ export function AdminWorkspacePage() {
         <div className="mt-4">
           <FilterToolbar
             embedded
+            className="ft-bar--compact"
             ariaLabel="Bộ lọc tài khoản người dùng"
             search={search}
             onSearchChange={(value) => setFilter({ search: value, page: '1' })}
-            searchPlaceholder="Tìm theo tên, email, MSSV hoặc mã nhân sự…"
+            searchPlaceholder="Tìm tên, email…"
             searchLabel="Tìm kiếm tài khoản"
             activeTab={status}
             onTabChange={(value) => setFilter({ status: value, page: '1' })}
@@ -482,6 +523,17 @@ export function AdminWorkspacePage() {
                 ? `Hiển thị ${filteredUsers.length} / ${admin.users.value.totalCount} tài khoản`
                 : undefined
             }
+            pagination={
+              admin.users.state === 'ready'
+                ? {
+                    page: admin.users.value.page,
+                    pages: Math.max(1, Math.ceil(admin.users.value.totalCount / Math.max(1, admin.users.value.pageSize))),
+                    total: admin.users.value.totalCount,
+                    pageSize: admin.users.value.pageSize,
+                    onPage: (next) => setFilter({ page: String(next) }),
+                  }
+                : undefined
+            }
           />
         </div>
 
@@ -494,39 +546,39 @@ export function AdminWorkspacePage() {
         ) : null}
 
         {admin.users.state === 'ready' && filteredUsers.length > 0 ? (
-          <div className="mt-4">
-            <Table stack>
+          <div className="mt-4 -mx-4 sm:-mx-5">
+            <Table stack className="text-[13px]">
               <TableHead>
                 <TableRow head>
-                  <TableHeaderCell>Người dùng</TableHeaderCell>
-                  <TableHeaderCell>Vai trò hệ thống</TableHeaderCell>
-                  <TableHeaderCell>Trạng thái</TableHeaderCell>
-                  <TableHeaderCell>Đăng nhập gần nhất</TableHeaderCell>
-                  <TableHeaderCell>Phạm vi học thuật</TableHeaderCell>
-                  <TableHeaderCell>Thao tác</TableHeaderCell>
+                  <TableHeaderCell className="px-2 first:pl-3">Người dùng</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Vai trò hệ thống</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Trạng thái</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Đăng nhập gần nhất</TableHeaderCell>
+                  <TableHeaderCell className="px-2">Phạm vi học thuật</TableHeaderCell>
+                  <TableHeaderCell className="px-2 text-right last:pr-3">Thao tác</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell label="Người dùng">
-                      <div className="flex items-center gap-3">
+                    <TableCell label="Người dùng" className="px-2 first:pl-3">
+                      <div className="flex items-center gap-2">
                         <Avatar name={user.fullName} size="sm" />
                         <div className="flex min-w-0 flex-col">
-                          <strong className="text-ink">{user.fullName}</strong>
-                          <span className="text-xs text-ink-muted">{user.email}</span>
-                          <small className="text-xs text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</small>
+                          <strong className="truncate max-w-[148px] text-ink" title={user.fullName}>{user.fullName}</strong>
+                          <span className="truncate max-w-[148px] text-xs text-ink-muted" title={user.email}>{user.email}</span>
+                          <span className="font-mono text-xs text-ink-muted">{user.studentCode ?? user.employeeCode ?? 'Không có mã'}</span>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell label="Vai trò hệ thống">
+                    <TableCell label="Vai trò hệ thống" className="px-2">
                       {user.roles
                         .filter((role) => globalRoles.some((globalRole) => globalRole.code === role))
                         .map(role => (role === 'LECTURER' ? 'Giảng viên' : role === 'EVALUATOR' ? 'Người chấm' : displayLabel(role)))
                         .join(', ') || 'Chưa gán'}
                     </TableCell>
-                    <TableCell label="Trạng thái"><Status status={user.status} /></TableCell>
-                    <TableCell label="Đăng nhập gần nhất">
+                    <TableCell label="Trạng thái" className="whitespace-nowrap px-2"><Status status={user.status} /></TableCell>
+                    <TableCell label="Đăng nhập gần nhất" className="whitespace-nowrap px-2 text-xs tabular-nums">
                       {user.lastLoginAt ? (
                         <time dateTime={user.lastLoginAt}>
                           {formatSafeTimestamp(user.lastLoginAt, {
@@ -539,21 +591,21 @@ export function AdminWorkspacePage() {
                         </time>
                       ) : 'Chưa ghi nhận'}
                     </TableCell>
-                    <TableCell label="Phạm vi học thuật">
+                    <TableCell label="Phạm vi học thuật" className="px-2">
                       <div className="flex flex-col">
                         <span>
                           {user.departmentId ? academicNames.departments[user.departmentId] ?? 'Chưa tải được tên bộ môn' : 'Chưa liên kết bộ môn'}
                           {user.majorId ? ` · ${academicNames.majors[user.majorId] ?? 'Chưa tải được tên ngành'}` : ''}
                         </span>
                         {(user.classCode || user.specializationName) && (
-                          <small className="text-xs text-ink-muted">
+                          <span className="text-xs text-ink-muted">
                             {[user.classCode ? `Lớp ${user.classCode}` : null, user.specializationName].filter(Boolean).join(' · ')}
-                          </small>
+                          </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell label="Thao tác">
-                      <Link className="font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
+                    <TableCell label="Thao tác" className="whitespace-nowrap px-2 text-right last:pr-3">
+                      <Link className="whitespace-nowrap font-semibold text-primary hover:underline" to={`/admin/access/users/${user.id}`} state={{ returnTo: `/admin/access?${params.toString()}` }}>
                         Xem chi tiết
                       </Link>
                     </TableCell>
@@ -578,7 +630,7 @@ export function AdminWorkspacePage() {
                       setSortBy('default')
                     }}
                   >
-                    Đặt lại bộ lọc
+                    Xóa bộ lọc
                   </Button>
                 ) : undefined
               }
@@ -707,6 +759,17 @@ export function AdminWorkspacePage() {
             onClearAll={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '', auditPage: '1' })}
             hasActiveFilters={auditChips.length > 0}
             clearAllLabel="Đặt lại"
+            pagination={
+              admin.audit.state === 'ready'
+                ? {
+                    page: admin.audit.value.page,
+                    pages: Math.max(1, Math.ceil(admin.audit.value.totalCount / Math.max(1, admin.audit.value.pageSize))),
+                    total: admin.audit.value.totalCount,
+                    pageSize: admin.audit.value.pageSize,
+                    onPage: (next) => setFilter({ auditPage: String(next) }),
+                  }
+                : undefined
+            }
           />
         </div>
         {admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}
@@ -733,13 +796,13 @@ export function AdminWorkspacePage() {
                   <TableCell label="Hành động"><strong title={record.action}>{auditActionLabel(record.action)}</strong></TableCell>
                   <TableCell label="Người thực hiện">{record.actorName?.trim() || 'Hệ thống'}</TableCell>
                   <TableCell label="Đối tượng">{formatAuditEntity(record)}</TableCell>
-                  <TableCell label="Kết quả">
+                  <TableCell label="Kết quả" className="whitespace-nowrap">
                     <StatusBadge
                       tone={record.outcome === 'SUCCESS' ? 'success' : 'danger'}
                       label={record.outcome === 'SUCCESS' ? 'Thành công' : record.outcome === 'FAILURE' ? 'Thất bại' : displayLabel(record.outcome)}
                     />
                   </TableCell>
-                  <TableCell label="Thời gian">
+                  <TableCell label="Thời gian" className="whitespace-nowrap">
                     <time dateTime={record.occurredAt}>
                       {formatSafeTimestamp(record.occurredAt, { dateStyle: 'short', timeStyle: 'short' })}
                     </time>
@@ -790,9 +853,9 @@ export function AdminWorkspacePage() {
                 ))}
               </fieldset>
               <p className="admin-boundary">Vai trò trưởng nhóm, giảng viên hướng dẫn và người chấm được quản lý theo từng đồ án.</p>
-              <div className="admin-actions">
-                <Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button>
+              <div className="app-modal__actions col-span-full">
                 <Button type="button" variant="outline" disabled={busy} onClick={() => setCreateOpen(false)}>Đóng</Button>
+                <Button type="submit" disabled={busy}>{busy ? 'Đang tạo…' : 'Tạo tài khoản'}</Button>
               </div>
             </fieldset>
           </form>
@@ -837,11 +900,11 @@ export function AdminWorkspacePage() {
               className="font-mono text-xs"
             />
           </label>
-          <div className="admin-actions">
+          <div className="app-modal__actions">
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setJsonImportOpen(false)}>Đóng</Button>
             <Button type="button" disabled={busy || !importText.trim()} onClick={submitImport}>
               {busy ? 'Đang gửi…' : 'Gửi lô tới máy chủ'}
             </Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setJsonImportOpen(false)}>Đóng</Button>
           </div>
         </Modal>
       )}
@@ -853,10 +916,6 @@ function formatAuditEntity(record: Audit): string {
   const typeLabel = AUDIT_ENTITY_LABELS[record.entityType] ?? displayLabel(record.entityType)
   if (record.entityDisplayName?.trim()) return `${typeLabel}: ${record.entityDisplayName.trim()}`
   return typeLabel
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><strong>{value}</strong></div>
 }
 
 const statusTone: Record<UserAccount['status'], BadgeTone> = { ACTIVE: 'success', INACTIVE: 'neutral', SUSPENDED: 'danger' }
@@ -893,7 +952,7 @@ function Pagination({
             aria-label="Số bản ghi trên mỗi trang"
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className="h-8 min-h-8 w-auto rounded-lg border border-hairline bg-card px-2 text-xs text-ink"
+            className="h-8 min-h-8 w-auto rounded-lg border border-hairline bg-card pl-2.5 pr-8 text-xs text-ink"
           >
             {[10, 12, 20, 50].map((size) => (
               <option key={size} value={size}>{size} / trang</option>

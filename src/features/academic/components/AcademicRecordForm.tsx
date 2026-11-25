@@ -162,7 +162,7 @@ export function AcademicRecordForm({
           {fieldErrors.name && <small id={errorId('name')} className="text-status-error-text">{fieldErrors.name}</small>}
         </label>
         <label>
-          Mô tả <span>(không bắt buộc)</span>
+          <span className="font-bold text-ink-soft">Mô tả <span className="font-medium text-ink-muted">(không bắt buộc)</span></span>
           <textarea aria-label="Mô tả" value={description} onChange={(event) => { setDescription(event.target.value); clearFieldError('description') }} disabled={isSubmitting} rows={3} maxLength={1000} aria-invalid={Boolean(fieldErrors.description)} aria-describedby={fieldErrors.description ? errorId('description') : undefined} />
           {fieldErrors.description && <small id={errorId('description')} className="text-status-error-text">{fieldErrors.description}</small>}
         </label>

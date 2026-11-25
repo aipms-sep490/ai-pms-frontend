@@ -57,8 +57,8 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-hairline pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-xl text-primary">
-              ⚡
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="material-symbols-outlined text-[22px]" aria-hidden="true">bolt</span>
             </div>
             <div>
               <h3 className="text-base font-bold text-ink">Tự động phân chia phòng & ca bảo vệ</h3>
@@ -97,7 +97,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
 
             {/* Office Hours Note */}
             <div className="rounded-xl border border-primary/20 bg-primary-subtle/30 p-3 text-xs leading-relaxed text-primary">
-              <span className="font-bold">⏰ Ràng buộc giờ hành chính:</span>
+              <span className="inline-flex items-center gap-1.5 font-bold"><span className="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span><span>Ràng buộc giờ hành chính:</span></span>
               <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-ink-soft">
                 <li>Ca Sáng: Slot 1 (08:00–09:15), Slot 2 (09:30–10:45), Slot 3 (11:00–12:15)</li>
                 <li>Ca Chiều: Slot 4 (13:30–14:45), Slot 5 (15:00–16:15), Slot 6 (16:30–17:45)</li>
@@ -174,7 +174,7 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
 
             {/* Conflict Warning */}
             <div className="flex items-start gap-2.5 rounded-xl border border-status-warning-border bg-status-warning-bg p-3 text-status-warning-text">
-              <span className="text-base">⚠️</span>
+              <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]" aria-hidden="true">warning</span>
               <div>
                 <p className="font-bold">Có 3 đồ án chưa xếp được ca phù hợp:</p>
                 <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-status-warning-text">
@@ -189,9 +189,10 @@ export const AutoScheduleModal: React.FC<AutoScheduleModalProps> = ({
               <button
                 type="button"
                 onClick={() => setStep('CONFIG')}
-                className="min-h-11 px-2 text-xs font-semibold text-ink-muted hover:text-ink"
+                className="inline-flex min-h-11 items-center gap-1 px-2 text-xs font-semibold text-ink-muted hover:text-ink"
               >
-                ◀ Cấu hình lại
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
+                <span>Cấu hình lại</span>
               </button>
               <div className="flex gap-2">
                 <button

@@ -13,6 +13,7 @@ import { StudentQualificationCard } from '../../qualifications/components/Studen
 import { Modal } from '../../../components/ui/Modal'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
+import { StatTileRow, WorkspaceTabs } from '../../../components/ui'
 import { services } from '../../../services/service-gateway'
 import { EligibilityHistoryPanel } from '../components/EligibilityHistoryPanel'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
@@ -260,45 +261,23 @@ export function TeamManagementPage() {
       ) : (
         /* When Student HAS A TEAM */
         <div className="flex flex-col gap-5">
-          {/* Compact Team Overview & Status Bar */}
-          <div className="flex flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs md:flex-row md:items-center">
+          {/* Compact Team Identity Bar (metrics live in StatTileRow below to avoid duplication) */}
+          <div className="flex flex-col justify-between gap-3 rounded-xl border border-hairline bg-card px-5 py-4 shadow-xs md:flex-row md:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="rounded-lg border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold text-primary">
                   {team.code}
                 </span>
                 <h2 className="text-lg font-bold text-ink">{team.name}</h2>
-                <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-soft">
-                  {team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành'}
-                </span>
-                <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                  team.status === 'ELIGIBLE'
-                    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                    : team.status === 'LOCKED'
-                      ? 'border-hairline bg-canvas text-ink-soft'
-                      : 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
-                }`}>
-                  {team.status === 'ELIGIBLE'
-                    ? 'Đủ điều kiện đăng ký'
-                    : team.status === 'LOCKED'
-                      ? 'Đã khóa theo đề tài'
-                      : 'Đang kiện toàn nhân sự'}
-                </span>
               </div>
               {team.description && (
-                <p className="mt-1.5 max-w-2xl text-xs text-ink-muted">{team.description}</p>
+                <p className="mt-1 max-w-3xl text-xs text-ink-muted">{team.description}</p>
               )}
-              {rosterLocked && <p className="mt-1.5 text-xs text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
+              {rosterLocked && <p className="mt-1 text-xs text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 shrink-0">
-              <div className="text-right">
-                <span className="block text-xs text-ink-muted">Sĩ số nhóm</span>
-                <span className="text-sm font-bold tabular-nums text-ink">
-                  {team.members.length} / {maxTeamSize ?? '—'} thành viên
-                </span>
-              </div>
-              {!rosterLocked && team.eligibility.canRegister && permissions.canCreateProjectDraft && (
+            {!rosterLocked && team.eligibility.canRegister && permissions.canCreateProjectDraft && (
+              <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
                   onClick={() => navigate('/project/register')}
@@ -307,8 +286,8 @@ export function TeamManagementPage() {
                   Đăng ký đề tài
                   <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {leaderChangeRequests.some((request) => request.status === 'PENDING') && (
@@ -330,62 +309,54 @@ export function TeamManagementPage() {
             </section>
           )}
 
-          {/* Clean Section Tabs */}
-          <div role="tablist" aria-label="Phân mục quản lý nhóm" className="flex flex-wrap items-center gap-1.5 rounded-xl border border-hairline bg-card p-1.5 shadow-2xs">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'roster'}
-              onClick={() => setActiveTab('roster')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'roster' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">group</span>
-              Thành viên &amp; Phân công ({team.members.length})
-            </button>
-            {showInvitationsTab && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={effectiveTab === 'invitations'}
-                onClick={() => setActiveTab('invitations')}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                  effectiveTab === 'invitations' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">mail</span>
-                Lời mời &amp; Ứng viên
-                {pendingInviteCount > 0 && (
-                  <span className="rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-white">{pendingInviteCount}</span>
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'eligibility'}
-              onClick={() => setActiveTab('eligibility')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'eligibility' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">verified</span>
-              Điều kiện &amp; Chứng chỉ
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === 'ai'}
-              onClick={() => setActiveTab('ai')}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
-                effectiveTab === 'ai' ? 'bg-primary-subtle text-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">auto_awesome</span>
-              Phân tích kỹ năng AI
-            </button>
-          </div>
+          {/* Top 4-tile V2 KPI Row */}
+          <StatTileRow
+            tiles={[
+              {
+                icon: 'groups',
+                label: 'Sĩ số nhóm',
+                value: `${team.members.length} / ${maxTeamSize ?? '—'}`,
+                caption: `${team.members.length} / ${maxTeamSize ?? '—'} thành viên`,
+                hero: true,
+              },
+              {
+                icon: 'category',
+                label: 'Hình thức đồ án',
+                value: team.academicScope?.projectMode === 'INTERDISCIPLINARY' ? 'Liên ngành' : 'Đơn ngành',
+                caption: team.academicScope?.requirements?.length ? `${team.academicScope.requirements.length} chuyên ngành tham gia` : 'Theo cấu hình kỳ đồ án',
+                tone: 'info',
+              },
+              {
+                icon: 'mail',
+                label: 'Lời mời đang chờ',
+                value: pendingInviteCount,
+                caption: rosterLocked ? 'Danh sách thành viên đã chốt' : 'Lời mời gửi đi & nhận được',
+                tone: pendingInviteCount > 0 ? 'warning' : 'neutral',
+              },
+              {
+                icon: 'verified',
+                label: 'Trạng thái điều kiện',
+                value: team.status === 'ELIGIBLE' ? 'Đủ điều kiện' : team.status === 'LOCKED' ? 'Đã khóa' : 'Đang kiện toàn',
+                caption: team.eligibility.canRegister ? 'Sẵn sàng đăng ký đề tài' : 'Xem tab Điều kiện & Chứng chỉ',
+                tone: team.status === 'ELIGIBLE' ? 'success' : 'warning',
+              },
+            ]}
+          />
+
+          {/* High-Contrast V2 Section Tabs */}
+          <WorkspaceTabs
+            ariaLabel="Phân mục quản lý nhóm"
+            activeId={effectiveTab}
+            onChange={(next) => setActiveTab(next)}
+            tabs={[
+              { id: 'roster' as const, label: 'Thành viên & Phân công', icon: 'group', count: team.members.length },
+              ...(showInvitationsTab
+                ? [{ id: 'invitations' as const, label: 'Lời mời & Ứng viên', icon: 'mail', count: pendingInviteCount > 0 ? pendingInviteCount : null, badgeTone: pendingInviteCount > 0 ? ('warning' as const) : ('default' as const) }]
+                : []),
+              { id: 'eligibility' as const, label: 'Điều kiện & Chứng chỉ', icon: 'verified' },
+              { id: 'ai' as const, label: 'Phân tích kỹ năng AI', icon: 'auto_awesome' },
+            ]}
+          />
 
           {effectiveTab === 'roster' && (
             <div className="space-y-5">

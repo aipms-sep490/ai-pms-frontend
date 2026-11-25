@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { useSupervisors } from '../hooks/useSupervisors'
@@ -88,13 +89,23 @@ export function SupervisorMonitoringPage() {
       title="Giảng viên hướng dẫn"
       description="Tra cứu hồ sơ, chuyên môn và trạng thái sẵn sàng của giảng viên trong bộ môn."
       action={
-        <div className="flex items-center gap-3">
-          <div className="sup__count"><strong>{supervisors.totalCount}</strong><span>hồ sơ</span></div>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={supervisors.loading} onClick={() => void supervisors.refresh()} />
-        </div>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={supervisors.loading} onClick={() => void supervisors.refresh()} />
       }
     >
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'school', label: 'Tổng giảng viên', value: supervisors.loading ? null : supervisors.totalCount, hero: true, caption: 'Trong phạm vi bộ môn và bộ lọc hiện tại.' },
+            { icon: 'how_to_reg', label: 'Sẵn sàng hướng dẫn', value: supervisors.loading ? null : supervisors.items.filter(s => s.isAvailable).length, tone: 'success', caption: 'Đang mở nhận nhóm trên trang này.' },
+            { icon: 'person_off', label: 'Tạm chưa nhận', value: supervisors.loading ? null : supervisors.items.filter(s => !s.isAvailable).length, tone: 'neutral', caption: 'Chưa mở nhận mới trên trang này.' },
+            { icon: 'apartment', label: 'Bộ môn được quản lý', value: supervisors.allowedDepartments.length, tone: 'info', caption: 'Phạm vi học vụ được cấp quyền.' },
+          ]}
+        />
+      </div>
+
       <FilterToolbar
+        layout="stacked"
+        className="ft-bar--compact"
         search={supervisors.filters.search ?? ''}
         onSearchChange={value => supervisors.setFilters({ ...supervisors.filters, search: value || undefined, page: 1 })}
         searchLabel="Tìm kiếm giảng viên"
@@ -129,8 +140,8 @@ export function SupervisorMonitoringPage() {
               <span className="sr-only">Chuyên môn</span>
               <input
                 aria-label="Chuyên môn"
-                placeholder="Lọc chuyên môn (VD: AI)..."
-                className="ft-select min-w-[160px]"
+                placeholder="Chuyên môn (AI…)"
+                className="ft-select w-[136px]"
                 value={supervisors.filters.expertise ?? ''}
                 onChange={event => supervisors.setFilters({ ...supervisors.filters, expertise: event.target.value || undefined, page: 1 })}
               />
@@ -167,6 +178,7 @@ export function SupervisorMonitoringPage() {
         onClearAll={() => supervisors.setFilters({ ...supervisors.filters, search: undefined, expertise: undefined, isAvailable: undefined, page: 1 })}
         hasActiveFilters={hasActiveFilters}
         resultSummary={`${sortedItems.length} / ${supervisors.totalCount} hồ sơ`}
+        pagination={!supervisors.loading && supervisors.totalCount > supervisors.pageSize ? { page: supervisors.page, pages: Math.max(1, Math.ceil(supervisors.totalCount / Math.max(1, supervisors.pageSize))), total: supervisors.totalCount, pageSize: supervisors.pageSize, busy: supervisors.loading, onPage: (next) => supervisors.setFilters({ ...supervisors.filters, page: next }) } : undefined}
       />
 
       {supervisors.loading ? (

@@ -152,35 +152,38 @@ export const DefenseCoordinatorView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveMainTab('GRID')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'GRID'
                 ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
-            📅 Lưới lịch bảo vệ (Timetable Grid)
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">calendar_month</span>
+            <span>Lưới lịch bảo vệ (Timetable Grid)</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveMainTab('ROOM_CANVAS')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'ROOM_CANVAS'
                 ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
-            🏛️ Sơ đồ bố trí phòng 2D (Room Canvas)
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">apartment</span>
+            <span>Sơ đồ bố trí phòng 2D (Room Canvas)</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveMainTab('CHANGE_REQUESTS')}
-            className={`min-h-11 rounded-lg px-4 py-2 font-bold transition-all ${
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 py-2 font-bold transition-all ${
               activeMainTab === 'CHANGE_REQUESTS'
                 ? 'bg-card text-primary shadow-xs'
                 : 'text-ink-muted hover:text-ink'
             }`}
           >
-            📑 Quản lý đơn đổi phòng (1 đơn chờ duyệt)
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">assignment</span>
+            <span>Quản lý đơn đổi phòng (1 đơn chờ duyệt)</span>
           </button>
         </div>
 
@@ -282,7 +285,7 @@ export const DefenseCoordinatorView: React.FC = () => {
                 <p className="text-ink-soft">Hệ thống Xe tự hành nhận diện biển báo giao thông Việt Nam</p>
                 <div className="flex flex-wrap gap-4 pt-1 text-xs text-ink-muted">
                   <span>Phòng cũ: <strong>A-202 (Slot 2, 20/11)</strong></span>
-                  <span>➜ Mong muốn đổi sang: <strong className="text-primary">A-305 (Slot 4, 21/11)</strong></span>
+                  <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_forward</span>Mong muốn đổi sang: <strong className="text-primary">A-305 (Slot 4, 21/11)</strong></span>
                   <span>Lý do: <em>Cần không gian lớn hơn để demo mô hình xe chạy thực tế</em></span>
                 </div>
               </div>

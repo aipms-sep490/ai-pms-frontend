@@ -54,14 +54,18 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
         const hero = index === heroIndex
         const tone: BadgeTone = tile.tone ?? 'info'
         const isInteractive = typeof tile.onClick === 'function'
-        const activeClass = tile.active ? 'ring-2 ring-primary ring-offset-2' : ''
-        const interactiveClass = isInteractive
-          ? 'cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/50 active:translate-y-0 text-left w-full'
+        const activeClass = tile.active
+          ? (hero ? 'shadow-md' : 'border-primary bg-primary-subtle/35 shadow-sm')
           : ''
+        const interactiveClass = isInteractive
+          ? (hero
+              ? 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0 text-left w-full'
+              : 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm active:translate-y-0 text-left w-full')
+          : 'transition-shadow duration-200 hover:shadow-sm'
 
         const surfaceClass = hero
-          ? 'border-primary bg-primary text-white shadow-xs'
-          : `border-hairline border-t-[3px] ${toneAccentBorder[tone]} bg-card text-ink shadow-2xs`
+          ? 'border-primary bg-gradient-to-br from-primary to-primary-hover text-white shadow-[0_6px_18px_-8px_color-mix(in_oklab,var(--color-primary)_48%,transparent)]'
+          : `border-line-strong/75 border-t-[3px] ${toneAccentBorder[tone]} bg-card text-ink shadow-xs`
 
         const iconChipClass = hero
           ? 'bg-white/15 text-white'
@@ -93,7 +97,13 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
                   {tile.icon}
                 </span>
               </div>
-              <strong className={`mt-2 block text-2xl sm:text-[28px] font-bold leading-tight tabular-nums ${valueTextClass}`}>
+              <strong
+                className={`mt-2 block font-bold leading-tight tabular-nums ${
+                  typeof tile.value === 'string' && tile.value.length > 8
+                    ? 'text-xl sm:text-[22px] break-words'
+                    : 'text-2xl sm:text-[28px]'
+                } ${valueTextClass}`}
+              >
                 {tile.value === null ? '—' : typeof tile.value === 'string' ? tile.value : tile.value.toLocaleString('vi-VN')}
               </strong>
             </div>

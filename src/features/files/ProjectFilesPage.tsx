@@ -1,11 +1,13 @@
+import { Avatar } from '../../components/ui/Avatar'
 import { Modal } from '../../components/ui/Modal'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { dateTimeLabel, utcTimestamp } from '../execution/execution-utils'
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { services } from '../../services/service-gateway'
 import { getMeetings } from '../../services/api/meetings.api'
@@ -36,11 +38,29 @@ const formatLabels: Record<string, string> = {
 }
 
 export function ProjectFilesPage() {
+  const location = useLocation()
   const routeId = Number(useParams().projectId)
   const journey = useStudentJourney()
   const { session } = useAuthSession()
   const role = getWorkspaceRole(session?.user)
   const projectId = Number.isInteger(routeId) && routeId > 0 ? routeId : journey.project?.id
+  const executionBase = useMemo(() => {
+    const mentorMatch = location.pathname.match(/^(\/mentor\/projects\/\d+\/majors\/\d+)/)
+    if (mentorMatch) return mentorMatch[1]
+    if (location.pathname.startsWith('/supervisor/projects/') && projectId) return `/supervisor/projects/${projectId}`
+    if (location.pathname.startsWith('/project/')) return '/project'
+    if (role === 'student') return '/project'
+    if (role === 'lecturer' && projectId) return `/supervisor/projects/${projectId}`
+    return null
+  }, [location.pathname, projectId, role])
+  const parentHref = (file: ProjectFile): string | null => {
+    if (!executionBase) return null
+    if (file.parentType === 'TASK') return `${executionBase}/tasks/${file.parentId}`
+    if (file.parentType === 'REPORT') return `${executionBase}/reports/${file.parentId}`
+    if (file.parentType === 'MEETING') return `${executionBase}/meetings/${file.parentId}`
+    if (file.parentType === 'VERSION') return `${executionBase}/deliverables`
+    return null
+  }
   const activeStudentProject = role === 'student' && journey.journeyState === 'ACTIVE' && journey.project?.id === projectId
   const canUpload = activeStudentProject || (role === 'lecturer' && Number.isInteger(routeId) && routeId > 0)
 
@@ -289,11 +309,18 @@ export function ProjectFilesPage() {
   const inputClass = 'min-h-11 min-w-0 w-full rounded-md border border-hairline bg-card px-3 text-sm font-normal normal-case tracking-normal text-ink outline-none placeholder:text-ink-muted focus:border-primary focus:ring-2 focus:ring-primary/15'
   const hasActiveFilters = activeFilterChips.length > 0 || sortBy !== 'newest'
 
+  const backTo = Number.isInteger(routeId) && routeId > 0
+    ? (role === 'department' || role === 'admin' ? '/department/portfolio' : `/supervisor/projects/${routeId}/workspace`)
+    : undefined
+  const backLabel = role === 'department' || role === 'admin' ? 'Danh mục đồ án' : 'Tổng quan đồ án'
+
   return (
     <WorkspacePage
       className="project-files-page space-y-5"
       title="Kho tệp đồ án"
       eyebrow={journey.project?.code ? `Kho tài liệu • ${journey.project.code}` : 'Kho tài liệu đồ án'}
+      backTo={backTo}
+      backLabel={backLabel}
       description="Tìm và quản lý tài liệu theo công việc, báo cáo và cuộc họp của nhóm."
       action={
         <div className="flex flex-wrap items-center gap-2">
@@ -339,18 +366,17 @@ export function ProjectFilesPage() {
         </section>
       )}
 
-      <section className="workspace-surface" aria-labelledby="project-file-list">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-6">
-          <div>
-            <h2 id="project-file-list" className="font-semibold text-ink">Tệp trong phạm vi đồ án</h2>
-            <p className="mt-1 text-xs text-ink-muted">Tìm nhanh theo nguồn phát sinh, định dạng và tên tệp.</p>
-          </div>
-          {data && !loading && (
-            <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
-              {data.totalCount} tệp
-            </span>
-          )}
-        </div>
+      <StatTileRow
+        tiles={[
+          { icon: 'folder_open', label: 'Tổng tệp đồ án', value: data ? data.totalCount : null, caption: 'Theo bộ lọc nguồn và định dạng hiện tại', hero: true },
+          { icon: 'inventory_2', label: 'Hạng mục & báo cáo', value: data ? data.items.filter(f => f.parentType === 'VERSION' || f.parentType === 'REPORT').length : null, caption: 'Tệp bàn giao và báo cáo trên trang này', tone: 'info' },
+          { icon: 'assignment', label: 'Công việc & họp', value: data ? data.items.filter(f => f.parentType === 'TASK' || f.parentType === 'MEETING').length : null, caption: 'Tệp đính kèm thực thi trên trang này', tone: 'success' },
+          { icon: 'storage', label: 'Dung lượng trang này', value: data ? formatBytes(data.items.reduce((sum, f) => sum + f.sizeBytes, 0)) : null, caption: `${data?.items.length ?? 0} tệp đang hiển thị`, tone: 'neutral' },
+        ]}
+      />
+
+      <section className="workspace-surface overflow-hidden" aria-labelledby="project-file-list">
+        <h2 id="project-file-list" className="sr-only">Tệp trong phạm vi đồ án</h2>
 
         <FilterToolbar
           embedded
@@ -363,7 +389,7 @@ export function ProjectFilesPage() {
           search={filters.search ?? ''}
           onSearchChange={(val) => setFilters(current => ({ ...current, page: 1, search: val.trim() || undefined }))}
           searchLabel="Tên tệp"
-          searchPlaceholder="Tìm theo tên tệp (ví dụ: biên bản họp, báo cáo…)"
+          searchPlaceholder="Tìm theo tên tệp…"
           controls={
             <>
               <select
@@ -416,7 +442,8 @@ export function ProjectFilesPage() {
           }}
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAllFilters}
-          resultSummary={data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} tệp` : undefined}
+          resultSummary={data ? `${sortedItems.length} / ${data.totalCount} tệp` : undefined}
+          pagination={data ? { page: data.page, pages: totalPages, total: data.totalCount, pageSize: data.pageSize, busy: loading || busy, onPage: (nextPage) => setFilters(current => ({ ...current, page: nextPage })) } : undefined}
         />
 
         {loading ? (
@@ -435,47 +462,83 @@ export function ProjectFilesPage() {
         ) : data && (
           <>
             <ul className="divide-y divide-hairline">
-              {sortedItems.map(file => (
-                <li key={file.id} className="grid gap-3 px-4 py-4 text-sm transition-colors hover:bg-canvas/80 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5">
-                  <span className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary">
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">description</span>
-                  </span>
+              {sortedItems.map(file => {
+                const parentLabel = (file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'
+                const sourceHref = parentHref(file)
+                const uploaderName = file.uploadedByName || journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName || 'Thành viên dự án'
+                const visual = fileVisual(file.contentType, file.fileName)
+                return (
+                <li key={file.id} className="grid gap-3.5 px-4 py-4 text-sm transition-colors hover:bg-canvas/75 sm:px-5 lg:grid-cols-[42px_minmax(0,1.55fr)_minmax(200px,0.85fr)_auto] lg:items-center">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setPreviewTarget(file)}
+                    aria-label={`Xem trước ${file.fileName}`}
+                    className={`grid size-[42px] shrink-0 place-items-center rounded-xl border transition-opacity hover:opacity-85 ${visual.tone}`}
+                  >
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{visual.icon}</span>
+                  </button>
                   <div className="min-w-0">
-                    <strong className="block break-words text-ink">{file.fileName}</strong>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      {(file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'}
-                      {' · '}
-                      <span title={file.contentType || undefined}>{fileFormat(file.contentType, file.fileName)}</span>
-                      {' · '}
-                      <span className="font-mono">{formatBytes(file.sizeBytes)}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Tải bởi <span>{file.uploadedByName || journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName || 'Thành viên dự án'}</span> · {dateTimeLabel(file.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md bg-primary-subtle border border-primary/20 px-3.5 font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 transition-all flex items-center gap-1.5" onClick={() => setPreviewTarget(file)}>
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span><span>Xem trước</span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setPreviewTarget(file)}
+                      className="block max-w-full truncate text-left text-sm font-bold text-ink transition-colors hover:text-primary hover:underline"
+                      title={file.fileName}
+                    >
+                      {file.fileName}
                     </button>
-                    <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md border border-hairline px-3.5 font-semibold text-primary hover:border-primary/30 hover:bg-primary-subtle disabled:opacity-50 transition-all flex items-center gap-1.5" onClick={() => void download(file)}>
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span><span>Tải xuống</span>
+                    <div className="mt-1.5 flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+                      <span className="inline-flex shrink-0 items-center rounded-full border border-hairline bg-canvas px-2 py-0.5 font-semibold text-ink-soft">
+                        {parentLabels[file.parentType] ?? 'Tệp đồ án'}
+                      </span>
+                      {sourceHref ? (
+                        <Link to={sourceHref} className="min-w-0 flex-1 truncate font-medium text-primary hover:underline" title={parentLabel}>
+                          {parentLabel}
+                        </Link>
+                      ) : (
+                        <span className="min-w-0 flex-1 truncate" title={parentLabel}>{parentLabel}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 lg:border-l lg:border-line lg:pl-4">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <span title={file.contentType || undefined} className="inline-flex items-center rounded-md border border-hairline bg-canvas px-2 py-0.5 font-mono font-semibold text-ink-soft">
+                        {fileFormat(file.contentType, file.fileName)} · {formatBytes(file.sizeBytes)}
+                      </span>
+                      <span className="font-mono text-xs text-ink-muted">{dateTimeLabel(file.createdAt)}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2 text-xs text-ink-soft">
+                      <Avatar name={uploaderName} size="xs" shape="circle" />
+                      <span className="truncate font-medium">{uploaderName}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <button type="button" disabled={busy} className="flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 disabled:opacity-50" onClick={() => setPreviewTarget(file)}>
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span><span>Xem trước</span>
+                    </button>
+                    <button type="button" disabled={busy} className="flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft transition-all hover:border-primary/35 hover:bg-primary-subtle hover:text-primary disabled:opacity-50" onClick={() => void download(file)}>
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span><span>Tải xuống</span>
                     </button>
                     {canDelete(file) && (
-                      <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md px-2.5 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50 transition-colors" onClick={() => setDeleteTarget(file)}>Xóa</button>
+                      <button type="button" disabled={busy} className="min-h-9 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50" onClick={() => setDeleteTarget(file)}>Xóa</button>
                     )}
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
-            <Pagination
-              page={data.page}
-              pages={totalPages}
-              total={data.totalCount}
-              pageSize={data.pageSize}
-              busy={busy}
-              onPage={(nextPage) => setFilters(current => ({ ...current, page: nextPage }))}
-              onPageSizeChange={(newSize) => setFilters(current => ({ ...current, page: 1, pageSize: newSize }))}
-            />
+            {(totalPages > 1 || data.totalCount > data.pageSize) && (
+              <Pagination
+                page={data.page}
+                pages={totalPages}
+                total={data.totalCount}
+                pageSize={data.pageSize}
+                busy={busy}
+                onPage={(nextPage) => setFilters(current => ({ ...current, page: nextPage }))}
+                onPageSizeChange={(newSize) => setFilters(current => ({ ...current, page: 1, pageSize: newSize }))}
+              />
+            )}
           </>
         )}
       </section>
@@ -596,4 +659,25 @@ function fileFormat(contentType?: string | null, fileName?: string | null) {
   if (normalized.includes('zip') || fileName?.toLowerCase().endsWith('.zip')) return 'ZIP'
   if (normalized.startsWith('image/')) return 'Hình ảnh'
   return contentType || 'Tệp đính kèm'
+}
+
+function fileVisual(contentType?: string | null, fileName?: string | null): { icon: string; tone: string } {
+  const normalized = contentType?.toLowerCase() ?? ''
+  const lowerName = fileName?.toLowerCase() ?? ''
+  if (normalized.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/.test(lowerName)) {
+    return { icon: 'image', tone: 'border-status-success-border bg-status-success-bg text-status-success-text' }
+  }
+  if (normalized.includes('pdf') || lowerName.endsWith('.pdf')) {
+    return { icon: 'picture_as_pdf', tone: 'border-status-error-border bg-status-error-bg text-status-error-text' }
+  }
+  if (normalized.includes('wordprocessingml') || /\.(docx?)$/.test(lowerName)) {
+    return { icon: 'description', tone: 'border-tag-se/25 bg-tag-se-bg text-tag-se' }
+  }
+  if (normalized.includes('spreadsheetml') || /\.(xlsx?|csv)$/.test(lowerName)) {
+    return { icon: 'table_chart', tone: 'border-status-success-border bg-status-success-bg text-status-success-text' }
+  }
+  if (normalized.includes('zip') || /\.(zip|rar|7z)$/.test(lowerName)) {
+    return { icon: 'folder_zip', tone: 'border-status-warning-border bg-status-warning-bg text-status-warning-text' }
+  }
+  return { icon: 'draft', tone: 'border-primary/20 bg-primary-subtle text-primary' }
 }

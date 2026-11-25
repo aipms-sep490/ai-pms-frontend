@@ -149,16 +149,16 @@ export function StudentReviewTimelinePage() {
       description="Theo dõi các cổng kiểm duyệt (G1..G4), kiểm tra trạng thái minh chứng và nộp bản cập nhật theo phản hồi của hội đồng thẩm định."
       action={
         <Button
-          variant="outline"
+          variant="secondary"
+          size="sm"
+          icon="refresh"
+          aria-label="Làm mới"
           disabled={loading}
           onClick={() => void loadTimeline()}
-        >
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-          Làm mới
-        </Button>
+        />
       }
       identity={timeline ? <EntityIdentityStrip chips={[
-        { icon: 'folder_open', label: 'Đồ án', value: `${timeline.projectCode} · ${timeline.projectName}` },
+        { icon: 'folder_open', label: 'Đồ án', value: timeline.projectCode },
         { icon: 'account_tree', label: 'Ngành', value: timeline.major },
         { icon: 'verified', label: 'Phiên bản chính sách', value: timeline.effectivePolicyVersion },
         { icon: 'flag', label: 'Mốc hiện tại', value: timeline.currentGateCode || 'Chưa có mốc' },

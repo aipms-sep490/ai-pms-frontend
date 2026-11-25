@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWorkspaceAccess } from '../../app/context/workspace-access'
+import { BackLink } from '../../components/ui/BackLink'
 import { Button } from '../../components/ui/Button'
 import { DataSourceStatus } from '../../components/ui/DataSourceStatus'
 import { displayLabel } from '../../components/ui/display-label'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { PageLoading } from '../../components/ui/PageLoading'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../components/ui/status-badge-tone'
 import { useClientPagination } from '../../components/ui/useClientPagination'
 import { useAuthSession } from '../auth/context/useAuthSession'
+import { getHomePath } from '../auth/utils/role-access'
 import './calendar-attention.css'
 import { loadCalendarAttention } from './calendar-data'
 import { formatCalendarDate, isHistoricalStatus } from './calendar-projections'
@@ -27,6 +30,31 @@ const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
   FINAL_SUBMISSION: 'Bàn giao cuối kỳ',
   EVALUATION_ASSIGNMENT: 'Phân công đánh giá',
   PROGRESS_REPORT: 'Báo cáo tiến độ',
+}
+
+const sourceIcons: Record<CalendarProjectionItem['sourceType'], string> = {
+  TASK: 'task_alt',
+  MILESTONE: 'flag',
+  MEETING: 'videocam',
+  DELIVERABLE: 'inventory_2',
+  FINAL_SUBMISSION: 'publish',
+  EVALUATION_ASSIGNMENT: 'grading',
+  PROGRESS_REPORT: 'description',
+}
+
+function sourceAccentClass(sourceType: CalendarProjectionItem['sourceType']): string {
+  if (sourceType === 'MEETING') return 'calendar-event--meeting'
+  if (sourceType === 'TASK') return 'calendar-event--task'
+  if (sourceType === 'MILESTONE') return 'calendar-event--milestone'
+  return 'calendar-event--deliverable'
+}
+
+function formatClockVn(iso?: string): string {
+  if (!iso) return '—'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'Cả ngày'
+  const parsed = new Date(iso)
+  if (!Number.isFinite(parsed.getTime())) return '—'
+  return parsed.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })
 }
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
@@ -323,7 +351,14 @@ export function CalendarAttentionPage() {
     <section className="calendar-page workspace-page" aria-labelledby="calendar-heading" aria-busy={loading}>
       <header className="calendar-page__header">
         <div>
-          <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
+          <div className="workspace-context">
+            <BackLink className="workspace-back-inline" fallback={getHomePath(session?.user)}>
+              <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              <span>Quay lại</span>
+            </BackLink>
+            <span className="workspace-context-sep" aria-hidden="true" />
+            <p className="calendar-page__eyebrow">Không gian chung · chỉ đọc</p>
+          </div>
           <h1 id="calendar-heading">Lịch tổng hợp &amp; điểm cần chú ý</h1>
           <p>Tổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.</p>
         </div>
@@ -347,6 +382,17 @@ export function CalendarAttentionPage() {
               <span>{partialMessage}</span>
             </div>
           )}
+
+          <div className="mb-5">
+            <StatTileRow
+              tiles={[
+                { icon: 'calendar_month', label: 'Mốc lịch sắp tới', value: baseItems.length, hero: true, caption: showHistorical ? 'Bao gồm các mục đã hoàn tất.' : 'Đang hoạt động theo giờ Việt Nam.' },
+                { icon: 'priority_high', label: 'Điểm cần chú ý', value: data.attention.length, tone: data.attention.length > 0 ? 'warning' : 'success', caption: data.attention.length > 0 ? 'Các mục ưu tiên xử lý sớm.' : 'Không có điểm tồn đọng.' },
+                { icon: 'today', label: 'Sự kiện hôm nay', value: (grouped[todayKey] ?? []).length, tone: 'info', caption: 'Lịch trình diễn ra trong ngày.' },
+                { icon: 'sync', label: 'Nguồn dữ liệu đồng bộ', value: `${data.sources.filter(s => s.state === 'ready' || s.state === 'empty').length}/${data.sources.length}`, tone: 'neutral', caption: 'Tổng hợp tự động theo quyền hiện tại.' },
+              ]}
+            />
+          </div>
 
           <div className="calendar-page__layout">
             <section className="calendar-panel" aria-labelledby="calendar-projection-heading">
@@ -374,7 +420,7 @@ export function CalendarAttentionPage() {
                   ariaLabel="Bộ lọc sự kiện lịch"
                   search={search}
                   onSearchChange={setSearch}
-                  searchPlaceholder="Tìm theo tiêu đề sự kiện hoặc tên đồ án…"
+                  searchPlaceholder="Tìm sự kiện…"
                   searchLabel="Tìm kiếm sự kiện lịch"
                   controls={
                     <>
@@ -422,6 +468,7 @@ export function CalendarAttentionPage() {
                   onClearAll={() => { setSearch(''); setSourceFilter('ALL'); setStatusFilter('ALL'); setSortBy('soonest') }}
                   hasActiveFilters={activeChips.length > 0 || sortBy !== 'soonest'}
                   resultSummary={activeChips.length > 0 ? `Hiển thị ${items.length} / ${baseItems.length} sự kiện` : undefined}
+                  pagination={view === 'agenda' && agendaPagination.showPagination ? { page: agendaPagination.page, pages: agendaPagination.pages, total: agendaPagination.total, pageSize: agendaPagination.pageSize, onPage: agendaPagination.setPage } : undefined}
                 />
               </div>
 
@@ -442,10 +489,18 @@ export function CalendarAttentionPage() {
                     <div className="calendar-agenda">
                       {Object.entries(agendaGrouped).map(([date, entries]) => (
                         <div className="calendar-agenda__group" key={date}>
-                          <h3>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</h3>
-                          {entries.map((item) => (
-                            <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
-                          ))}
+                          <div className="calendar-agenda__group-head">
+                            <h3>
+                              <span>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</span>
+                              {date === todayKey && <span className="calendar-agenda__today-pill">Hôm nay</span>}
+                            </h3>
+                            <span className="calendar-agenda__group-count">{entries.length} sự kiện</span>
+                          </div>
+                          <div className="calendar-agenda__list">
+                            {entries.map((item) => (
+                              <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -671,21 +726,27 @@ export function CalendarAttentionPage() {
 
 function CalendarRow({ item }: { item: CalendarProjectionItem }) {
   const timestamp = datedAt(item)
+  const clock = formatClockVn(timestamp)
   return (
-    <Link className="calendar-event" to={item.deepLink}>
+    <Link className={`calendar-event ${sourceAccentClass(item.sourceType)}`} to={item.deepLink}>
+      <span className="calendar-event__time" title={timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}>
+        {clock}
+      </span>
+      <span className="calendar-event__type">
+        <span className="material-symbols-outlined" aria-hidden="true">{sourceIcons[item.sourceType]}</span>
+        <span>{sourceLabels[item.sourceType]}</span>
+      </span>
       <div className="calendar-event__main">
-        <div className="calendar-event__badges">
-          <span className="calendar-event__type">{sourceLabels[item.sourceType]}</span>
-          <StatusBadge tone={calendarStatusTone(item.status)} label={calendarStatusLabel(item.status)} />
-        </div>
         <strong className="calendar-event__title">{item.title}</strong>
-        <div className="calendar-event__meta">
-          {item.projectName && <span>{item.projectName}</span>}
-          <span>{timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}</span>
-        </div>
+        {item.projectName && (
+          <div className="calendar-event__meta">
+            <span>{item.projectName}</span>
+          </div>
+        )}
       </div>
       <span className="calendar-event__trail">
-        <span className="material-symbols-outlined text-ink-muted" aria-hidden="true">chevron_right</span>
+        <StatusBadge tone={calendarStatusTone(item.status)} label={calendarStatusLabel(item.status)} />
+        <span className="calendar-event__chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
       </span>
     </Link>
   )

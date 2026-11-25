@@ -180,6 +180,7 @@ export function ProjectProgressMatrix({
             }}
             hasActiveFilters={hasActiveFilters}
             resultSummary={`Hiển thị ${filteredProjects.length}/${projects.length} đồ án`}
+            pagination={matrixPager.showPagination ? { page: matrixPager.page, pages: matrixPager.pages, total: matrixPager.total, pageSize: matrixPager.pageSize, onPage: matrixPager.setPage } : undefined}
           />
         </div>
 
@@ -256,7 +257,7 @@ export function ProjectProgressMatrix({
                             style={{ width: `${proj.taskProgress}%` }}
                           />
                         </div>
-                        <span className="shrink-0 text-xs font-bold text-ink-soft">{proj.taskProgress}%</span>
+                        <span className="shrink-0 text-xs font-bold tabular-nums text-ink-soft">{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(proj.taskProgress)}%</span>
                       </div>}
                     </td>
                   </tr>

@@ -1,5 +1,6 @@
 import { Table, TableHead } from '../../../components/ui/Table'
-import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
+import '../../../components/ui/workspace-tabs.css'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { Pagination } from '../../../components/ui/Pagination'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
@@ -305,9 +306,14 @@ export function ReviewGateGovernancePage() {
     }
     if (env.reviewGatesMockEnabled) return 'Fall 2026 · SEP490'
     return academicContext?.academic?.selectedSemester
-      ? `${academicContext.academic.selectedSemester.code} · ${academicContext.academic.selectedSemester.name}`
+      ? academicContext.academic.selectedSemester.code
       : 'Tất cả kỳ học'
   }, [periodId, academicContext])
+
+  const resolvedPeriodCaption = useMemo(() => {
+    if (env.reviewGatesMockEnabled) return 'Phạm vi cấu hình cổng thẩm định.'
+    return academicContext?.academic?.selectedSemester?.name || 'Phạm vi cấu hình cổng thẩm định.'
+  }, [academicContext])
 
   const filteredTemplates = useMemo(() => {
     const q = templateSearch.trim().toLowerCase()
@@ -379,42 +385,20 @@ export function ReviewGateGovernancePage() {
       )}
 
       {/* Main Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-hairline pb-2" role="group" aria-label="Khu vực quản trị cổng kiểm duyệt">
-        <button
-          type="button"
-          aria-pressed={activeTab === 'overview'}
-          onClick={() => setActiveTab('overview')}
-          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === 'overview'
-              ? 'bg-primary text-white shadow-2xs'
-              : 'text-ink-muted hover:bg-canvas'
-          }`}
-        >
-          Thư viện mẫu tiến trình
+      <div className="ui-workspace-tabs" role="group" aria-label="Khu vực quản trị cổng kiểm duyệt">
+        <button type="button" aria-pressed={activeTab === 'overview'} onClick={() => setActiveTab('overview')} className={`ui-workspace-tab ${activeTab === 'overview' ? 'is-active' : ''}`}>
+          <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">library_books</span>
+          <span>Thư viện mẫu tiến trình</span>
+          <span className="ui-workspace-tab-count" aria-hidden="true">{templates.length}</span>
         </button>
-        <button
-          type="button"
-          aria-pressed={activeTab === 'builder'}
-          onClick={() => setActiveTab('builder')}
-          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === 'builder'
-              ? 'bg-primary text-white shadow-2xs'
-              : 'text-ink-muted hover:bg-canvas'
-          }`}
-        >
-          Thiết kế cổng kiểm duyệt
+        <button type="button" aria-pressed={activeTab === 'builder'} onClick={() => setActiveTab('builder')} className={`ui-workspace-tab ${activeTab === 'builder' ? 'is-active' : ''}`}>
+          <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">tune</span>
+          <span>Thiết kế cổng kiểm duyệt</span>
         </button>
-        <button
-          type="button"
-          aria-pressed={activeTab === 'matrix'}
-          onClick={() => { setReviewerGaps(null); setActiveTab('matrix') }}
-          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === 'matrix'
-              ? 'bg-primary text-white shadow-2xs'
-              : 'text-ink-muted hover:bg-canvas'
-          }`}
-        >
-          Ma trận tiến độ
+        <button type="button" aria-pressed={activeTab === 'matrix'} onClick={() => { setReviewerGaps(null); setActiveTab('matrix') }} className={`ui-workspace-tab ${activeTab === 'matrix' ? 'is-active' : ''}`}>
+          <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">grid_view</span>
+          <span>Ma trận tiến độ</span>
+          <span className="ui-workspace-tab-count" aria-hidden="true">{matrixProjects.length}</span>
         </button>
         <button
           type="button"
@@ -427,25 +411,14 @@ export function ReviewGateGovernancePage() {
             }
             setActiveTab('hybrid')
           }}
-          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === 'hybrid'
-              ? 'bg-primary text-white shadow-2xs'
-              : 'text-ink-muted hover:bg-canvas'
-          }`}
+          className={`ui-workspace-tab ${activeTab === 'hybrid' ? 'is-active' : ''}`}
         >
-          Cổng liên ngành
+          <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">hub</span>
+          <span>Cổng liên ngành</span>
         </button>
-        <button
-          type="button"
-          aria-pressed={activeTab === 'defense'}
-          onClick={() => setActiveTab('defense')}
-          className={`min-h-11 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-            activeTab === 'defense'
-              ? 'bg-primary text-white shadow-2xs'
-              : 'text-ink-muted hover:bg-canvas'
-          }`}
-        >
-          Xét điều kiện bảo vệ
+        <button type="button" aria-pressed={activeTab === 'defense'} onClick={() => setActiveTab('defense')} className={`ui-workspace-tab ${activeTab === 'defense' ? 'is-active' : ''}`}>
+          <span className="material-symbols-outlined ui-workspace-tab-icon" aria-hidden="true">verified_user</span>
+          <span>Xét điều kiện bảo vệ</span>
         </button>
       </div>
 
@@ -458,37 +431,14 @@ export function ReviewGateGovernancePage() {
           {/* TAB 1: OVERVIEW / TEMPLATES LIBRARY */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Kỳ học áp dụng</span>
-                  <p className="mt-1 text-xl font-bold text-ink">
-                    {resolvedPeriodLabel}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Mẫu tiến trình</span>
-                  <p className="mt-1 text-2xl font-black text-primary">{templates.length}</p>
-                </div>
-                <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Số cổng tiêu chuẩn</span>
-                  <p className="mt-1 text-2xl font-black text-ink">
-                    {templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} cổng` : 'Chưa cấu hình'}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-hairline bg-card p-4 shadow-2xs">
-                  <span className="text-xs font-semibold text-ink-muted">Trạng thái mẫu</span>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {templates.length === 0 ? (
-                      <StatusBadge tone="neutral" label="Chưa có mẫu" />
-                    ) : (
-                      <>
-                        {publishedCount > 0 && <StatusBadge tone="success" label={`${publishedCount} đã công bố`} />}
-                        {draftCount > 0 && <StatusBadge tone="warning" label={`${draftCount} bản nháp`} />}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <StatTileRow
+                tiles={[
+                  { icon: 'calendar_month', label: 'Kỳ học áp dụng', value: resolvedPeriodLabel, hero: true, caption: resolvedPeriodCaption },
+                  { icon: 'library_books', label: 'Mẫu tiến trình', value: templates.length, tone: 'info', caption: `${publishedCount} đã công bố · ${draftCount} bản nháp.` },
+                  { icon: 'flag', label: 'Số cổng tiêu chuẩn', value: templates.length > 0 ? `${templates[0].gatesCount < 10 ? '0' : ''}${templates[0].gatesCount} cổng` : 'Chưa cấu hình', tone: 'neutral', caption: 'Cấu trúc kiểm duyệt tiến độ đồ án.' },
+                  { icon: 'verified', label: 'Mẫu đã công bố', value: publishedCount, tone: publishedCount > 0 ? 'success' : 'warning', caption: draftCount > 0 ? `${draftCount} bản nháp đang chỉnh sửa.` : 'Sẵn sàng áp dụng cho sinh viên.' },
+                ]}
+              />
 
               {/* Template Library Table */}
               <div className="rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">
@@ -578,6 +528,7 @@ export function ReviewGateGovernancePage() {
                     }}
                     hasActiveFilters={hasTemplateFilters}
                     resultSummary={`Hiển thị ${filteredTemplates.length}/${templates.length} mẫu`}
+                    pagination={templatePager.showPagination ? { page: templatePager.page, pages: templatePager.pages, total: templatePager.total, pageSize: templatePager.pageSize, onPage: templatePager.setPage } : undefined}
                   />
                 </div>
 
@@ -618,9 +569,9 @@ export function ReviewGateGovernancePage() {
                           </td>
                           <td className="py-3.5 px-3 text-center font-bold">{tmpl.gatesCount}</td>
                           <td className="py-3.5 px-3 text-center font-mono">v{tmpl.version}</td>
-                          <td className="py-3.5 px-3 text-center">
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                              className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold border ${
                                 tmpl.status === 'PUBLISHED'
                                   ? 'bg-status-success-bg text-status-success-text border-status-success-border'
                                   : 'bg-status-warning-bg text-status-warning-text border-status-warning-border'
@@ -629,12 +580,13 @@ export function ReviewGateGovernancePage() {
                               {tmpl.status === 'PUBLISHED' ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right space-x-2">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-2">
                             {tmpl.status === 'PUBLISHED' && (
                               <button
                                 type="button"
                                 onClick={() => handleCloneTemplate(tmpl)}
-                                className="min-h-9 rounded-md border border-hairline px-2.5 py-1 font-semibold text-ink-soft hover:bg-canvas"
+                                className="min-h-9 whitespace-nowrap rounded-md border border-hairline px-2.5 py-1 font-semibold text-ink-soft hover:bg-canvas"
                                 title="Nhân bản tạo phiên bản nháp mới"
                               >
                                 Nhân bản
@@ -645,7 +597,7 @@ export function ReviewGateGovernancePage() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void handleDeleteDraftTemplate(tmpl)}
-                                className="min-h-9 rounded-md border border-status-error-border bg-card px-2.5 py-1 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
+                                className="min-h-9 whitespace-nowrap rounded-md border border-status-error-border bg-card px-2.5 py-1 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
                                 title="Xóa bản nháp tiến trình này"
                               >
                                 Xóa nháp
@@ -657,10 +609,11 @@ export function ReviewGateGovernancePage() {
                                 setSelectedTemplateId(tmpl.id)
                                 setActiveTab('builder')
                               }}
-                              className="min-h-9 rounded-md border border-hairline px-3 py-1 font-semibold text-primary hover:bg-canvas"
+                              className="min-h-9 whitespace-nowrap rounded-md border border-hairline px-3 py-1 font-semibold text-primary hover:bg-canvas"
                             >
                               Thiết kế cổng ↗
                             </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

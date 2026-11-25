@@ -234,6 +234,7 @@ export function SupervisorSelectionPage() {
             hasActiveFilters={hasFilters}
             onClearAll={clearAllFilters}
             resultSummary={selection.candidateLoading ? 'Đang tải danh sách giảng viên…' : `${visibleCandidates.length} / ${selection.candidates.length} giảng viên`}
+            pagination={candidatePager.showPagination ? { page: candidatePager.page, pages: candidatePager.pages, total: candidatePager.total, pageSize: candidatePager.pageSize, busy: selection.candidateLoading, onPage: candidatePager.setPage } : undefined}
           />
 
           <div className="p-5">
@@ -242,7 +243,7 @@ export function SupervisorSelectionPage() {
             ) : visibleCandidates.length === 0 ? (
               <div className="py-4 text-center text-sm text-ink-muted">
                 <p>Không có giảng viên phù hợp với điều kiện của đồ án.</p>
-                {hasFilters && <button type="button" onClick={clearAllFilters} className="mt-2 font-semibold text-primary underline">Xóa lọc</button>}
+                {hasFilters && <button type="button" onClick={clearAllFilters} className="mt-2 font-semibold text-primary underline">Xóa bộ lọc</button>}
               </div>
             ) : (
               <>

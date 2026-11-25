@@ -114,75 +114,6 @@ export function SupervisorDashboardPage() {
 
   return <WorkspacePage size="wide" className="mk-page-enter space-y-6" eyebrow="Không gian giảng viên" title="Tổng quan hướng dẫn" description="Theo dõi khối lượng hướng dẫn, báo cáo chờ phản hồi và các đồ án cần chú ý." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />}>
     <ActorDashboardCard />
-    <FilterToolbar
-      search={filter.search ?? ''}
-      onSearchChange={handleSearchChange}
-      searchPlaceholder="Tìm theo mã hoặc tên đồ án…"
-      searchLabel="Tìm đồ án"
-      controls={
-        <>
-          <label className="ft-select-wrap" htmlFor="supervisor-dashboard-status">
-            <span className="sr-only">Trạng thái</span>
-            <select
-              id="supervisor-dashboard-status"
-              aria-label="Trạng thái"
-              value={filter.status ?? ''}
-              onChange={event => handleStatusChange(event.target.value)}
-              className="ft-select"
-            >
-              <option value="">Tất cả trạng thái</option>
-              {statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}
-            </select>
-          </label>
-          {env.aiAdvisoryEnabled && (
-            <label className="ft-select-wrap">
-              <span className="sr-only">Mức rủi ro</span>
-              <select
-                aria-label="Mức rủi ro"
-                className="ft-select"
-                value={riskFilter}
-                onChange={(event) => setRiskFilter(event.target.value)}
-              >
-                <option value="ALL">Mọi mức rủi ro</option>
-                <option value="CRITICAL">{displayLabel('CRITICAL')}</option>
-                <option value="HIGH">{displayLabel('HIGH')}</option>
-                <option value="MEDIUM">{displayLabel('MEDIUM')}</option>
-                <option value="LOW">{displayLabel('LOW')}</option>
-              </select>
-            </label>
-          )}
-          <button
-            type="button"
-            aria-pressed={onlyAttention}
-            onClick={() => setOnlyAttention((v) => !v)}
-            className={`ft-btn ${onlyAttention ? 'is-active' : ''}`}
-          >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">priority_high</span>
-            Cần chú ý
-          </button>
-        </>
-      }
-      sort={{
-        value: sortBy,
-        onChange: (value) => setSortBy(value as SortKey),
-        options: [
-          { value: 'default', label: 'Mặc định' },
-          { value: 'pending', label: 'Nhiều báo cáo chờ duyệt' },
-          { value: 'risk', label: 'Rủi ro cao nhất' },
-          { value: 'progress-asc', label: 'Tiến độ thấp trước' },
-        ],
-      }}
-      activeChips={activeChips}
-      onRemoveChip={(id) => {
-        if (id === 'search') handleSearchChange('')
-        if (id === 'status') handleStatusChange('')
-        if (id === 'risk') setRiskFilter('ALL')
-        if (id === 'attention') setOnlyAttention(false)
-      }}
-      onClearAll={clearFilters}
-      hasActiveFilters={activeChips.length > 0 || sortBy !== 'default'}
-      resultSummary={data ? `Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án` : undefined}
-    />
 
     {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Chưa tải được tổng quan</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại</button></div>}
     {loading && <PageLoading label="Đang tải tổng quan hướng dẫn…" />}
@@ -280,7 +211,7 @@ export function SupervisorDashboardPage() {
         )
       })()}
 
-      <section className="workspace-surface workspace-surface-padding mt-6">
+      <section className="workspace-surface workspace-surface-padding mt-6 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-heading font-semibold text-ink">Đồ án phụ trách</h2>
@@ -292,10 +223,80 @@ export function SupervisorDashboardPage() {
             onSelect={(st) => handleStatusChange(filter.status === st ? '' : st)}
           />
         </div>
+        <FilterToolbar
+          search={filter.search ?? ''}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm theo mã hoặc tên đồ án…"
+          searchLabel="Tìm đồ án"
+          controls={
+            <>
+              <label className="ft-select-wrap" htmlFor="supervisor-dashboard-status">
+                <span className="sr-only">Trạng thái</span>
+                <select
+                  id="supervisor-dashboard-status"
+                  aria-label="Trạng thái"
+                  value={filter.status ?? ''}
+                  onChange={event => handleStatusChange(event.target.value)}
+                  className="ft-select"
+                >
+                  <option value="">Tất cả trạng thái</option>
+                  {statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}
+                </select>
+              </label>
+              {env.aiAdvisoryEnabled && (
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Mức rủi ro</span>
+                  <select
+                    aria-label="Mức rủi ro"
+                    className="ft-select"
+                    value={riskFilter}
+                    onChange={(event) => setRiskFilter(event.target.value)}
+                  >
+                    <option value="ALL">Mọi mức rủi ro</option>
+                    <option value="CRITICAL">{displayLabel('CRITICAL')}</option>
+                    <option value="HIGH">{displayLabel('HIGH')}</option>
+                    <option value="MEDIUM">{displayLabel('MEDIUM')}</option>
+                    <option value="LOW">{displayLabel('LOW')}</option>
+                  </select>
+                </label>
+              )}
+              <button
+                type="button"
+                aria-pressed={onlyAttention}
+                onClick={() => setOnlyAttention((v) => !v)}
+                className={`ft-btn ${onlyAttention ? 'is-active' : ''}`}
+              >
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">priority_high</span>
+                Cần chú ý
+              </button>
+            </>
+          }
+          sort={{
+            value: sortBy,
+            onChange: (value) => setSortBy(value as SortKey),
+            options: [
+              { value: 'default', label: 'Mặc định' },
+              { value: 'pending', label: 'Nhiều báo cáo chờ duyệt' },
+              { value: 'risk', label: 'Rủi ro cao nhất' },
+              { value: 'progress-asc', label: 'Tiến độ thấp trước' },
+            ],
+          }}
+          activeChips={activeChips}
+          onRemoveChip={(id) => {
+            if (id === 'search') handleSearchChange('')
+            if (id === 'status') handleStatusChange('')
+            if (id === 'risk') setRiskFilter('ALL')
+            if (id === 'attention') setOnlyAttention(false)
+          }}
+          onClearAll={clearFilters}
+          hasActiveFilters={activeChips.length > 0 || sortBy !== 'default'}
+          resultSummary={`Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án`}
+          pagination={(data.projects.totalPages > 1 || data.projects.totalCount > data.projects.pageSize) ? { page: filter.page ?? 1, pages: data.projects.totalPages, total: data.projects.totalCount, pageSize: filter.pageSize ?? data.projects.pageSize, busy: loading, onPage: (page) => setFilter(current => ({ ...current, page })) } : undefined}
+        />
         {visibleProjects.length === 0 ? (
-          <p className="mt-4 text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p>
+          <p className="text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-hairline">
+          <ul className="divide-y divide-hairline">
             {visibleProjects.map(project => <ProjectRow key={project.id} project={project} />)}
           </ul>
         )}
@@ -344,8 +345,8 @@ function ProjectRow({ project }: { project: DashboardProject }) {
   const normalized = project.status.replaceAll('_', '').toUpperCase()
   return <li className="flex flex-wrap items-center justify-between gap-4 py-4 text-sm transition-colors hover:bg-canvas/50 rounded-lg px-3">
     <div className="min-w-0 flex-1">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="font-semibold text-ink text-base">{project.code} · {project.title}</p>
+      <p className="font-semibold text-ink text-base leading-snug">{project.code} · {project.title}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
         <StatusBadge
           tone={normalized === 'ACTIVE' ? 'success' : normalized === 'FINALSUBMISSION' ? 'info' : 'neutral'}
           label={displayLabel(project.status)}
@@ -356,8 +357,6 @@ function ProjectRow({ project }: { project: DashboardProject }) {
             label={`Rủi ro: ${displayLabel(risk)}`}
           />
         )}
-      </div>
-      <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
         <span>Bộ môn: <strong className="text-ink-soft">{project.departmentName ?? 'Chưa có bộ môn'}</strong></span>
         {hasPending ? (
           <span className="inline-flex items-center gap-1 rounded-md bg-status-warning-bg px-2 py-0.5 font-bold text-status-warning-text">
@@ -367,13 +366,13 @@ function ProjectRow({ project }: { project: DashboardProject }) {
         ) : (
           <span className="text-ink-muted">· 0 báo cáo chờ duyệt</span>
         )}
-      </p>
+      </div>
       {progressPct != null && (
         <div className="mt-2.5 flex items-center gap-3 max-w-xs">
           <div className="h-1.5 flex-1 rounded-full bg-canvas border border-hairline overflow-hidden">
             <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }} />
           </div>
-          <span className="text-xs font-semibold tabular-nums text-ink-soft">{progressPct}% tiến độ</span>
+          <span className="text-xs font-semibold tabular-nums text-ink-soft">{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progressPct)}% tiến độ</span>
         </div>
       )}
     </div>

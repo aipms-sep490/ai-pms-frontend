@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
 import { ListLoading } from '../../../components/ui/ListLoading'
 import { Pagination } from '../../../components/ui/Pagination'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
@@ -98,6 +99,18 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
         <p role="status">{notice}</p>
       </div>
     )}
+    {!embedded && (
+      <div className="mb-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'badge', label: 'Hồ sơ theo bộ lọc', value: data ? data.totalCount : null, hero: true, caption: status ? academicProfileStatus(status) : 'Tất cả trạng thái hồ sơ học vụ.' },
+            { icon: 'hourglass_top', label: 'Chờ xác minh (trang)', value: data ? data.items.filter(i => i.status === 'PENDING').length : null, tone: 'warning', caption: 'Cần đối chiếu bộ môn và chuyên ngành.' },
+            { icon: 'verified', label: 'Đã xác minh (trang)', value: data ? data.items.filter(i => i.status === 'VERIFIED').length : null, tone: 'success', caption: 'Đã xác nhận thông tin học vụ.' },
+            { icon: 'edit_note', label: 'Cần bổ sung (trang)', value: data ? data.items.filter(i => i.status === 'REJECTED').length : null, tone: 'danger', caption: 'Đang chờ sinh viên cập nhật lại.' },
+          ]}
+        />
+      </div>
+    )}
     <FilterToolbar
       search={search}
       onSearchChange={setSearch}
@@ -153,6 +166,7 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
       onClearAll={() => { setSearch(''); setDeptFilter('ALL'); setMajorFilter('ALL'); setSortBy('default') }}
       hasActiveFilters={hasActiveFilters}
       resultSummary={`${visibleItems.length} / ${data?.totalCount ?? 0} hồ sơ`}
+      pagination={totalPages > 1 ? { page, pages: totalPages, total: data?.totalCount ?? 0, pageSize, busy: loading || busy, onPage: setPage } : undefined}
     />
     <section className="ex-panel">
       {loading ? <ListLoading label="Đang tải danh sách hồ sơ…" /> : !visibleItems.length ? <p className="ex-padding ex-muted">Chưa có hồ sơ phù hợp.</p> : <ul>{visibleItems.map(item => <li key={item.userId} className="grid gap-4 border-b border-hairline p-5 last:border-b-0 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"><Avatar name={item.fullName} size="md" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong className="text-ink">{item.fullName}</strong><StatusBadge tone={profileStatusTone(item.status)} label={academicProfileStatus(item.status)} /></div><p className="ex-muted break-words">{item.studentCode || item.email}</p><p className="mt-1.5 text-sm text-ink-soft">{item.departmentName || 'Chưa có bộ môn'} · {item.majorName || 'Chưa có chuyên ngành'}</p>{(item.classCode || item.specializationName || item.curriculumCode) && <p className="mt-1 text-xs text-ink-muted">{[item.classCode ? `Lớp ${item.classCode}` : null, item.specializationName ? `CN hẹp: ${item.specializationName}` : null, item.curriculumCode ? `Khung ${item.curriculumCode}` : null].filter(Boolean).join(' · ')}</p>}{item.rejectionReason && <p className="mt-2 text-sm text-status-warning-text">Cần bổ sung: {item.rejectionReason}</p>}</div><div className="flex flex-wrap items-center gap-2">{embedded && <Link className="text-sm font-medium text-primary hover:underline" to={`/department/students/${item.userId}`}>Chi tiết</Link>}{item.status !== 'VERIFIED' && <Button disabled={busy || !item.departmentId || !item.majorId} onClick={() => void review(item, true)}>Xác minh</Button>}<Button variant="secondary" disabled={busy} onClick={() => void review(item, false)}>Yêu cầu bổ sung</Button></div></li>)}</ul>}

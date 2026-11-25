@@ -155,12 +155,12 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 </h3>
                 {isOnline ? (
                   <span className="rounded-full bg-tag-se-bg text-tag-se border border-tag-se/25 px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
-                    <span>🌐</span>
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">public</span>
                     <span>ONLINE (LiveKit)</span>
                   </span>
                 ) : (
                   <span className="rounded-full bg-status-success-bg text-status-success-text border border-status-success-border px-2.5 py-0.5 text-xs font-bold flex items-center gap-1">
-                    <span>🏛️</span>
+                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">apartment</span>
                     <span>OFFLINE (Tại trường)</span>
                   </span>
                 )}
@@ -178,7 +178,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 onClick={() => onJoinLiveKit(script.liveKitRoomName || `livekit-gate-${script.gateCode}`)}
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover transition-colors"
               >
-                <span>🎥</span>
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">videocam</span>
                 <span>Vào phòng LiveKit</span>
               </button>
             )}
@@ -189,7 +189,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 onClick={() => onViewRoomCanvas(script.roomCode!)}
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
               >
-                <span>🗺️</span>
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">map</span>
                 <span>Sơ đồ phòng {script.roomCode}</span>
               </button>
             )}
@@ -602,7 +602,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">✅</div>
+                    <div className="flex justify-center"><span className="material-symbols-outlined text-[20px] text-status-success-text" aria-hidden="true">check_circle</span></div>
                     <div className="mt-1 font-bold text-xs">ĐẠT (PASSED)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Cho phép qua cổng</div>
                   </button>
@@ -616,7 +616,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">⚠️</div>
+                    <div className="flex justify-center"><span className="material-symbols-outlined text-[20px] text-status-warning-text" aria-hidden="true">warning</span></div>
                     <div className="mt-1 font-bold text-xs">SỬA ĐỔI (REVISION)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Hạn sửa 5 ngày làm việc</div>
                   </button>
@@ -630,7 +630,7 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                         : 'border-hairline bg-card text-ink hover:bg-canvas'
                     }`}
                   >
-                    <div className="text-base">❌</div>
+                    <div className="flex justify-center"><span className="material-symbols-outlined text-[20px] text-status-error-text" aria-hidden="true">cancel</span></div>
                     <div className="mt-1 font-bold text-xs">KHÔNG ĐẠT (FAILED)</div>
                     <div className="text-xs text-ink-muted mt-0.5">Dừng tiến trình đồ án</div>
                   </button>
@@ -663,9 +663,10 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
             <button
               type="button"
               onClick={handleExportText}
-              className="min-h-10 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-bold text-ink hover:bg-canvas transition-colors"
             >
-              📄 Xuất biên bản (.TXT / PDF)
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">description</span>
+              <span>Xuất biên bản (.TXT / PDF)</span>
             </button>
             {isSaved && (
               <span className="text-xs font-bold text-status-success-text">✓ Đã lưu biên bản thành công!</span>

@@ -2,9 +2,7 @@
 .curriculum-import > * { min-width: 0; }
 .curriculum-import__guide { margin: 0; color: var(--color-ink-muted); }
 .curriculum-import a { color: var(--color-primary); font-weight: 700; text-decoration: underline; }
-.curriculum-import__file { display: grid; gap: 10px; padding: 16px; border: 1px dashed var(--color-ink-muted); border-radius: 10px; background: var(--color-canvas); font-weight: 600; }
-.curriculum-import__file input { width: 100%; min-width: 0; font: inherit; font-weight: 400; }
-.curriculum-import__file input::file-selector-button { min-height: 44px; margin-right: 10px; border: 1px solid var(--color-ink-muted); border-radius: 6px; background: var(--color-card); padding: 6px 12px; cursor: pointer; }
+.curriculum-import__file { display: grid; gap: 8px; padding: 14px 16px; border: 1px dashed var(--color-line-strong); border-radius: 10px; background: var(--color-canvas); font-weight: 600; }
 .curriculum-import__filename { margin: 0; overflow-wrap: anywhere; color: var(--color-ink-muted); }
 .curriculum-import__check { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; }
 .curriculum-import__check input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--color-primary); }

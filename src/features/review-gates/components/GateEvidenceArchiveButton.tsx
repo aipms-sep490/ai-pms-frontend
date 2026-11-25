@@ -36,7 +36,7 @@ export function GateEvidenceArchiveButton({ projectId, gateCode, disabled = fals
         onClick={() => void downloadArchive()}
         className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
       >
-        <span aria-hidden="true">📦</span>
+        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">inventory_2</span>
         {busy ? 'Đang nén & tải...' : 'Tải trọn bộ minh chứng (.ZIP)'}
       </button>
       {error && <p role="alert" className="mt-1 text-xs text-status-error-text">{error}</p>}

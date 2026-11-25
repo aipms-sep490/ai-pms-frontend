@@ -1,15 +1,15 @@
 /* Consistent page typography; local component styles still own their layout. */
 @import './interaction-polish.css';
-.app-page-content > .workspace-page { margin-inline:auto; }
-.workspace-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0; padding:22px 24px; margin-block:24px; border:1px solid var(--color-hairline); border-radius:14px; background:#fff; }
-.workspace-metric { min-width:0; padding:0 24px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.app-page-content > .workspace-page { margin-inline:0; }
+.workspace-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0; padding:18px 22px; margin-block:18px; border:1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--color-hairline)); border-radius:14px; background:var(--color-card); box-shadow:0 1px 2px color-mix(in oklab, var(--color-brand-navy) 5%, transparent), 0 6px 16px -8px color-mix(in oklab, var(--color-brand-navy) 8%, transparent); }
+.workspace-metric { min-width:0; padding:0 22px; border:0; border-radius:0; background:transparent; box-shadow:none; }
 .workspace-metric:first-child { padding-left:0; }
 .workspace-metric + .workspace-metric { border-left:1px solid var(--color-hairline); }
 .workspace-metrics > article { background:transparent; }
-.workspace-filter-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(160px,1fr) auto; gap:10px 12px; align-items:end; padding:12px 14px; background:color-mix(in oklab, var(--color-canvas) 65%, var(--color-card)); border:1px solid var(--color-hairline); border-radius:12px; margin-bottom:14px; }
+.workspace-filter-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(160px,1fr) auto; gap:10px 12px; align-items:end; padding:12px 14px; background:var(--color-card); border:1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--color-hairline)); border-radius:12px; margin-bottom:14px; box-shadow:0 1px 2px color-mix(in oklab, var(--color-brand-navy) 4%, transparent); }
 .workspace-filter-grid > label:first-child { grid-column:auto; }
-.workspace-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; align-items:stretch; margin:20px 0; }
-.workspace-summary { display:flex; flex-direction:column; justify-content:space-between; height:100%; min-width:0; padding:18px 20px; background:#fff; border:1px solid var(--color-hairline); border-radius:14px; box-shadow:none; }
+.workspace-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; align-items:stretch; margin:18px 0; }
+.workspace-summary { display:flex; flex-direction:column; justify-content:space-between; height:100%; min-width:0; padding:18px 20px; background:var(--color-card); border:1px solid color-mix(in oklab, var(--color-brand-navy) 11%, var(--color-hairline)); border-radius:14px; box-shadow:0 1px 2px color-mix(in oklab, var(--color-brand-navy) 5%, transparent); }
 .workspace-editor-row { padding:20px 0; border-bottom:1px solid var(--color-line); }
 .workspace-record-row { padding:16px 0; border-bottom:1px solid var(--color-line); }
 .workspace-record-row:last-child { border-bottom:0; }
@@ -56,7 +56,7 @@
 .rubric-page > div > section, .evaluation-scheme-page > div > section { min-width: 0; border: 1px solid var(--color-hairline); border-radius: 10px; }
 .rubric-page form > div > div > .criterion-editor { border: 0; border-top: 1px solid var(--color-line); border-radius: 0; background: #fff; padding: 18px 0; }
 .criterion-editor .criterion-editor { border: 0; border-top: 1px solid var(--color-line); border-radius: 0; background: #fff; padding: 16px 0; }
-.topic { max-width: 1440px; }
+.topic { max-width: 100%; }
 .topic__create-disclosure { border: 1px solid var(--color-hairline); border-radius: 10px; background: #fff; overflow: hidden; }
 .topic__create-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding: 16px 20px; color: var(--color-primary); font-weight: 650; font-size: 14px; list-style: none; }
 .topic__create-disclosure > summary::-webkit-details-marker { display: none; }

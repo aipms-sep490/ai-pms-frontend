@@ -4,8 +4,10 @@ import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { Button } from '../../components/ui/Button'
 import { FilterToolbar, type ActiveFilterChip } from '../../components/ui/FilterToolbar'
 import { Pagination } from '../../components/ui/Pagination'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { useClientPagination } from '../../components/ui/useClientPagination'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { WorkspaceTabs } from '../../components/ui/WorkspaceTabs'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import { AcademicWorkflowContext } from '../../app/context/academic-workflow-context'
 import { RoomFloorPlan } from './RoomFloorPlan'
@@ -299,8 +301,17 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
         : 'Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức.'}
     >
       <fieldset disabled={busy} className="min-w-0 space-y-5">
+        <StatTileRow
+          tiles={[
+            { icon: 'meeting_room', label: 'Phòng hoạt động (Tầng 2–4)', value: loading ? null : activeRooms.length, hero: true, caption: `Trên tổng ${rooms.length} phòng trong danh mục.` },
+            { icon: 'event_available', label: `Lịch ${targetGate} đã công bố`, value: publishedLoading ? null : published.length, tone: 'success', caption: 'Các phiên đã xác nhận chính thức.' },
+            { icon: 'block', label: 'Khung giờ / Phòng loại trừ', value: exclusions.length, tone: exclusions.length > 0 ? 'warning' : 'neutral', caption: 'Áp dụng cho lượt tự xếp hiện tại.' },
+            { icon: 'date_range', label: 'Cửa sổ lập lịch', value: `${formatVietnamDate(startDate)} – ${formatVietnamDate(endDate)}`, tone: 'info', caption: validRange ? 'Khoảng ngày hợp lệ (≤ 31 ngày).' : 'Cần điều chỉnh khoảng ngày hợp lệ.' },
+          ]}
+        />
+
         {/* Gate Selection & Section Workspace Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Chọn cổng kiểm duyệt cần lập lịch">
             <button
               type="button"
@@ -327,38 +338,18 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
               Gate 3 · Lập lịch thẩm định chuyên môn (Trực tiếp)
             </button>
           </div>
-
-          <div className="flex flex-wrap gap-1.5 rounded-xl border border-hairline bg-canvas p-1" role="tablist" aria-label="Khu vực lập lịch phòng">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sectionTab === 'auto'}
-              onClick={() => setSectionTab('auto')}
-              className={`min-h-10 rounded-lg px-3.5 text-xs font-bold transition-colors ${sectionTab === 'auto' ? 'bg-card text-primary shadow-2xs' : 'text-ink-soft hover:text-ink'}`}
-            >
-              Xếp lịch tự động &amp; Phòng
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sectionTab === 'published'}
-              onClick={() => setSectionTab('published')}
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold transition-colors ${sectionTab === 'published' ? 'bg-card text-primary shadow-2xs' : 'text-ink-soft hover:text-ink'}`}
-            >
-              <span>Lịch đã công bố</span>
-              <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-bold text-primary">{published.length}</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={sectionTab === 'config'}
-              onClick={() => setSectionTab('config')}
-              className={`min-h-10 rounded-lg px-3.5 text-xs font-bold transition-colors ${sectionTab === 'config' ? 'bg-card text-primary shadow-2xs' : 'text-ink-soft hover:text-ink'}`}
-            >
-              Cấu hình khung giờ &amp; Phòng
-            </button>
-          </div>
         </div>
+
+        <WorkspaceTabs
+          ariaLabel="Khu vực lập lịch phòng"
+          activeId={sectionTab}
+          onChange={(id) => setSectionTab(id)}
+          tabs={[
+            { id: 'auto' as const, label: 'Xếp lịch tự động & Phòng', icon: 'auto_fix_high' },
+            { id: 'published' as const, label: 'Lịch đã công bố', icon: 'event_available', count: published.length },
+            { id: 'config' as const, label: 'Cấu hình khung giờ & Phòng', icon: 'tune' },
+          ]}
+        />
 
         {/* Business Rule Banner */}
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
@@ -557,6 +548,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                   onClearAll={() => { setPublishedSearch(''); setPublishedRoomFilter('ALL') }}
                   hasActiveFilters={hasPublishedFilters}
                   resultSummary={`${filteredPublished.length} / ${published.length} phiên`}
+                  pagination={publishedPager.showPagination ? { page: publishedPager.page, pages: publishedPager.pages, total: publishedPager.total, pageSize: publishedPager.pageSize, busy: publishedLoading, onPage: publishedPager.setPage } : undefined}
                 />
               )}
               {publishedLoading && <p role="status" className="text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}

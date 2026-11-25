@@ -203,6 +203,7 @@ export function MentorWorkspacePage() {
             onClearAll={clearFilters}
             hasActiveFilters={activeChips.length > 0}
             resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${items.length} phân công` : undefined}
+            pagination={pager.showPagination ? { page: pager.page, pages: pager.pages, total: pager.total, pageSize: pager.pageSize, onPage: pager.setPage } : undefined}
           />
 
           {filteredItems.length === 0 ? (
@@ -334,7 +335,7 @@ export function MentorProjectWorkspacePage() {
           {
             icon: 'donut_large',
             label: 'Tiến độ công việc',
-            value: summary ? `${summary.progressPercentage}%` : '—',
+            value: summary ? `${Number(summary.progressPercentage.toFixed(1)).toLocaleString('vi-VN')}%` : '—',
             hero: true,
             caption: summary ? `${summary.doneTasks}/${summary.totalTasks} việc · ${summary.completedMilestones}/${summary.totalMilestones} mốc` : 'Đang đồng bộ dữ liệu hệ thống…',
           },
@@ -402,7 +403,7 @@ export function MentorProjectWorkspacePage() {
         </div>
       </section>
 
-      <nav className="workspace-launchpad grid items-stretch overflow-hidden workspace-surface sm:grid-cols-2 lg:grid-cols-3" aria-label="Khu vực hướng dẫn chuyên ngành">
+      <nav className="workspace-launchpad grid items-stretch overflow-hidden workspace-surface sm:grid-cols-2" aria-label="Khu vực hướng dẫn chuyên ngành">
         {areas.map(([path, icon, title, description]) => (
           <SpotlightLink
             key={path}

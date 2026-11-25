@@ -39,30 +39,36 @@ export function DataSourceStatus({
     unsupported: 'Nguồn dữ liệu chưa được hỗ trợ trong phạm vi này.',
   }
 
+  const gridCols = sources.length === 4
+    ? 'sm:grid-cols-2 xl:grid-cols-4'
+    : sources.length === 2
+      ? 'sm:grid-cols-2'
+      : 'sm:grid-cols-2 lg:grid-cols-3'
+
   return (
-    <section className={`rounded-xl border border-hairline bg-card p-5 shadow-sm ${className}`.trim()} aria-label={title}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-2.5">
+    <section className={`rounded-xl border border-hairline bg-card p-5 shadow-xs ${className}`.trim()} aria-label={title}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
         <h2 className="text-sm font-bold text-ink">{title}</h2>
         {asOfUtc && (
-          <span className="text-xs text-ink-muted">
+          <span className="font-mono text-xs text-ink-muted">
             Dữ liệu tính đến: <time dateTime={asOfUtc}>{new Date(asOfUtc).toLocaleString('vi-VN')}</time>
           </span>
         )}
       </div>
-      <ul className="mt-3 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className={`mt-3.5 grid grid-cols-1 gap-3 ${gridCols}`}>
         {sources.map(source => (
-          <li key={source.id} className="flex items-start gap-2.5 text-xs">
+          <li key={source.id} className="flex items-start gap-2.5 rounded-lg border border-hairline/80 bg-canvas/65 px-3.5 py-2.5 text-xs">
             <span
-              className={`mt-1 h-2 w-2 flex-none rounded-full ${dotToneClass[source.state] ?? 'bg-line-strong'}`}
+              className={`mt-1.5 h-2 w-2 flex-none rounded-full ${dotToneClass[source.state] ?? 'bg-line-strong'}`}
               aria-hidden="true"
             />
             <div className="min-w-0">
               <strong className="block truncate font-semibold text-ink">{source.label}</strong>
-              <span className="block text-ink-muted">
+              <span className="mt-0.5 block leading-relaxed text-ink-muted">
                 {source.message ?? defaultMessages[source.state]}
               </span>
               {source.asOfUtc && (
-                <span className="block text-xs text-ink-muted">
+                <span className="mt-0.5 block font-mono text-xs text-ink-muted">
                   Cập nhật: {new Date(source.asOfUtc).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               )}

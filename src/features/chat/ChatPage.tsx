@@ -153,11 +153,11 @@ export function ChatConversations({ id, onOpen, backTo, compact = false }: { id?
           <span className={`chat-avatar ${kindClass}`} aria-hidden="true">{room.kind === 'DIRECT' ? room.title.trim().split(/\s+/).slice(-2).map(part => part[0]).join('') : <span className="material-symbols-outlined">{room.kind === 'PROJECT' ? 'folder_shared' : 'groups'}</span>}</span>
           <span className="chat-conversation-info">
             <span className="chat-conversation-top">
-              <strong>{room.title}{room.mutedUntil && Date.parse(room.mutedUntil) > Date.now() && <span aria-label="Đã tắt thông báo"> 🔇</span>}</strong>
+              <strong>{room.title}{room.mutedUntil && Date.parse(room.mutedUntil) > Date.now() && <span className="ml-1 inline-flex align-middle text-ink-muted" aria-label="Đã tắt thông báo"><span className="material-symbols-outlined text-[14px]" aria-hidden="true">notifications_off</span></span>}</strong>
               <time className="chat-room-time">{chatTime(room.updatedAt)}</time>
             </span>
             <span className="chat-conversation-bottom">
-              <small className="chat-room-preview">{room.lastMessage?.recalledAt ? 'Tin nhắn đã thu hồi' : room.lastMessage?.body || (room.lastMessage?.attachments?.length ? '📎 Đã gửi tệp đính kèm' : 'Bắt đầu trao đổi')}</small>
+              <small className="chat-room-preview">{room.lastMessage?.recalledAt ? 'Tin nhắn đã thu hồi' : room.lastMessage?.body || (room.lastMessage?.attachments?.length ? 'Đã gửi tệp đính kèm' : 'Bắt đầu trao đổi')}</small>
               <span className="chat-room-kind">{room.kind === 'TEAM' ? 'Nhóm' : room.kind === 'PROJECT' ? 'Đồ án' : 'Riêng'}</span>
             </span>
           </span>

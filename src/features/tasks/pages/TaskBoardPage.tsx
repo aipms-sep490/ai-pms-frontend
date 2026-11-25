@@ -4,6 +4,7 @@ import { Avatar } from '../../../components/ui/Avatar'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../../components/ui/FilterChips'
 import { Modal } from '../../../components/ui/Modal'
+import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { ExecutionPage, ExIcon, ExPagination, ExState } from '../../execution/execution-ui'
 import { executionError, priorityLabels, taskTransitions } from '../../execution/execution-utils'
@@ -232,9 +233,13 @@ export function TaskBoardPage() {
     return chips
   }, [search, status, assigneeUserId, members, milestoneId, milestones, priority, overdue, majorId, project.majors, disciplineRole])
 
-  const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + Number(overdue) + Number(Boolean(majorId)) + Number(Boolean(disciplineRole))
+  const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + (showMajorFilter ? Number(Boolean(majorId)) + Number(Boolean(disciplineRole)) : 0)
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
   const activeMember = members.find(member => member.userId === assigneeUserId)
+  const pageItems = data?.items ?? []
+  const inProgressCount = pageItems.filter(item => item.status === 'IN_PROGRESS' || item.status === 'IN_REVIEW').length
+  const blockedOrOverdueCount = pageItems.filter(item => item.status === 'BLOCKED' || isOverdue({ ...item, assignees: [] }, observedAt)).length
+  const doneCount = pageItems.filter(item => item.status === 'DONE').length
 
   return (
     <ExecutionPage
@@ -296,6 +301,19 @@ export function TaskBoardPage() {
         </Modal>
       )}
 
+      {view !== 'sprint' && (
+        <div className="mb-5">
+          <StatTileRow
+            tiles={[
+              { icon: 'assignment', label: 'Tổng công việc', value: data ? data.totalCount : null, caption: 'Toàn bộ phạm vi bộ lọc hiện tại', hero: true },
+              { icon: 'pending_actions', label: 'Đang thực hiện', value: data ? inProgressCount : null, caption: 'Đang làm và chờ kiểm tra trên trang này', tone: 'info' },
+              { icon: 'warning', label: 'Quá hạn / Bị chặn', value: data ? blockedOrOverdueCount : null, caption: 'Cần ưu tiên tháo gỡ trên trang này', tone: blockedOrOverdueCount > 0 ? 'danger' : 'neutral' },
+              { icon: 'task_alt', label: 'Hoàn tất', value: data ? doneCount : null, caption: 'Hoàn thành trên trang hiện tại', tone: 'success' },
+            ]}
+          />
+        </div>
+      )}
+
       <section className="ex-panel task-board-panel" aria-label="Danh sách công việc">
         <div className="ex-toolbar task-board-top-strip">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -343,6 +361,7 @@ export function TaskBoardPage() {
         {view !== 'sprint' && (
           <FilterToolbar
             embedded
+            className="ft-bar--compact ft-bar--dense"
             search={search}
             onSearchChange={(val) => updateParam('search', val.trim())}
             searchLabel="Tìm công việc"
@@ -355,18 +374,10 @@ export function TaskBoardPage() {
                 </select>
                 {members.length > 0 && (
                   <select aria-label="Người phụ trách" value={String(assigneeUserId ?? '')} onChange={(e) => updateParam('assignee', e.target.value)}>
-                    <option value="">Cả nhóm</option>
+                    <option value="">Mọi thành viên</option>
                     {members.map(member => <option key={member.userId} value={member.userId}>{member.fullName}</option>)}
                   </select>
                 )}
-                <select aria-label="Mốc đồ án" value={String(milestoneId ?? '')} onChange={(e) => updateParam('milestone', e.target.value)}>
-                  <option value="">Tất cả mốc</option>
-                  {milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-                </select>
-                <select aria-label="Mức ưu tiên" value={priority} onChange={(e) => updateParam('priority', e.target.value)}>
-                  <option value="">Mọi ưu tiên</option>
-                  {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
                 <button
                   type="button"
                   className={`ft-btn ${overdue ? 'is-active' : ''}`}
@@ -388,28 +399,45 @@ export function TaskBoardPage() {
                 { value: 'updated_desc', label: 'Mới cập nhật' },
               ],
             }}
-            advancedControls={showMajorFilter ? (
+            advancedControls={
               <>
-                <label>Ngành
-                  <select aria-label="Ngành" value={String(majorId ?? '')} onChange={(e) => updateParam('major', e.target.value)}>
-                    <option value="">Tất cả ngành</option>
-                    {project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}
+                <label>Mốc đồ án
+                  <select aria-label="Mốc đồ án" value={String(milestoneId ?? '')} onChange={(e) => updateParam('milestone', e.target.value)}>
+                    <option value="">Tất cả mốc</option>
+                    {milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
                   </select>
                 </label>
-                <label>Vai trò ngành
-                  <select aria-label="Vai trò ngành" value={disciplineRole ?? ''} onChange={(e) => updateParam('role', e.target.value)}>
-                    <option value="">Tất cả vai trò</option>
-                    {disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}
+                <label>Mức ưu tiên
+                  <select aria-label="Mức ưu tiên" value={priority} onChange={(e) => updateParam('priority', e.target.value)}>
+                    <option value="">Mọi ưu tiên</option>
+                    {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </label>
+                {showMajorFilter && (
+                  <>
+                    <label>Ngành
+                      <select aria-label="Ngành" value={String(majorId ?? '')} onChange={(e) => updateParam('major', e.target.value)}>
+                        <option value="">Tất cả ngành</option>
+                        {project.majors.map(item => <option key={item.id} value={item.majorId}>{item.majorName}</option>)}
+                      </select>
+                    </label>
+                    <label>Vai trò ngành
+                      <select aria-label="Vai trò ngành" value={disciplineRole ?? ''} onChange={(e) => updateParam('role', e.target.value)}>
+                        <option value="">Tất cả vai trò</option>
+                        {disciplineRoles.map(value => <option key={value} value={value}>{disciplineRoleLabels[value]}</option>)}
+                      </select>
+                    </label>
+                  </>
+                )}
               </>
-            ) : undefined}
-            advancedActiveCount={showMajorFilter ? Number(Boolean(majorId)) + Number(Boolean(disciplineRole)) : advancedActiveCount}
+            }
+            advancedActiveCount={advancedActiveCount}
             activeChips={activeChips}
             onRemoveChip={(chipId) => updateParam(chipId, '')}
             hasActiveFilters={hasActiveFilters}
             onClearAll={clearAllFilters}
-            resultSummary={data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} công việc` : undefined}
+            resultSummary={hasActiveFilters && data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} công việc` : undefined}
+            pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (nextPage) => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) } } : undefined}
           />
         )}
 
@@ -526,7 +554,9 @@ export function TaskBoardPage() {
                 )}
               </>
             )}
-            <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+            {data.totalPages > 1 && (
+              <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+            )}
           </>
         )}
       </section>

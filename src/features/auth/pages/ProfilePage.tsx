@@ -163,116 +163,135 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
 
   return (
     <WorkspacePage
+      size="wide"
       title="Hồ sơ tài khoản"
       eyebrow="Tài khoản cá nhân"
       description="Quản lý thông tin cá nhân và thiết lập bảo mật của bạn."
       action={
-        <Button variant="secondary" onClick={() => { void refreshProfile(); retryProfile() }} disabled={isRefreshing || profileLoading} icon="refresh">
-          {isRefreshing || profileLoading ? 'Đang làm mới…' : 'Làm mới hồ sơ'}
-        </Button>
+        <Button variant="secondary" size="sm" onClick={() => { void refreshProfile(); retryProfile() }} disabled={isRefreshing || profileLoading} icon="refresh" aria-label="Làm mới hồ sơ" title="Làm mới hồ sơ" />
       }
     >
-      <section className="profile-workspace workspace-surface" aria-labelledby="profile-title">
-        <div className="profile-identity">
-          <ProfileAvatar key={session.user.id} fullName={session.user.fullName} userId={session.user.id} />
-          <div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-subtle text-primary border border-primary/20 font-mono text-xs font-bold uppercase tracking-wider mb-1">
-              Hồ sơ đã xác thực
-            </span>
-            <h2 id="profile-title" className="text-xl font-bold text-ink">{session.user.fullName}</h2>
-            <p className="auth-description text-xs text-ink-muted mt-0.5">{session.user.email}</p>
-            {!isPureStudent && profile?.title && <p className="text-sm font-medium text-ink-muted mt-0.5">{profile.title}</p>}
+      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-12">
+        {/* Left Bento Column: Identity Card, Avatar & Security Action */}
+        <section className="workspace-surface flex h-full flex-col gap-4 p-5 sm:p-6 xl:col-span-4" aria-labelledby="profile-title">
+          <div className="profile-identity-card flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left xl:flex-col xl:text-center">
+            <ProfileAvatar key={session.user.id} fullName={session.user.fullName} userId={session.user.id} />
+            <div className="min-w-0">
+              <span className="mb-1 inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-wider text-primary">
+                Hồ sơ đã xác thực
+              </span>
+              <h2 id="profile-title" className="text-lg font-bold text-ink">{session.user.fullName}</h2>
+              {!isPureStudent && profile?.title && <p className="mt-1 text-sm font-medium text-ink-soft">{profile.title}</p>}
+            </div>
           </div>
-        </div>
 
-        <div className="auth-profile-grid">
-          <div>
-            <span>Vai trò tài khoản</span>
-            <strong>
-              {session.user.roles.length > 0
-                ? session.user.roles
-                    .map((role) => PROFILE_ROLE_LABELS[role] ?? displayLabel(role))
-                    .join(', ')
-                : 'Chưa có vai trò'}
-            </strong>
+          <div className="divide-y divide-hairline rounded-xl border border-hairline/80 bg-canvas/65">
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+              <span className="shrink-0 text-xs text-ink-muted">Vai trò tài khoản</span>
+              <strong className="text-right text-xs font-bold text-ink">
+                {session.user.roles.length > 0
+                  ? session.user.roles
+                      .map((role) => PROFILE_ROLE_LABELS[role] ?? displayLabel(role))
+                      .join(', ')
+                  : 'Chưa có vai trò'}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+              <span className="shrink-0 text-xs text-ink-muted">Trạng thái</span>
+              <StatusBadge tone="success" label="Đang hoạt động" />
+            </div>
           </div>
-          <div>
-            <span>Trạng thái tài khoản</span>
-            <div className="justify-self-start"><StatusBadge tone="success" label="Đang hoạt động" /></div>
-          </div>
-          {!isPureStudent && (
-            <div>
-              <span>Chức danh</span>
-              <strong>{profile?.title || 'Chưa cập nhật'}</strong>
+
+          {profile && !isEditing && (
+            <div className="mt-auto flex flex-col gap-2.5 border-t border-hairline pt-4">
+              <Button icon="edit" onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
+              <Link className="profile-security-link justify-center" to="/profile/security">
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">shield</span>
+                Bảo mật tài khoản
+                <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+              </Link>
             </div>
           )}
+        </section>
+
+        {/* Right Bento Column: Contact Info, Academic Scope & Inline Editor */}
+        <section className="workspace-surface flex h-full flex-col gap-5 p-5 sm:p-6 xl:col-span-8" aria-label="Thông tin chi tiết và học vụ">
           <div>
-            <span>Số điện thoại</span>
-            <strong>{profile?.phone || 'Chưa cập nhật'}</strong>
-          </div>
-        </div>
-
-        <AcademicProfileSummary />
-        {(error || formError) && <p className="auth-error" role="alert">{formError ?? getProfileErrorMessage(error!)}</p>}
-        {profileLoading && !profile && <p className="auth-status" role="status">Đang tải thông tin hồ sơ…</p>}
-        {profileError && <div className="auth-error" role="alert"><p>{getProfileErrorMessage(profileError)}</p><Button type="button" variant="secondary" onClick={retryProfile}>Thử lại tải hồ sơ</Button></div>}
-        {formSuccess && <p className="auth-status" role="status">{formSuccess}</p>}
-
-        {isEditing && profile ? (
-          <form className="auth-form" onSubmit={submit} noValidate>
-            <div className="profile-form-heading"><h3>Chỉnh sửa thông tin cá nhân</h3><p>Các thay đổi chỉ được lưu sau khi máy chủ xác nhận.</p></div>
-            <label htmlFor="profile-name">Họ và tên</label>
-            <input id="profile-name" name="fullName" defaultValue={session.user.fullName} required aria-invalid={Boolean(fieldErrors.fullName)} aria-describedby={fieldErrors.fullName ? 'profile-name-error' : undefined} onChange={() => { setFieldErrors(current => ({ ...current, fullName: undefined })); setFormError(null) }} />
-            {fieldErrors.fullName && <p id="profile-name-error" className="profile-field-error">{fieldErrors.fullName}</p>}
-
-            <label htmlFor="profile-phone">Số điện thoại</label>
-            <input
-              id="profile-phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              defaultValue={profile.phone ?? ''}
-              aria-invalid={Boolean(fieldErrors.phone)}
-              aria-describedby={fieldErrors.phone ? 'profile-phone-error' : undefined}
-              onChange={() => { setDirty((d) => ({ ...d, phone: true })); setFieldErrors(current => ({ ...current, phone: undefined })); setFormError(null) }}
-            />
-            {fieldErrors.phone && <p id="profile-phone-error" className="profile-field-error">{fieldErrors.phone}</p>}
-
-            {!isPureStudent && (
-              <>
-                <label htmlFor="profile-job-title">Chức danh</label>
-                <input
-                  id="profile-job-title"
-                  name="title"
-                  autoComplete="organization-title"
-                  defaultValue={profile.title ?? ''}
-                  aria-invalid={Boolean(fieldErrors.title)}
-                  aria-describedby={fieldErrors.title ? 'profile-title-error' : undefined}
-                  onChange={() => { setDirty((d) => ({ ...d, title: true })); setFieldErrors(current => ({ ...current, title: undefined })); setFormError(null) }}
-                />
-                {fieldErrors.title && <p id="profile-title-error" className="profile-field-error">{fieldErrors.title}</p>}
-              </>
-            )}
-
-            <div className="auth-actions">
-              <Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</Button>
-              <Button type="button" variant="secondary" disabled={saving} onClick={handleCancel}>
-                Hủy
-              </Button>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Thông tin liên hệ</h3>
+            <div className={`mt-3 grid grid-cols-1 gap-3 ${!isPureStudent ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
+                <span className="block text-xs text-ink-muted">Email đăng nhập</span>
+                <strong className="mt-1 block break-all font-mono text-xs font-semibold text-ink sm:text-sm">{session.user.email}</strong>
+              </div>
+              <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
+                <span className="block text-xs text-ink-muted">Số điện thoại</span>
+                <strong className={`mt-1 block text-sm font-semibold ${profile?.phone ? 'text-ink' : 'text-ink-muted font-medium'}`}>
+                  {profile?.phone || 'Chưa cập nhật'}
+                </strong>
+              </div>
+              {!isPureStudent && (
+                <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
+                  <span className="block text-xs text-ink-muted">Chức danh</span>
+                  <strong className={`mt-1 block text-sm font-semibold ${profile?.title ? 'text-ink' : 'text-ink-muted font-medium'}`}>
+                    {profile?.title || 'Chưa cập nhật'}
+                  </strong>
+                </div>
+              )}
             </div>
-          </form>
-        ) : profile ? (
-          <div className="auth-actions">
-            <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
-            <Link className="profile-security-link" to="/profile/security">
-              Bảo mật tài khoản
-              <span className="material-symbols-outlined" aria-hidden="true">
-                arrow_forward
-              </span>
-            </Link>
           </div>
-        ) : null}
-      </section>
+
+          <AcademicProfileSummary />
+          {(error || formError) && <p className="auth-error" role="alert">{formError ?? getProfileErrorMessage(error!)}</p>}
+          {profileLoading && !profile && <p className="auth-status" role="status">Đang tải thông tin hồ sơ…</p>}
+          {profileError && <div className="auth-error" role="alert"><p>{getProfileErrorMessage(profileError)}</p><Button type="button" variant="secondary" onClick={retryProfile}>Thử lại tải hồ sơ</Button></div>}
+          {formSuccess && <p className="auth-status" role="status">{formSuccess}</p>}
+
+          {isEditing && profile ? (
+            <form className="auth-form border-t border-hairline pt-5" onSubmit={submit} noValidate>
+              <div className="profile-form-heading"><h3>Chỉnh sửa thông tin cá nhân</h3><p>Các thay đổi chỉ được lưu sau khi máy chủ xác nhận.</p></div>
+              <label htmlFor="profile-name">Họ và tên</label>
+              <input id="profile-name" name="fullName" defaultValue={session.user.fullName} required aria-invalid={Boolean(fieldErrors.fullName)} aria-describedby={fieldErrors.fullName ? 'profile-name-error' : undefined} onChange={() => { setFieldErrors(current => ({ ...current, fullName: undefined })); setFormError(null) }} />
+              {fieldErrors.fullName && <p id="profile-name-error" className="profile-field-error">{fieldErrors.fullName}</p>}
+
+              <label htmlFor="profile-phone">Số điện thoại</label>
+              <input
+                id="profile-phone"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                defaultValue={profile.phone ?? ''}
+                aria-invalid={Boolean(fieldErrors.phone)}
+                aria-describedby={fieldErrors.phone ? 'profile-phone-error' : undefined}
+                onChange={() => { setDirty((d) => ({ ...d, phone: true })); setFieldErrors(current => ({ ...current, phone: undefined })); setFormError(null) }}
+              />
+              {fieldErrors.phone && <p id="profile-phone-error" className="profile-field-error">{fieldErrors.phone}</p>}
+
+              {!isPureStudent && (
+                <>
+                  <label htmlFor="profile-job-title">Chức danh</label>
+                  <input
+                    id="profile-job-title"
+                    name="title"
+                    autoComplete="organization-title"
+                    defaultValue={profile.title ?? ''}
+                    aria-invalid={Boolean(fieldErrors.title)}
+                    aria-describedby={fieldErrors.title ? 'profile-title-error' : undefined}
+                    onChange={() => { setDirty((d) => ({ ...d, title: true })); setFieldErrors(current => ({ ...current, title: undefined })); setFormError(null) }}
+                  />
+                  {fieldErrors.title && <p id="profile-title-error" className="profile-field-error">{fieldErrors.title}</p>}
+                </>
+              )}
+
+              <div className="auth-actions">
+                <Button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu hồ sơ'}</Button>
+                <Button type="button" variant="secondary" disabled={saving} onClick={handleCancel}>
+                  Hủy
+                </Button>
+              </div>
+            </form>
+          ) : null}
+        </section>
+      </div>
     </WorkspacePage>
   )
 }

@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { displayLabel } from '../../components/ui/display-label'
+import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { ListLoading } from '../../components/ui/ListLoading'
+import { StatTileRow } from '../../components/ui/StatTileRow'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { httpGetBlob, HttpError } from '../../services/http/http-client'
@@ -122,21 +126,28 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
     className="space-y-5"
     title="Sổ minh chứng"
     eyebrow={projectLabel ? `${projectLabel} · Sổ minh chứng` : 'Sổ minh chứng đồ án'}
+    backTo={actor !== 'student' ? `${routeBase}/workspace` : undefined}
+    backLabel="Tổng quan đồ án"
     description="Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống."
     action={
-      <button type="button" disabled={loading} onClick={() => void load()} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-        Làm mới
-      </button>
+      <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => void load()} />
     }
   >
+    <StatTileRow
+      tiles={[
+        { icon: 'fact_check', label: 'Tổng minh chứng', value: result ? result.totalCount : null, caption: 'Ghi nhận tự động theo bộ lọc hiện tại', hero: true },
+        { icon: 'verified', label: 'Đã xác minh', value: result ? result.items.filter(i => i.verificationStatus === 'VERIFIED').length : null, caption: 'Đã được kiểm chứng trên trang này', tone: 'success' },
+        { icon: 'hourglass_top', label: 'Chờ xác minh', value: result ? result.items.filter(i => i.verificationStatus === 'PENDING').length : null, caption: 'Đang chờ rà soát trên trang này', tone: (result?.items.filter(i => i.verificationStatus === 'PENDING').length ?? 0) > 0 ? 'warning' : 'neutral' },
+        { icon: 'cancel', label: 'Bị từ chối', value: result ? result.items.filter(i => i.verificationStatus === 'REJECTED').length : null, caption: 'Cần bổ sung minh chứng thay thế', tone: (result?.items.filter(i => i.verificationStatus === 'REJECTED').length ?? 0) > 0 ? 'danger' : 'neutral' },
+      ]}
+    />
     <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-label="Lọc minh chứng">
       <FilterToolbar
         embedded
         search={search}
         onSearchChange={setSearch}
         searchLabel="Tìm minh chứng"
-        searchPlaceholder="Tìm theo tiêu đề, ghi chú hoặc người gửi…"
+        searchPlaceholder="Tìm tiêu đề, ghi chú…"
         controls={
           <>
             <select aria-label="Nguồn" value={filters.sourceType ?? ''} onChange={event => changeFilter('sourceType', event.target.value)}>
@@ -173,7 +184,16 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
         resultSummary={result ? `${visibleItems.length} / ${result.totalCount} minh chứng` : undefined}
       />
 
-      {error && <div role="alert" className="m-4 rounded-xl border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" onClick={() => void load()} className="ml-2 min-h-11 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Thử lại</button></div>}
+      {error && (
+        <div className="m-4">
+          <InlineAlert
+            tone="error"
+            action={<button type="button" onClick={() => void load()} className="inline-flex min-h-8 items-center rounded-md px-2.5 py-1 text-xs font-bold text-primary hover:bg-card/80">Thử lại</button>}
+          >
+            {error}
+          </InlineAlert>
+        </div>
+      )}
       {loading && <ListLoading label="Đang tải minh chứng…" />}
       {!loading && !error && result && visibleItems.length === 0 && <div className="p-6 text-center text-sm text-ink-soft"><h2 className="font-semibold text-ink">Chưa có minh chứng phù hợp</h2><p className="mt-1 leading-6 text-ink-muted">Hãy thử điều chỉnh bộ lọc. Trạng thái xác minh được lấy trực tiếp từ hệ thống.</p></div>}
       {!loading && !error && visibleItems.length > 0 ? <EvidenceList items={visibleItems} majorMap={majorMap} routeBase={routeBase} actor={actor} onReviewed={() => void load()} /> : null}
@@ -184,15 +204,84 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
 }
 
 function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items: ProjectEvidence[]; majorMap: Record<number, string>; routeBase: string; actor?: 'student' | 'supervisor' | 'mentor'; onReviewed: () => void }) {
-  return <div aria-label="Danh sách minh chứng"><ul className="divide-y divide-hairline">{items.map(item => <li key={item.id} className="grid gap-3 p-4 sm:p-5">
-    <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
-      <div className="min-w-0"><p className="font-semibold text-ink">{sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}{item.sourceTitle ? `: ${item.sourceTitle}` : ''}</p><p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>{item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}</div>
-      <div className="text-sm"><StatusBadge tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)} /><p className="mt-1.5 text-xs text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
-      <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
-       <div>{sourcePath(routeBase, item) ? (isProtectedSource(sourcePath(routeBase, item)!) ? <ProtectedSourceButton path={sourcePath(routeBase, item)!} /> : <Link to={sourcePath(routeBase, item)!} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>) : <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>}</div>
-    </div>
-    {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
-  </li>)}</ul></div>
+  const [previewTarget, setPreviewTarget] = useState<{ fileName: string; apiPath: string } | null>(null)
+  const downloadApiPath = async (apiPath: string, fileName: string) => {
+    const blob = await httpGetBlob(apiPath.startsWith('/api/v1/') ? apiPath.slice('/api/v1'.length) : apiPath)
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = fileName
+    anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+  return <div aria-label="Danh sách minh chứng">
+    <ul className="divide-y divide-hairline">{items.map(item => {
+      const target = sourcePath(routeBase, item)
+      const isProtected = target ? isProtectedSource(target) : false
+      const titleLabel = `${sourceLabels[item.sourceType as keyof typeof sourceLabels] ?? displayLabel(item.sourceType)}${item.sourceTitle ? `: ${item.sourceTitle}` : ''}`
+      const fileDisplayName = item.sourceTitle || `minh-chung-${item.sourceId}`
+      return (
+        <li key={item.id} className="grid gap-3 p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-[minmax(12rem,1fr)_minmax(10rem,.7fr)_minmax(10rem,.7fr)_auto] lg:items-start">
+            <div className="min-w-0">
+              {target ? (
+                isProtected ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewTarget({ fileName: fileDisplayName, apiPath: target })}
+                    className="text-left font-semibold text-ink transition-colors hover:text-primary hover:underline"
+                  >
+                    {titleLabel}
+                  </button>
+                ) : (
+                  <Link to={target} className="font-semibold text-ink transition-colors hover:text-primary hover:underline">
+                    {titleLabel}
+                  </Link>
+                )
+              ) : (
+                <p className="font-semibold text-ink">{titleLabel}</p>
+              )}
+              <p className="mt-1 text-sm text-ink-muted">{item.majorName ?? (item.majorId ? majorMap[item.majorId] ?? 'Chuyên ngành' : 'Chưa phân loại ngành')} · {displayLabel(item.classification)}</p>
+              {item.notes ? <p className="mt-2 break-words text-sm leading-6 text-ink-soft">{item.notes}</p> : <p className="mt-2 text-sm text-ink-muted">Không có ghi chú.</p>}
+            </div>
+            <div className="text-sm"><StatusBadge tone={verificationTone(item.verificationStatus)} label={verificationLabels[item.verificationStatus as keyof typeof verificationLabels] ?? displayLabel(item.verificationStatus)} /><p className="mt-1.5 text-xs text-ink-muted">Người gửi: {item.submittedByName ?? 'Thành viên đồ án'}</p></div>
+            <p className="text-sm leading-6 text-ink-muted">{formatDate(item.submittedAt)}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {target ? (
+                isProtected ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTarget({ fileName: fileDisplayName, apiPath: target })}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-md border border-primary/25 bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                    >
+                      <span className="material-symbols-outlined text-[15px]" aria-hidden="true">visibility</span>
+                      Xem trước
+                    </button>
+                    <ProtectedSourceButton path={target} />
+                  </>
+                ) : (
+                  <Link to={target} className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Mở nguồn</Link>
+                )
+              ) : (
+                <span className="inline-flex min-h-11 items-center text-sm text-ink-muted">Chưa có đường dẫn nguồn</span>
+              )}
+            </div>
+          </div>
+          {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
+        </li>
+      )
+    })}</ul>
+    {previewTarget && (
+      <DocumentPreviewModal
+        open
+        fileName={previewTarget.fileName}
+        loadBlob={(signal) => httpGetBlob(previewTarget.apiPath.startsWith('/api/v1/') ? previewTarget.apiPath.slice('/api/v1'.length) : previewTarget.apiPath, { signal })}
+        onDownload={() => void downloadApiPath(previewTarget.apiPath, previewTarget.fileName)}
+        onClose={() => setPreviewTarget(null)}
+      />
+    )}
+  </div>
 }
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
