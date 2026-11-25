@@ -619,7 +619,7 @@ export function AdminWorkspacePage() {
                       setSortBy('default')
                     }}
                   >
-                    Đặt lại bộ lọc
+                    Xóa bộ lọc
                   </Button>
                 ) : undefined
               }

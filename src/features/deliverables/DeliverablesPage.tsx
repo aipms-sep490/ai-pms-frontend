@@ -258,8 +258,8 @@ function DeliverablesView() {
       description="Theo dõi yêu cầu đầu ra, các phiên bản đã nộp và phản hồi của giảng viên."
       action={
         <>
-          <button className="ex-button" type="button" disabled={loading} onClick={() => setRevision(v => v + 1)}>
-            <ExIcon name="refresh" />Làm mới
+          <button className="ex-button ex-button-icon" type="button" aria-label="Làm mới" title="Làm mới" disabled={loading} onClick={() => setRevision(v => v + 1)}>
+            <ExIcon name="refresh" />
           </button>
           {canManageStructure && (
             <button className="ex-button ex-button-primary" type="button" onClick={() => { setError(null); setShowCreate(true); setEditing(null) }}>

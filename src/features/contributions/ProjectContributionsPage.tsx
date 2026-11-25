@@ -1,5 +1,6 @@
 import { dateTimeLabel } from '../execution/execution-utils'
 import { Avatar } from '../../components/ui/Avatar'
+import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { InlineAlert } from '../../components/ui/InlineAlert'
@@ -194,16 +195,14 @@ export function ProjectContributionsPage() {
       description="Theo dõi hoạt động và mở từng chứng cứ do hệ thống ghi nhận. Chỉ số hoạt động hỗ trợ đối chiếu, không thay thế điểm học phần."
       action={summary ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas hover:text-ink transition-colors shadow-2xs">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>Làm mới
-          </button>
-          <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-md border border-hairline bg-card px-3 text-sm font-semibold text-ink-soft hover:bg-canvas hover:text-ink transition-colors shadow-2xs">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span>Xuất báo cáo (CSV)
-          </button>
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => void load()} />
+          <Button variant="secondary" size="sm" icon="download" onClick={exportCsv}>
+            Xuất báo cáo (CSV)
+          </Button>
           {canSnapshot && (
-            <button type="button" disabled={busy} className="min-h-11 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover shadow-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void rebuild()}>
+            <Button variant="primary" size="sm" disabled={busy} onClick={() => void rebuild()}>
               {busy ? 'Đang tạo…' : 'Lưu bản tổng hợp'}
-            </button>
+            </Button>
           )}
         </div>
       ) : undefined}

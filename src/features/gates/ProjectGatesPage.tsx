@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { Modal } from '../../components/ui/Modal'
@@ -105,15 +106,11 @@ export function ProjectGatesPage() {
     description="Kế hoạch theo dõi và kết luận từng giai đoạn. Quá hạn chưa có kết luận chỉ là cảnh báo rủi ro, không làm đồ án trượt."
     action={
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" disabled={loading} onClick={reload} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-          Làm mới
-        </button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={reload} />
         {actor !== 'student' && (
-          <button type="button" onClick={() => setCreateOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover">
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+          <Button variant="primary" size="sm" icon="add" onClick={() => setCreateOpen(true)}>
             Tạo checkpoint mới
-          </button>
+          </Button>
         )}
       </div>
     }

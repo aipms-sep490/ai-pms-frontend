@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { StatTileRow } from '../../components/ui/StatTileRow'
@@ -138,10 +139,13 @@ function MeetingList() {
       backTo={actor === 'student' ? undefined : `${routeBase}/workspace`}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="mtg-button mtg-button--secondary" disabled={loading} onClick={() => setRevision(v => v + 1)}>
-            Làm mới
-          </button>
-          {canSchedule && <Link className="mtg-button" to={`${routeBase}/meetings/new`}>+ Lên lịch họp</Link>}
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => setRevision(v => v + 1)} />
+          {canSchedule && (
+            <Link className="mtg-button" to={`${routeBase}/meetings/new`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+              <span>Lên lịch họp</span>
+            </Link>
+          )}
         </div>
       }
     >

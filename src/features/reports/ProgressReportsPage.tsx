@@ -1,6 +1,7 @@
 import { reportError } from './report-errors'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
 import { StatTileRow } from '../../components/ui/StatTileRow'
@@ -107,10 +108,13 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
       description={actor === 'student' ? 'Ghi lại kết quả, lên kế hoạch tiếp theo và trao đổi với giảng viên hướng dẫn.' : 'Theo dõi kết quả từng kỳ và gửi nhận xét để nhóm triển khai bước tiếp theo.'}
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <button className="report-button report-button--secondary" type="button" disabled={loading} onClick={() => setRevision((value) => value + 1)}>
-            Làm mới
-          </button>
-          {canCreate && <Link className="report-button" to={`${routeBase}/reports/new`}>+ Tạo báo cáo</Link>}
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => setRevision((value) => value + 1)} />
+          {canCreate && (
+            <Link className="report-button" to={`${routeBase}/reports/new`}>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+              <span>Tạo báo cáo</span>
+            </Link>
+          )}
         </div>
       }
     >

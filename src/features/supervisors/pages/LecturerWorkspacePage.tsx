@@ -234,15 +234,15 @@ export function LecturerWorkspacePage() {
       description="Theo dõi tiến độ, góp ý cho nhóm và xử lý các đề nghị hướng dẫn."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/review/gate-assignments" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
+          <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={inbox.loading} onClick={() => void inbox.refresh()} />
+          <Link to="/review/gate-assignments" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-1.5 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">fact_check</span>
             Cổng thẩm định
           </Link>
-          <Link to="/evaluator/workspace" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
+          <Link to="/evaluator/workspace" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-1.5 text-xs font-semibold text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary">
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">grading</span>
             Đánh giá đồ án
           </Link>
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={inbox.loading} onClick={() => void inbox.refresh()} />
         </div>
       }
     >

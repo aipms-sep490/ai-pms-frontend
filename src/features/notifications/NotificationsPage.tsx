@@ -381,7 +381,7 @@ export function NotificationsPage() {
               <p>Thử xóa từ khóa hoặc chọn nhóm thông báo khác để xem đầy đủ danh sách.</p>
               <div className="mt-4">
                 <Button variant="outline" onClick={() => { setSearch(''); setCategory('ALL'); if (filter === 'actionable') setFilter('all') }}>
-                  Đặt lại bộ lọc
+                  Xóa bộ lọc
                 </Button>
               </div>
             </div>

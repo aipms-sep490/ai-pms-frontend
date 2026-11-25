@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Button } from '../../components/ui/Button'
 import { displayLabel } from '../../components/ui/display-label'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
@@ -129,10 +130,7 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
     backLabel="Tổng quan đồ án"
     description="Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống."
     action={
-      <button type="button" disabled={loading} onClick={() => void load()} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50">
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-        Làm mới
-      </button>
+      <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => void load()} />
     }
   >
     <StatTileRow

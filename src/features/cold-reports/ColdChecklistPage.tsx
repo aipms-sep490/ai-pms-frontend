@@ -5,6 +5,7 @@ import type { ColdChecklist, ColdChecklistItem, ColdSubmission } from '../../ser
 import { coldScopeLabel, formatColdDateTime, formatFileSize } from './cold-types'
 import { coldError, coldNeedsAuthoritativeRefresh } from './cold-errors'
 import { ColdBadge, ColdError, ColdLoading, ColdShell } from './cold-ui'
+import { Button } from '../../components/ui/Button'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
@@ -155,10 +156,7 @@ function ColdChecklistBody({ projectId, projectCode, projectTitle, actor, routeB
     backTo={actor === 'student' ? undefined : `${routeBase}/workspace`}
     description={actor === 'student' ? 'Nộp từng báo cáo theo ngành hoặc cá nhân được giao trước hạn. Hội đồng sẽ chấm sau khi khóa gói.' : 'Theo dõi báo cáo chấm nguội của nhóm theo từng ngành và cá nhân.'}
     action={
-      <button type="button" className="cold-button cold-button--secondary" onClick={reload} disabled={loading}>
-        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-        Làm mới
-      </button>
+      <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" onClick={reload} disabled={loading} />
     }
   >
     {loading ? <ColdLoading /> : error ? <ColdError message={error} retry={reload} /> : !checklist ? <WorkspaceEmptyState title="Chưa có checklist báo cáo" message="Hệ thống chưa trả về checklist chấm nguội cho đồ án này." /> : <>

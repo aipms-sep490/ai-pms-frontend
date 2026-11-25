@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
+import { Button } from '../../components/ui/Button'
 import { EntityIdentityStrip } from '../../components/ui/EntityIdentityStrip'
 import { Modal } from '../../components/ui/Modal'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -638,15 +639,7 @@ export function ProjectDefensePage() {
       eyebrow="Hội đồng đánh giá"
       description="Thời gian và phòng bảo vệ của đồ án. Thành phần hội đồng không hiển thị ở đây."
       action={projectId ? (
-        <button
-          type="button"
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
-          disabled={loading}
-          onClick={retry}
-        >
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>
-          Làm mới
-        </button>
+        <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={retry} />
       ) : undefined}
     >
       {projectId && <EntityIdentityStrip chips={[
