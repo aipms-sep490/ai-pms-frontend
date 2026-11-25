@@ -378,7 +378,7 @@
 }
 .task-board-top-strip {
   padding: 10px 16px;
-  gap: 8px 12px;
+  gap: 8px 10px;
 }
 .task-board-top-strip .ex-tabs {
   padding: 3px;
@@ -386,6 +386,7 @@
 }
 .task-board-top-strip .ex-tabs button {
   min-height: 30px;
-  padding: 4px 10px;
-  font-size: 12.5px;
+  padding: 4px 8px;
+  gap: 5px;
+  font-size: 12px;
 }

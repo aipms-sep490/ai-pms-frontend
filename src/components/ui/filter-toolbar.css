@@ -414,17 +414,26 @@
 }
 
 .ft-bar--dense .ft-controls select {
-  max-width: 118px;
-  padding: 5px 24px 5px 7px !important;
+  max-width: 172px;
+  padding: 5px 24px 5px 8px !important;
   background-position: right 6px center;
   font-size: 12px;
 }
 
 .ft-bar--dense .ft-sort-wrap .ft-sort-select {
-  max-width: 112px;
+  max-width: 152px;
   padding: 5px 24px 5px 24px !important;
   background-position: right 6px center;
   font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .ft-bar--dense .ft-controls select {
+    max-width: 144px;
+  }
+  .ft-bar--dense .ft-sort-wrap .ft-sort-select {
+    max-width: 132px;
+  }
 }
 
 .ft-bar--dense .ft-sort-label {

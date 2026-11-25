@@ -29,14 +29,31 @@ const reasonLabel: Record<string, string> = {
 
 export function ProjectAgreementReadPage() {
   const id = Number(useParams().projectId)
+  const [refreshSignal, setRefreshSignal] = useState(0)
+  const validId = Number.isSafeInteger(id) && id > 0
   return (
-    <WorkspacePage title="Cam kết của nhóm" eyebrow="Theo dõi đồ án">
-      {Number.isSafeInteger(id) && id > 0 ? <WorkingAgreementWorkspace key={id} projectId={id} readOnly /> : <p>Đường dẫn đồ án không hợp lệ.</p>}
+    <WorkspacePage
+      title="Cam kết của nhóm"
+      eyebrow="Theo dõi đồ án"
+      action={
+        validId ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="refresh"
+            aria-label="Làm mới"
+            title="Làm mới"
+            onClick={() => setRefreshSignal(value => value + 1)}
+          />
+        ) : undefined
+      }
+    >
+      {validId ? <WorkingAgreementWorkspace key={id} projectId={id} readOnly refreshSignal={refreshSignal} /> : <p>Đường dẫn đồ án không hợp lệ.</p>}
     </WorkspacePage>
   )
 }
 
-export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { projectId: number; readOnly?: boolean }) {
+export function WorkingAgreementWorkspace({ projectId, readOnly = false, refreshSignal = 0 }: { projectId: number; readOnly?: boolean; refreshSignal?: number }) {
   const [latest, setLatest] = useState<WorkingAgreement | null>(null)
   const [active, setActive] = useState<WorkingAgreement | null>(null)
   const [capabilities, setCapabilities] = useState<WorkflowActionDto[]>([])
@@ -70,7 +87,7 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
       if (!abort.signal.aborted) setLoading(false)
     })
     return () => abort.abort()
-  }, [projectId, readOnly, revision])
+  }, [projectId, readOnly, revision, refreshSignal])
 
   useEffect(() => {
     let alive = true
@@ -189,44 +206,48 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_350px] items-start">
           <div className="space-y-4 min-w-0">
             <article className="collab-card space-y-4">
-              <div className="collab-row">
+              <div className="collab-row border-b border-hairline pb-3.5">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h2>Phiên bản {latest.version}</h2>
+                  <h2 className="!m-0">Phiên bản {latest.version}</h2>
                   <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 text-xs font-semibold text-primary">
                     {statusLabel[latest.status]}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon="history"
+                    className="!min-h-9 !py-1.5"
+                    aria-expanded={historyOpen}
+                    onClick={() => setHistoryOpen(value => !value)}
+                  >
+                    Lịch sử cam kết
+                  </Button>
                   {manage && !editing && (
-                    <Button variant="outline" icon="edit_note" disabled={busy || conflict} onClick={edit}>
+                    <Button variant="outline" size="sm" icon="edit_note" className="!min-h-9 !py-1.5" disabled={busy || conflict} onClick={edit}>
                       {latest.status === 'DRAFT' ? 'Sửa bản nháp' : 'Tạo phiên bản kế tiếp'}
                     </Button>
                   )}
                   {publish && !editing && (
-                    <Button disabled={busy || conflict} icon="publish" onClick={() => void confirmPublish()}>Công bố phiên bản</Button>
+                    <Button size="sm" className="!min-h-9 !py-1.5" disabled={busy || conflict} icon="publish" onClick={() => void confirmPublish()}>Công bố phiên bản</Button>
                   )}
                 </div>
               </div>
               <AgreementContents agreement={latest} />
             </article>
 
-            {active?.status === 'ACTIVE' && (
-              <section className="collab-card space-y-3">
-                {latest.id !== active.id && (
-                  <>
-                    <h2>Cam kết đang áp dụng · v{active.version}</h2>
-                    <AgreementContents agreement={active} />
-                  </>
-                )}
-                {active.acceptedByMe ? (
-                  <p role="status" className="collab-note">Bạn đã xác nhận bản cam kết này.</p>
-                ) : !readOnly && isActionAllowed(active.actions, actions.accept) ? (
-                  <Button icon="done_all" disabled={busy || conflict} onClick={() => void mutate(() => api.acceptWorkingAgreement(projectId, active.id, active.concurrencyToken), 'Đã ghi nhận xác nhận.')}>
-                    Tôi đồng ý với cam kết
-                  </Button>
-                ) : (
-                  <p className="collab-muted">Hiện chưa thể xác nhận cam kết này. Quyền và danh sách thành viên được kiểm tra theo phiên bản hiện tại.</p>
-                )}
+            {active?.status === 'ACTIVE' && latest.id !== active.id && (
+              <section className="collab-card space-y-4">
+                <div className="collab-row border-b border-hairline pb-3.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h2 className="!m-0">Cam kết đang áp dụng · v{active.version}</h2>
+                    <span className="rounded-full border border-status-success-border bg-status-success-bg px-2.5 py-0.5 text-xs font-semibold text-status-success-text">
+                      Đang áp dụng
+                    </span>
+                  </div>
+                </div>
+                <AgreementContents agreement={active} />
               </section>
             )}
 
@@ -242,20 +263,20 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
               />
             )}
 
-            <div>
-              <Button variant="ghost" icon="history" aria-expanded={historyOpen} onClick={() => setHistoryOpen(value => !value)}>
-                Lịch sử cam kết
-              </Button>
-            </div>
-            {historyOpen && <AgreementHistory key={`${projectId}:${revision}`} projectId={projectId} />}
+            {historyOpen && <AgreementHistory key={`${projectId}:${revision}:${refreshSignal}`} projectId={projectId} />}
           </div>
 
-          <aside className="collab-card collab-stack lg:sticky lg:top-20">
-            <h2>Xác nhận của thành viên</h2>
-            <span className="collab-metric">{latest.acceptances.length}<span className="collab-muted"> / {latest.memberCount}</span></span>
-            <progress className="collab-progress" value={latest.acceptances.length} max={Math.max(1, latest.memberCount)} aria-label="Tiến độ xác nhận" />
-            <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
-            <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
+          <aside className="collab-card space-y-4 lg:sticky lg:top-20">
+            <div className="space-y-2.5">
+              <h2 className="!m-0">Xác nhận của thành viên</h2>
+              <div className="flex items-baseline gap-1.5">
+                <span className="collab-metric">{latest.acceptances.length}</span>
+                <span className="text-base font-medium text-ink-muted">/ {latest.memberCount}</span>
+              </div>
+              <progress className="collab-progress !my-0" value={latest.acceptances.length} max={Math.max(1, latest.memberCount)} aria-label="Tiến độ xác nhận" />
+              <p className="collab-muted">Đã xác nhận {latest.acceptances.length}/{latest.memberCount} thành viên.</p>
+              <p className="collab-muted">{latest.required ? 'Kỳ này yêu cầu đủ xác nhận trước khi đồ án được kích hoạt.' : 'Cam kết hỗ trợ nhóm phối hợp, theo chính sách của kỳ.'}</p>
+            </div>
             <ActionVerdict
               actions={[{ code: 'WORKING_AGREEMENT_READINESS', allowed: (latest.readiness.reasons ?? []).length === 0, reasons: (latest.readiness.reasons ?? []).map(code => reasonLabel[code] ?? 'Chưa đủ điều kiện theo chính sách hiện tại.') }]}
               actionCode="WORKING_AGREEMENT_READINESS"
@@ -288,6 +309,27 @@ export function WorkingAgreementWorkspace({ projectId, readOnly = false }: { pro
                   </li>
                 ))}
               </ul>
+            )}
+            {active?.status === 'ACTIVE' && (
+              <div className="border-t border-hairline pt-4 space-y-2">
+                {latest.id !== active.id && (
+                  <p className="text-xs font-medium text-ink-muted">Xác nhận áp dụng cho bản đang hiệu lực (v{active.version})</p>
+                )}
+                {active.acceptedByMe ? (
+                  <p role="status" className="collab-note !py-2.5 !px-3.5 text-xs font-medium">Bạn đã xác nhận bản cam kết này.</p>
+                ) : !readOnly && isActionAllowed(active.actions, actions.accept) ? (
+                  <Button
+                    className="w-full justify-center"
+                    icon="done_all"
+                    disabled={busy || conflict}
+                    onClick={() => void mutate(() => api.acceptWorkingAgreement(projectId, active.id, active.concurrencyToken), 'Đã ghi nhận xác nhận.')}
+                  >
+                    Tôi đồng ý với cam kết
+                  </Button>
+                ) : !readOnly ? (
+                  <p className="collab-muted text-xs">Hiện chưa thể xác nhận cam kết này. Quyền và danh sách thành viên được kiểm tra theo phiên bản hiện tại.</p>
+                ) : null}
+              </div>
             )}
           </aside>
         </div>

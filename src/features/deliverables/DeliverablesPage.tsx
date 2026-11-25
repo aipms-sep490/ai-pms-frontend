@@ -437,15 +437,23 @@ function DeliverablesView() {
                   <span className={`ex-badge ex-badge-${item.status}`}>{statusLabel[item.status] ?? 'Trạng thái chưa xác định'}</span>
                   <span className="deliverable-version">V{item.latestVersion}</span>
                   <div className="deliverable-actions">
+                    <button className="ex-button !min-h-9 !py-1.5 !px-3 !text-xs" type="button" onClick={() => void loadVersions(item)}>
+                      <ExIcon name="history" />Xem phiên bản
+                    </button>
                     {actor === 'student' && !['ACCEPTED', 'CLOSED'].includes(item.status) && (
                       <button className="ex-button ex-button-primary !min-h-9 !py-1.5 !px-3 !text-xs" type="button" disabled={busy} onClick={() => { setError(null); setUploadTarget(item) }}>
                         <ExIcon name="upload_file" />Nộp phiên bản
                       </button>
                     )}
-                    <button className="ex-text-button" type="button" onClick={() => void loadVersions(item)}>Xem phiên bản</button>
-                    {canManageStructure && <button className="ex-text-button" type="button" onClick={() => { setError(null); setEditing(item); setShowCreate(false) }}>Sửa</button>}
+                    {canManageStructure && (
+                      <button className="ex-button !min-h-9 !py-1.5 !px-3 !text-xs" type="button" onClick={() => { setError(null); setEditing(item); setShowCreate(false) }}>
+                        Sửa
+                      </button>
+                    )}
                     {canManageStructure && ['DRAFT', 'OPEN'].includes(item.status) && item.latestVersion === 0 && (
-                      <button className="ex-text-button ex-danger-text" type="button" onClick={() => setDeleteTarget(item)}>Xóa</button>
+                      <button className="ex-button !min-h-9 !py-1.5 !px-3 !text-xs !text-status-error-text" type="button" onClick={() => setDeleteTarget(item)}>
+                        Xóa
+                      </button>
                     )}
                   </div>
                 </article>

@@ -203,5 +203,7 @@ describe('Weekly assessments page', () => {
     expect(screen.queryByRole('button', { name: 'Lưu nháp' })).toBeNull()
     expect(screen.queryByText(/Đủ điều kiện nộp điểm đánh giá tuần|Chưa thể nộp điểm đánh giá tuần/)).toBeNull()
     expect(api.getWeeklyAssessmentRubrics).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Làm mới' }))
+    await waitFor(() => expect(api.getWeeklyAssessmentWeeks).toHaveBeenCalledTimes(2))
   })
 })
