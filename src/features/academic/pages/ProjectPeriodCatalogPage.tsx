@@ -182,32 +182,33 @@ export function ProjectPeriodCatalogPage() {
           </Link>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3 border-t border-hairline/60 pt-4 text-xs">
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">1</span>
-          <div>
+      <div className="mt-4 grid gap-3 border-t border-hairline/60 pt-4 text-xs sm:grid-cols-3">
+        <div className="flex items-start gap-2.5 rounded-lg border border-hairline/75 bg-card/85 p-3">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">1</span>
+          <div className="min-w-0">
             <strong className="block font-semibold text-ink">Kiểm tra điều kiện</strong>
-            <span className="text-ink-muted">Xem điều kiện học vụ của đợt đăng ký trong hồ sơ</span>
+            <span className="mt-0.5 block leading-relaxed text-ink-muted">Xem điều kiện học vụ của đợt đăng ký trong hồ sơ</span>
           </div>
         </div>
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">2</span>
-          <div>
+        <div className="flex items-start gap-2.5 rounded-lg border border-hairline/75 bg-card/85 p-3">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">2</span>
+          <div className="min-w-0">
             <strong className="block font-semibold text-ink">Lập nhóm đồ án</strong>
-            <span className="text-ink-muted">Số thành viên theo quy định của đợt đăng ký</span>
+            <span className="mt-0.5 block leading-relaxed text-ink-muted">Số thành viên theo quy định của đợt đăng ký</span>
           </div>
         </div>
-        <div className="flex items-start gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white text-xs">3</span>
-          <div>
+        <div className="flex items-start gap-2.5 rounded-lg border border-hairline/75 bg-card/85 p-3">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">3</span>
+          <div className="min-w-0">
             <strong className="block font-semibold text-ink">Đăng ký đề tài</strong>
-            <span className="text-ink-muted">Chọn đề tài từ giảng viên hoặc tự đề xuất</span>
+            <span className="mt-0.5 block leading-relaxed text-ink-muted">Chọn đề tài từ giảng viên hoặc tự đề xuất</span>
           </div>
         </div>
       </div>
     </section>
 
     <FilterToolbar
+      layout="stacked"
       ariaLabel="Tìm kỳ đăng ký"
       tabs={[
         { value: '', label: 'Tất cả' },
@@ -239,10 +240,15 @@ export function ProjectPeriodCatalogPage() {
       hasActiveFilters={hasFilters}
       onClearAll={clearAll}
       resultSummary={result ? `${visiblePeriods.length} / ${result.totalCount} kỳ phù hợp` : undefined}
+      pagination={totalPages > 1 ? { page: urlPage, pages: totalPages, total: result?.totalCount ?? 0, pageSize, busy: loading, onPage: handlePageChange } : undefined}
     />
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-      <h2 className="font-heading text-xl font-bold text-ink">Kỳ đang mở đăng ký</h2>
-      {result && <span className="rounded-full bg-primary-subtle px-3 py-1 text-sm font-semibold text-primary">{result.totalCount} kỳ phù hợp</span>}
+    <div className="mt-5 flex flex-wrap items-center gap-2.5">
+      <h2 className="font-heading text-lg font-bold text-ink">Kỳ đang mở đăng ký</h2>
+      {result && (
+        <span className="rounded-full border border-hairline bg-canvas px-2.5 py-0.5 font-mono text-xs font-semibold text-ink-soft">
+          {visiblePeriods.length}
+        </span>
+      )}
     </div>
     {loading && <p role="status" className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Đang tải các kỳ đăng ký…</p>}
     {isForbidden && (
@@ -257,44 +263,100 @@ export function ProjectPeriodCatalogPage() {
     )}
     {!loading && !error && !isForbidden && visiblePeriods.length === 0 && <p className="mt-4 rounded-xl border border-hairline bg-card p-6 text-ink-muted">Chưa có kỳ đăng ký đang hoạt động phù hợp bộ lọc. Hãy thử từ khóa hoặc học kỳ khác.</p>}
     {!loading && !error && !isForbidden && result && visiblePeriods.length > 0 && <>
-      <ul className="mt-4 grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">{visiblePeriods.map(period => {
-        const isCurrentSemester = period.academicSemesterId === semester?.id
-        const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
-        return <li key={period.id} className="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card">
-          <div className="flex-1 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="rounded-full bg-primary-subtle px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                windowStatus.tone === 'success'
-                  ? 'border-status-success-border bg-status-success-bg text-status-success-text'
-                  : windowStatus.tone === 'neutral'
-                    ? 'border-primary-subtle bg-primary-subtle/50 text-primary'
-                    : 'border-hairline bg-canvas text-ink-muted'
-              }`}>{windowStatus.label}</span>
+      {visiblePeriods.length === 1 ? (
+        <ul className="mt-3.5 space-y-4">
+          {visiblePeriods.map(period => {
+            const isCurrentSemester = period.academicSemesterId === semester?.id
+            const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
+            return (
+              <li key={period.id} className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+                <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)_auto] lg:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-primary-subtle px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>
+                      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        windowStatus.tone === 'success'
+                          ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                          : windowStatus.tone === 'neutral'
+                            ? 'border-primary-subtle bg-primary-subtle/50 text-primary'
+                            : 'border-hairline bg-canvas text-ink-muted'
+                      }`}>{windowStatus.label}</span>
+                    </div>
+                    <h3 className="mt-3 break-words font-heading text-xl font-bold text-ink">{period.name}</h3>
+                    <p className="mt-1 font-mono text-xs text-ink-muted">{period.code}</p>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-3 lg:border-l lg:border-line lg:pl-5">
+                    <div className="rounded-lg border border-hairline/80 bg-canvas/70 px-3.5 py-2.5">
+                      <dt className="text-xs text-ink-muted">Bắt đầu</dt>
+                      <dd className="mt-1 font-mono text-xs font-bold text-ink">{dateLabel(period.startAt)}</dd>
+                    </div>
+                    <div className="rounded-lg border border-hairline/80 bg-canvas/70 px-3.5 py-2.5">
+                      <dt className="text-xs text-ink-muted">Kết thúc</dt>
+                      <dd className="mt-1 font-mono text-xs font-bold text-ink">{dateLabel(period.endAt)}</dd>
+                    </div>
+                  </dl>
+                  <div className="flex items-center lg:justify-end">
+                    {isCurrentSemester ? (
+                      <Link to="/team" className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-primary transition-colors hover:bg-primary-hover lg:w-auto">
+                        Xem nhóm và điều kiện <span aria-hidden="true">→</span>
+                      </Link>
+                    ) : (
+                      <p className="max-w-xs text-xs leading-5 text-ink-muted">Học kỳ này chưa được chọn trong hồ sơ hiện tại. Kiểm tra ngữ cảnh học kỳ trước khi tiếp tục.</p>
+                    )}
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <ul className={`mt-3.5 grid items-stretch gap-4 ${visiblePeriods.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3'}`}>{visiblePeriods.map(period => {
+          const isCurrentSemester = period.academicSemesterId === semester?.id
+          const windowStatus = getPeriodWindowStatus(period.startAt, period.endAt)
+          return <li key={period.id} className="flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
+            <div className="flex-1 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="rounded-full bg-primary-subtle px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">{period.semesterName}</span>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                  windowStatus.tone === 'success'
+                    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                    : windowStatus.tone === 'neutral'
+                      ? 'border-primary-subtle bg-primary-subtle/50 text-primary'
+                      : 'border-hairline bg-canvas text-ink-muted'
+                }`}>{windowStatus.label}</span>
+              </div>
+              <h3 className="mt-4 break-words font-heading text-lg font-bold text-ink">{period.name}</h3>
+              <p className="mt-1 font-mono text-xs text-ink-muted">{period.code}</p>
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline pt-4 text-xs">
+                <div className="rounded-lg border border-hairline/80 bg-canvas/70 px-3 py-2">
+                  <dt className="text-ink-muted">Bắt đầu</dt>
+                  <dd className="mt-1 font-mono font-bold text-ink">{dateLabel(period.startAt)}</dd>
+                </div>
+                <div className="rounded-lg border border-hairline/80 bg-canvas/70 px-3 py-2">
+                  <dt className="text-ink-muted">Kết thúc</dt>
+                  <dd className="mt-1 font-mono font-bold text-ink">{dateLabel(period.endAt)}</dd>
+                </div>
+              </dl>
             </div>
-            <h3 className="mt-5 break-words font-heading text-lg font-bold text-ink">{period.name}</h3>
-            <p className="mt-1 font-mono text-sm text-ink-muted">{period.code}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline pt-4 text-sm">
-              <div><dt className="text-ink-muted">Bắt đầu</dt><dd className="mt-1 font-semibold text-ink">{dateLabel(period.startAt)}</dd></div>
-              <div><dt className="text-ink-muted">Kết thúc</dt><dd className="mt-1 font-semibold text-ink">{dateLabel(period.endAt)}</dd></div>
-            </dl>
-          </div>
-          <div className="border-t border-hairline p-4">
-            {isCurrentSemester ? (
-              <Link to="/team" className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 font-semibold text-white hover:bg-primary-hover">
-                Xem nhóm và điều kiện <span aria-hidden="true">→</span>
-              </Link>
-            ) : (
-              <p className="text-sm leading-6 text-ink-muted">Học kỳ này chưa được chọn trong hồ sơ hiện tại. Kiểm tra ngữ cảnh học kỳ trước khi tiếp tục.</p>
-            )}
-          </div>
-        </li>
-      })}</ul>
-      <nav className="mt-5 flex items-center justify-center gap-3" aria-label="Phân trang kỳ đăng ký">
-        <button type="button" disabled={urlPage <= 1} onClick={() => handlePageChange(urlPage - 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang trước</button>
-        <span className="text-sm font-semibold text-ink-soft">{urlPage} / {totalPages}</span>
-        <button type="button" disabled={urlPage >= totalPages} onClick={() => handlePageChange(urlPage + 1)} className="min-h-11 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang sau</button>
-      </nav>
+            <div className="border-t border-hairline bg-canvas/40 p-4">
+              {isCurrentSemester ? (
+                <Link to="/team" className="flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">
+                  Xem nhóm và điều kiện <span aria-hidden="true">→</span>
+                </Link>
+              ) : (
+                <p className="text-xs leading-5 text-ink-muted">Học kỳ này chưa được chọn trong hồ sơ hiện tại. Kiểm tra ngữ cảnh học kỳ trước khi tiếp tục.</p>
+              )}
+            </div>
+          </li>
+        })}</ul>
+      )}
+      {totalPages > 1 && (
+        <nav className="mt-5 flex items-center justify-center gap-3" aria-label="Phân trang kỳ đăng ký">
+          <button type="button" disabled={urlPage <= 1} onClick={() => handlePageChange(urlPage - 1)} className="min-h-10 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang trước</button>
+          <span className="font-mono text-xs font-semibold text-ink-soft">{urlPage} / {totalPages}</span>
+          <button type="button" disabled={urlPage >= totalPages} onClick={() => handlePageChange(urlPage + 1)} className="min-h-10 rounded-lg border border-hairline bg-card px-4 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40">Trang sau</button>
+        </nav>
+      )}
     </>}
   </WorkspacePage>
 }

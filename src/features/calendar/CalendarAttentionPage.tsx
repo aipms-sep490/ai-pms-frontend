@@ -732,14 +732,12 @@ function CalendarRow({ item }: { item: CalendarProjectionItem }) {
       <span className="calendar-event__time" title={timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}>
         {clock}
       </span>
+      <span className="calendar-event__type">
+        <span className="material-symbols-outlined" aria-hidden="true">{sourceIcons[item.sourceType]}</span>
+        <span>{sourceLabels[item.sourceType]}</span>
+      </span>
       <div className="calendar-event__main">
-        <div className="calendar-event__headline">
-          <span className="calendar-event__type">
-            <span className="material-symbols-outlined" aria-hidden="true">{sourceIcons[item.sourceType]}</span>
-            <span>{sourceLabels[item.sourceType]}</span>
-          </span>
-          <strong className="calendar-event__title">{item.title}</strong>
-        </div>
+        <strong className="calendar-event__title">{item.title}</strong>
         {item.projectName && (
           <div className="calendar-event__meta">
             <span>{item.projectName}</span>

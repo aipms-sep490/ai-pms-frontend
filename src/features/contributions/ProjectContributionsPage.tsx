@@ -280,34 +280,50 @@ export function ProjectContributionsPage() {
               <div className="p-8 text-center text-sm text-ink-muted">Chưa có dữ liệu đóng góp phù hợp.</div>
             ) : (
               <ul className="divide-y divide-hairline">
-                {filteredMembers.map(member => (
-                  <li key={member.userId} className={`grid gap-4 p-4 transition-colors sm:p-5 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(16rem,1.8fr)_auto] xl:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/70' : 'hover:bg-canvas/80'}`}>
-                    <div className="flex min-w-0 items-center gap-3">
-                      <Avatar name={member.displayName} size="md" shape="circle" />
-                      <div className="min-w-0">
-                        <strong className="block truncate text-sm text-ink">{member.displayName}</strong>
-                        <span className="text-xs text-ink-muted">Thành viên nhóm</span>
+                {filteredMembers.map(member => {
+                  const pct = member.assignedTasks > 0 ? Math.round((member.completedTasks / member.assignedTasks) * 100) : null
+                  return (
+                    <li key={member.userId} className={`grid gap-4 px-5 py-4 transition-colors lg:grid-cols-[minmax(210px,1.05fr)_minmax(0,1.8fr)_168px] lg:items-center ${selectedUserId === member.userId ? 'bg-primary-subtle/60' : 'hover:bg-canvas/75'}`}>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar name={member.displayName} size="md" shape="circle" />
+                        <div className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm font-bold text-ink">{member.displayName}</strong>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-xs text-ink-muted">Thành viên nhóm</span>
+                            {pct !== null && (
+                              <span className="font-mono text-xs font-semibold text-status-success-text">{pct}% việc</span>
+                            )}
+                          </div>
+                          {pct !== null && (
+                            <div className="mt-1.5 h-1.5 w-full max-w-[170px] overflow-hidden rounded-full bg-hairline" aria-hidden="true">
+                              <span className="block h-full rounded-full bg-academic-emerald transition-all" style={{ width: `${Math.min(100, pct)}%` }} />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-3">
-                      <ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} />
-                      <ContributionStat label="Báo cáo" value={member.submittedReports} />
-                      <ContributionStat label="Cuộc họp" value={member.attendedMeetings} />
-                      <ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} />
-                      <ContributionStat label="Tệp" value={member.uploadedFiles} />
-                      <ContributionStat label="Hoạt động" value={member.activityScore} />
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Xem chứng cứ"
-                      title={`Xem ${member.evidenceCount} chứng cứ của ${member.displayName}`}
-                      className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-hairline bg-card px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary/30 hover:bg-primary-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                      onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType(''); setEvidenceSearch(''); setEvidenceError(null) }}
-                    >
-                      <span className="font-mono text-xs font-bold">{member.evidenceCount}</span> Xem chứng cứ
-                    </button>
-                  </li>
-                ))}
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <ContributionStat label="Công việc" value={`${member.completedTasks}/${member.assignedTasks}`} active={member.completedTasks > 0} />
+                        <ContributionStat label="Báo cáo" value={member.submittedReports} active={member.submittedReports > 0} />
+                        <ContributionStat label="Cuộc họp" value={member.attendedMeetings} active={member.attendedMeetings > 0} />
+                        <ContributionStat label="Bản nộp" value={member.submittedDeliverableVersions} active={member.submittedDeliverableVersions > 0} />
+                        <ContributionStat label="Tệp" value={member.uploadedFiles} active={member.uploadedFiles > 0} />
+                        <ContributionStat label="Hoạt động" value={member.activityScore} active={member.activityScore > 0} highlight />
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Xem chứng cứ"
+                        title={`Xem ${member.evidenceCount} chứng cứ của ${member.displayName}`}
+                        className="inline-flex min-h-10 w-full shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-lg border border-hairline bg-card px-3.5 text-xs font-semibold text-ink-soft transition-colors hover:border-primary/40 hover:bg-primary-subtle hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        onClick={() => { setSelectedUserId(member.userId); setEvidencePage(1); setSourceType(''); setEvidenceSearch(''); setEvidenceError(null) }}
+                      >
+                        <span>Xem chứng cứ</span>
+                        <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                          {member.evidenceCount}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
             {summary.totalCount > 20 && <Pager page={page} total={summary.totalCount} onChange={setPage} />}
@@ -464,8 +480,15 @@ function Pager({ page, total, onChange }: { page: number; total: number; onChang
   )
 }
 
-function ContributionStat({ label, value }: { label: string; value: string | number }) {
-  return <p className="flex items-baseline justify-between gap-2 border-b border-line pb-1 text-ink-muted"><span>{label}</span><strong className="font-mono text-xs text-ink-soft">{value}</strong></p>
+function ContributionStat({ label, value, active = false, highlight = false }: { label: string; value: string | number; active?: boolean; highlight?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 ${highlight && active ? 'border-primary/25 bg-primary-subtle/50' : 'border-hairline/80 bg-canvas/70'}`}>
+      <span className="whitespace-nowrap text-xs text-ink-muted">{label}</span>
+      <strong className={`font-mono text-xs tabular-nums ${highlight && active ? 'font-bold text-primary' : active ? 'font-bold text-ink' : 'font-medium text-ink-muted'}`}>
+        {value}
+      </strong>
+    </div>
+  )
 }
 
 function sourceLabel(value: string) {

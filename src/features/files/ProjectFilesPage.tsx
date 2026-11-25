@@ -1,3 +1,4 @@
+import { Avatar } from '../../components/ui/Avatar'
 import { Modal } from '../../components/ui/Modal'
 import { DocumentPreviewModal } from '../../components/ui/DocumentPreviewModal'
 import { Pagination } from '../../components/ui/Pagination'
@@ -464,50 +465,63 @@ export function ProjectFilesPage() {
               {sortedItems.map(file => {
                 const parentLabel = (file.parentType === 'VERSION' ? versionLabels[file.parentId] : parents.find(parent => parent.type === file.parentType && parent.id === file.parentId)?.label) ?? parentLabels[file.parentType] ?? 'Tệp đồ án'
                 const sourceHref = parentHref(file)
+                const uploaderName = file.uploadedByName || journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName || 'Thành viên dự án'
+                const visual = fileVisual(file.contentType, file.fileName)
                 return (
-                <li key={file.id} className="grid gap-3 px-4 py-4 text-sm transition-colors hover:bg-canvas/80 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-5">
+                <li key={file.id} className="grid gap-3.5 px-4 py-4 text-sm transition-colors hover:bg-canvas/75 sm:px-5 lg:grid-cols-[42px_minmax(0,1.55fr)_minmax(200px,0.85fr)_auto] lg:items-center">
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => setPreviewTarget(file)}
                     aria-label={`Xem trước ${file.fileName}`}
-                    className="grid size-10 place-items-center rounded-xl bg-primary-subtle text-primary transition-colors hover:bg-primary/15"
+                    className={`grid size-[42px] shrink-0 place-items-center rounded-xl border transition-opacity hover:opacity-85 ${visual.tone}`}
                   >
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">description</span>
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{visual.icon}</span>
                   </button>
                   <div className="min-w-0">
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => setPreviewTarget(file)}
-                      className="block max-w-full text-left font-bold break-words text-ink transition-colors hover:text-primary hover:underline"
+                      className="block max-w-full truncate text-left text-sm font-bold text-ink transition-colors hover:text-primary hover:underline"
+                      title={file.fileName}
                     >
                       {file.fileName}
                     </button>
-                    <p className="mt-1 text-xs text-ink-muted">
+                    <div className="mt-1.5 flex min-w-0 items-center gap-2 text-xs text-ink-muted">
+                      <span className="inline-flex shrink-0 items-center rounded-full border border-hairline bg-canvas px-2 py-0.5 font-semibold text-ink-soft">
+                        {parentLabels[file.parentType] ?? 'Tệp đồ án'}
+                      </span>
                       {sourceHref ? (
-                        <Link to={sourceHref} className="font-medium text-primary hover:underline">{parentLabel}</Link>
+                        <Link to={sourceHref} className="min-w-0 flex-1 truncate font-medium text-primary hover:underline" title={parentLabel}>
+                          {parentLabel}
+                        </Link>
                       ) : (
-                        <span>{parentLabel}</span>
+                        <span className="min-w-0 flex-1 truncate" title={parentLabel}>{parentLabel}</span>
                       )}
-                      {' · '}
-                      <span title={file.contentType || undefined}>{fileFormat(file.contentType, file.fileName)}</span>
-                      {' · '}
-                      <span className="font-mono">{formatBytes(file.sizeBytes)}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Tải bởi <span>{file.uploadedByName || journey.team?.members.find(member => member.userId === file.uploadedBy)?.fullName || 'Thành viên dự án'}</span> · {dateTimeLabel(file.createdAt)}
-                    </p>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md bg-primary-subtle border border-primary/20 px-3.5 font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 transition-all flex items-center gap-1.5" onClick={() => setPreviewTarget(file)}>
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span><span>Xem trước</span>
+                  <div className="flex flex-col gap-1.5 lg:border-l lg:border-line lg:pl-4">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <span title={file.contentType || undefined} className="inline-flex items-center rounded-md border border-hairline bg-canvas px-2 py-0.5 font-mono font-semibold text-ink-soft">
+                        {fileFormat(file.contentType, file.fileName)} · {formatBytes(file.sizeBytes)}
+                      </span>
+                      <span className="font-mono text-xs text-ink-muted">{dateTimeLabel(file.createdAt)}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2 text-xs text-ink-soft">
+                      <Avatar name={uploaderName} size="xs" shape="circle" />
+                      <span className="truncate font-medium">{uploaderName}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <button type="button" disabled={busy} className="flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-primary/20 bg-primary-subtle px-3 text-xs font-semibold text-primary transition-all hover:bg-primary/10 disabled:opacity-50" onClick={() => setPreviewTarget(file)}>
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span><span>Xem trước</span>
                     </button>
-                    <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md border border-hairline px-3.5 font-semibold text-primary hover:border-primary/30 hover:bg-primary-subtle disabled:opacity-50 transition-all flex items-center gap-1.5" onClick={() => void download(file)}>
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">download</span><span>Tải xuống</span>
+                    <button type="button" disabled={busy} className="flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-ink-soft transition-all hover:border-primary/35 hover:bg-primary-subtle hover:text-primary disabled:opacity-50" onClick={() => void download(file)}>
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">download</span><span>Tải xuống</span>
                     </button>
                     {canDelete(file) && (
-                      <button type="button" disabled={busy} className="min-h-10 whitespace-nowrap rounded-md px-2.5 font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50 transition-colors" onClick={() => setDeleteTarget(file)}>Xóa</button>
+                      <button type="button" disabled={busy} className="min-h-9 whitespace-nowrap rounded-lg px-2.5 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg disabled:opacity-50" onClick={() => setDeleteTarget(file)}>Xóa</button>
                     )}
                   </div>
                 </li>
@@ -645,4 +659,25 @@ function fileFormat(contentType?: string | null, fileName?: string | null) {
   if (normalized.includes('zip') || fileName?.toLowerCase().endsWith('.zip')) return 'ZIP'
   if (normalized.startsWith('image/')) return 'Hình ảnh'
   return contentType || 'Tệp đính kèm'
+}
+
+function fileVisual(contentType?: string | null, fileName?: string | null): { icon: string; tone: string } {
+  const normalized = contentType?.toLowerCase() ?? ''
+  const lowerName = fileName?.toLowerCase() ?? ''
+  if (normalized.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/.test(lowerName)) {
+    return { icon: 'image', tone: 'border-status-success-border bg-status-success-bg text-status-success-text' }
+  }
+  if (normalized.includes('pdf') || lowerName.endsWith('.pdf')) {
+    return { icon: 'picture_as_pdf', tone: 'border-status-error-border bg-status-error-bg text-status-error-text' }
+  }
+  if (normalized.includes('wordprocessingml') || /\.(docx?)$/.test(lowerName)) {
+    return { icon: 'description', tone: 'border-tag-se/25 bg-tag-se-bg text-tag-se' }
+  }
+  if (normalized.includes('spreadsheetml') || /\.(xlsx?|csv)$/.test(lowerName)) {
+    return { icon: 'table_chart', tone: 'border-status-success-border bg-status-success-bg text-status-success-text' }
+  }
+  if (normalized.includes('zip') || /\.(zip|rar|7z)$/.test(lowerName)) {
+    return { icon: 'folder_zip', tone: 'border-status-warning-border bg-status-warning-bg text-status-warning-text' }
+  }
+  return { icon: 'draft', tone: 'border-primary/20 bg-primary-subtle text-primary' }
 }

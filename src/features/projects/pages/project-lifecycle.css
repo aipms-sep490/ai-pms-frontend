@@ -23,7 +23,7 @@
 
 .lifecycle-facts > div {
   min-width: 0;
-  padding: 16px 20px;
+  padding: 13px 18px;
   border-right: 1px solid var(--color-line);
 }
 
@@ -107,18 +107,64 @@
   background: var(--color-canvas);
 }
 
-.lifecycle-history .ex-timeline {
-  padding: 10px 28px 10px 42px;
+.lifecycle-timeline {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 24px;
+}
+
+.lifecycle-timeline::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 18px;
+  left: 7px;
+  width: 2px;
+  background: var(--color-hairline);
+}
+
+.lifecycle-timeline-item {
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.lifecycle-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.lifecycle-timeline-dot {
+  position: absolute;
+  left: -24px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--color-card);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lifecycle-timeline-dot::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-primary);
 }
 
 .lifecycle-history-content {
   min-width: 0;
-  padding: 14px 0 15px 10px;
-  border-bottom: 1px solid var(--color-hairline);
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--color-line);
 }
 
-.lifecycle-history .ex-timeline-item:last-child .lifecycle-history-content {
+.lifecycle-timeline-item:last-child .lifecycle-history-content {
   border-bottom: 0;
+  padding-bottom: 0;
 }
 
 @media (max-width: 900px) {

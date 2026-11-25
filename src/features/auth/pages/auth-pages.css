@@ -240,14 +240,15 @@
 .profile-avatar-control { flex: 0 0 188px; display: grid; justify-items: start; align-content: start; gap: 6px; min-width: 0; }
 .profile-identity-card .profile-avatar-control { flex: 0 0 auto; justify-items: center; text-align: center; }
 .profile-identity-card .profile-avatar-actions { justify-content: center; }
-.profile-avatar-image { display: grid; width: 72px; height: 72px; overflow: hidden; place-items: center; border-radius: 50%; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 28px; font-weight: 750; }
+.profile-avatar-image { display: grid; width: 68px; height: 68px; overflow: hidden; place-items: center; border-radius: 50%; background: var(--color-primary-subtle); color: var(--color-primary); font-size: 26px; font-weight: 750; border: 1px solid color-mix(in oklab, var(--color-primary) 20%, transparent); }
 .profile-avatar-image img { width: 100%; height: 100%; object-fit: cover; }
 .profile-avatar-actions, .profile-avatar-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.profile-avatar-picker { position: relative; display: inline-flex; min-height: 44px; align-items: center; padding: 0 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); color: var(--color-primary); font-size: 13px; font-weight: 700; cursor: pointer; }
+.profile-avatar-picker { position: relative; display: inline-flex; min-height: 36px; align-items: center; padding: 0 12px; border: 1px solid var(--color-hairline); border-radius: 8px; background: var(--color-card); color: var(--color-primary); font-size: 12.5px; font-weight: 650; cursor: pointer; transition: border-color 140ms ease, background-color 140ms ease; }
+.profile-avatar-picker:hover { border-color: var(--color-primary); background: var(--color-primary-subtle); }
 .profile-avatar-picker:focus-within { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .profile-avatar-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .profile-avatar-picker:has(input:disabled) { opacity: .5; cursor: not-allowed; }
-.profile-avatar-actions button { min-height: 44px; }
+.profile-avatar-actions button { min-height: 36px; }
 .profile-avatar-confirm span { color: var(--color-ink-soft); font-size: 12px; }
 .profile-avatar-hint { margin: 0; color: var(--color-ink-muted); font-size: 12px; line-height: 1.4; }
 .profile-avatar-control .profile-field-error { margin: 0; }

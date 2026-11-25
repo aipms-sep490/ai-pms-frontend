@@ -118,9 +118,9 @@ export function AcademicProfileSummary() {
   const isLocked = profile?.status === 'VERIFIED'
 
   return (
-    <section className="border-t border-hairline py-5" aria-labelledby="academic-profile-title">
+    <section className="flex flex-1 flex-col border-t border-hairline pt-5" aria-labelledby="academic-profile-title">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="academic-profile-title" className="text-sm font-semibold text-ink">Thông tin học vụ</h3>
+        <h3 id="academic-profile-title" className="text-xs font-bold uppercase tracking-wider text-ink-muted">Thông tin học vụ</h3>
         {profile && (
           <StatusBadge
             tone={statusTone[profile.status] ?? 'neutral'}
@@ -143,35 +143,39 @@ export function AcademicProfileSummary() {
           </button>
         </p>
       ) : profile ? (
-        <div className="mt-3 space-y-3">
-          <dl className="grid gap-4 sm:grid-cols-3">
+        <div className="mt-3 flex flex-1 flex-col gap-3.5">
+          <dl className="grid gap-3 sm:grid-cols-3">
             {profile.studentCode && (
-              <div>
+              <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
                 <dt className="text-xs text-ink-muted">MSSV</dt>
-                <dd className="mt-1 font-mono text-sm font-medium text-ink">{profile.studentCode}</dd>
+                <dd className="mt-1 font-mono text-sm font-semibold text-ink">{profile.studentCode}</dd>
               </div>
             )}
-            <div>
+            <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
               <dt className="text-xs text-ink-muted">Bộ môn / Khoa</dt>
-              <dd className="mt-1 text-sm font-medium text-ink">{profile.departmentName || 'Chưa cập nhật'}</dd>
+              <dd className="mt-1 text-sm font-semibold text-ink">{profile.departmentName || 'Chưa cập nhật'}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
               <dt className="text-xs text-ink-muted">Chuyên ngành</dt>
-              <dd className="mt-1 text-sm font-medium text-ink">{profile.majorName || 'Chưa cập nhật'}</dd>
+              <dd className="mt-1 text-sm font-semibold text-ink">{profile.majorName || 'Chưa cập nhật'}</dd>
             </div>
             {isStudent && (
               <>
-                <div>
+                <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
                   <dt className="text-xs text-ink-muted">Khung CTĐT</dt>
-                  <dd className="mt-1 text-sm font-medium text-ink">{profile.curriculumCode || 'Chưa cập nhật'}</dd>
+                  <dd className={`mt-1 text-sm ${profile.curriculumCode ? 'font-semibold text-ink' : 'font-medium text-ink-muted'}`}>
+                    {profile.curriculumCode || 'Chưa cập nhật'}
+                  </dd>
                 </div>
-                <div>
+                <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
                   <dt className="text-xs text-ink-muted">Lớp hành chính</dt>
-                  <dd className="mt-1 text-sm font-medium text-ink">{profile.classCode || 'Chưa nhập lớp'}</dd>
+                  <dd className={`mt-1 text-sm ${profile.classCode ? 'font-semibold text-ink' : 'font-medium text-ink-muted'}`}>
+                    {profile.classCode || 'Chưa nhập lớp'}
+                  </dd>
                 </div>
-                <div>
+                <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-3.5 py-2.5">
                   <dt className="text-xs text-ink-muted">Chuyên ngành hẹp</dt>
-                  <dd className="mt-1 text-sm font-medium text-ink">
+                  <dd className={`mt-1 text-sm ${profile.specializationName ? 'font-semibold text-ink' : 'font-medium text-ink-muted'}`}>
                     {profile.specializationName
                       ? `${profile.specializationCode ? `${profile.specializationCode} · ` : ''}${profile.specializationName}`
                       : 'Chưa chọn chuyên ngành hẹp'}
@@ -188,8 +192,9 @@ export function AcademicProfileSummary() {
           {saveSuccess && <p role="status" className="text-sm text-status-success-text">{saveSuccess}</p>}
 
           {isStudent && isLocked && (
-            <p className="rounded-lg border border-hairline bg-canvas px-3 py-2 text-xs text-ink-muted">
-              Hồ sơ học vụ đã được Khoa xác minh và khóa tự chỉnh sửa. Nếu lớp hoặc chuyên ngành hẹp có thay đổi, vui lòng liên hệ Giáo vụ Khoa.
+            <p className="mt-auto flex items-start gap-2 rounded-xl border border-hairline/80 bg-canvas/75 px-3.5 py-2.5 text-xs leading-relaxed text-ink-muted">
+              <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-ink-muted" aria-hidden="true">lock</span>
+              <span>Hồ sơ học vụ đã được Khoa xác minh và khóa tự chỉnh sửa. Nếu lớp hoặc chuyên ngành hẹp có thay đổi, vui lòng liên hệ Giáo vụ Khoa.</span>
             </p>
           )}
 

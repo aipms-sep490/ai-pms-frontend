@@ -225,15 +225,14 @@
 
 /* Agenda view */
 .calendar-agenda {
-  padding: 0.4rem 1.25rem 1.25rem;
+  padding: 0.75rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .calendar-agenda__group {
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.calendar-agenda__group:last-child {
+  padding: 0;
   border-bottom: 0;
 }
 
@@ -242,7 +241,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.45rem;
+  padding: 0 2px;
 }
 
 .calendar-agenda__group h3 {
@@ -280,50 +280,64 @@
 .calendar-agenda__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-card);
 }
 
 .calendar-event {
+  position: relative;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  gap: 0.85rem;
+  grid-template-columns: 54px 112px minmax(0, 1fr) auto;
+  gap: 0.75rem;
   align-items: center;
   text-decoration: none;
   color: inherit;
-  padding: 0.65rem 0.85rem;
-  border-radius: 0.65rem;
-  border: 1px solid var(--color-line);
-  border-left: 3px solid var(--color-primary);
+  padding: 0.7rem 0.9rem 0.7rem 1.05rem;
   background: var(--color-card);
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition: background-color 140ms ease;
 }
 
-.calendar-event--meeting {
-  border-left-color: var(--color-primary);
+.calendar-event + .calendar-event {
+  border-top: 1px solid var(--color-line);
 }
 
-.calendar-event--task {
-  border-left-color: var(--color-tag-se);
+.calendar-event::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--color-primary);
 }
 
-.calendar-event--milestone {
-  border-left-color: var(--color-academic-emerald);
+.calendar-event--meeting::before {
+  background: var(--color-primary);
 }
 
-.calendar-event--deliverable {
-  border-left-color: var(--color-accent-violet);
+.calendar-event--task::before {
+  background: var(--color-tag-se);
+}
+
+.calendar-event--milestone::before {
+  background: var(--color-academic-emerald);
+}
+
+.calendar-event--deliverable::before {
+  background: var(--color-accent-violet);
 }
 
 .calendar-event:hover,
 .calendar-event:focus-visible {
-  background: color-mix(in oklab, var(--color-primary-subtle) 55%, var(--color-card));
-  border-color: color-mix(in oklab, var(--color-primary) 28%, transparent);
-  box-shadow: 0 2px 8px -4px color-mix(in oklab, var(--color-brand-navy) 10%, transparent);
+  background: color-mix(in oklab, var(--color-primary-subtle) 50%, var(--color-card));
 }
 
 .calendar-event:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .calendar-event__time {
@@ -339,21 +353,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-
-.calendar-event__headline {
-  display: flex;
-  align-items: baseline;
-  gap: 0.55rem;
-  flex-wrap: nowrap;
-  min-width: 0;
+  gap: 2px;
 }
 
 .calendar-event__type {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  justify-self: start;
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--color-primary-subtle);
@@ -361,9 +368,6 @@
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 1px;
 }
 
 .calendar-event__type .material-symbols-outlined {
@@ -387,7 +391,6 @@
 
 .calendar-event__title {
   min-width: 0;
-  flex: 1;
   font-size: 0.875rem;
   font-weight: 650;
   color: var(--color-ink);
@@ -424,6 +427,22 @@
 .calendar-event:hover .calendar-event__chevron {
   color: var(--color-primary);
   transform: translateX(2px);
+}
+
+@media (max-width: 640px) {
+  .calendar-event {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 0.35rem 0.65rem;
+  }
+
+  .calendar-event__main,
+  .calendar-event__trail {
+    grid-column: 2;
+  }
+
+  .calendar-event__trail {
+    justify-content: space-between;
+  }
 }
 
 /* True 7-column Mon–Sun Month Calendar Grid */
@@ -628,14 +647,26 @@
 
 .attention-list a,
 .attention-list__content {
+  position: relative;
   display: grid;
   gap: 0.35rem;
   color: inherit;
   text-decoration: none;
   border-radius: 0.55rem;
-  padding: 0.85rem;
-  border-left: 3px solid var(--color-accent-amber);
+  padding: 0.85rem 0.85rem 0.85rem 1.05rem;
   transition: background-color 140ms ease;
+}
+
+.attention-list a::before,
+.attention-list__content::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--color-accent-amber);
 }
 
 .attention-list a:hover,

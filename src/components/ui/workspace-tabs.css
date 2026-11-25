@@ -1,6 +1,8 @@
 ﻿/* Unified high-contrast section tab bar for multi-workflow pages */
 .ui-workspace-tabs {
-  display: flex;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;

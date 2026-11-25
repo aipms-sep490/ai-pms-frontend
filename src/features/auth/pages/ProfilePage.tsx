@@ -173,23 +173,22 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
     >
       <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-12">
         {/* Left Bento Column: Identity Card, Avatar & Security Action */}
-        <section className="workspace-surface flex h-full flex-col gap-5 p-6 xl:col-span-4" aria-labelledby="profile-title">
-          <div className="profile-identity-card flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left xl:flex-col xl:text-center">
+        <section className="workspace-surface flex h-full flex-col gap-4 p-5 sm:p-6 xl:col-span-4" aria-labelledby="profile-title">
+          <div className="profile-identity-card flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left xl:flex-col xl:text-center">
             <ProfileAvatar key={session.user.id} fullName={session.user.fullName} userId={session.user.id} />
             <div className="min-w-0">
-              <span className="mb-1.5 inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-wider text-primary">
+              <span className="mb-1 inline-flex items-center rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-wider text-primary">
                 Hồ sơ đã xác thực
               </span>
-              <h2 id="profile-title" className="text-xl font-bold text-ink">{session.user.fullName}</h2>
-              <p className="mt-0.5 break-all text-xs text-ink-muted">{session.user.email}</p>
+              <h2 id="profile-title" className="text-lg font-bold text-ink">{session.user.fullName}</h2>
               {!isPureStudent && profile?.title && <p className="mt-1 text-sm font-medium text-ink-soft">{profile.title}</p>}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-hairline pt-4">
-            <div className="rounded-lg border border-hairline bg-canvas/70 p-3">
-              <span className="block text-xs text-ink-muted">Vai trò tài khoản</span>
-              <strong className="mt-1 block text-xs font-bold text-ink">
+          <div className="divide-y divide-hairline rounded-xl border border-hairline/80 bg-canvas/65">
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+              <span className="shrink-0 text-xs text-ink-muted">Vai trò tài khoản</span>
+              <strong className="text-right text-xs font-bold text-ink">
                 {session.user.roles.length > 0
                   ? session.user.roles
                       .map((role) => PROFILE_ROLE_LABELS[role] ?? displayLabel(role))
@@ -197,9 +196,9 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
                   : 'Chưa có vai trò'}
               </strong>
             </div>
-            <div className="rounded-lg border border-hairline bg-canvas/70 p-3">
-              <span className="block text-xs text-ink-muted">Trạng thái</span>
-              <div className="mt-1"><StatusBadge tone="success" label="Đang hoạt động" /></div>
+            <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+              <span className="shrink-0 text-xs text-ink-muted">Trạng thái</span>
+              <StatusBadge tone="success" label="Đang hoạt động" />
             </div>
           </div>
 
@@ -216,18 +215,26 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
         </section>
 
         {/* Right Bento Column: Contact Info, Academic Scope & Inline Editor */}
-        <section className="workspace-surface flex h-full flex-col gap-5 p-6 xl:col-span-8" aria-label="Thông tin chi tiết và học vụ">
+        <section className="workspace-surface flex h-full flex-col gap-5 p-5 sm:p-6 xl:col-span-8" aria-label="Thông tin chi tiết và học vụ">
           <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-ink-muted">Thông tin liên hệ</h3>
-            <div className={`mt-3 grid grid-cols-1 gap-3 ${!isPureStudent ? 'sm:grid-cols-2' : ''}`}>
-              <div className="rounded-lg border border-hairline bg-canvas/60 px-4 py-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Thông tin liên hệ</h3>
+            <div className={`mt-3 grid grid-cols-1 gap-3 ${!isPureStudent ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
+                <span className="block text-xs text-ink-muted">Email đăng nhập</span>
+                <strong className="mt-1 block break-all font-mono text-xs font-semibold text-ink sm:text-sm">{session.user.email}</strong>
+              </div>
+              <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
                 <span className="block text-xs text-ink-muted">Số điện thoại</span>
-                <strong className="mt-0.5 block text-sm font-semibold text-ink">{profile?.phone || 'Chưa cập nhật'}</strong>
+                <strong className={`mt-1 block text-sm font-semibold ${profile?.phone ? 'text-ink' : 'text-ink-muted font-medium'}`}>
+                  {profile?.phone || 'Chưa cập nhật'}
+                </strong>
               </div>
               {!isPureStudent && (
-                <div className="rounded-lg border border-hairline bg-canvas/60 px-4 py-3">
+                <div className="rounded-xl border border-hairline/80 bg-canvas/65 px-4 py-3">
                   <span className="block text-xs text-ink-muted">Chức danh</span>
-                  <strong className="mt-0.5 block text-sm font-semibold text-ink">{profile?.title || 'Chưa cập nhật'}</strong>
+                  <strong className={`mt-1 block text-sm font-semibold ${profile?.title ? 'text-ink' : 'text-ink-muted font-medium'}`}>
+                    {profile?.title || 'Chưa cập nhật'}
+                  </strong>
                 </div>
               )}
             </div>
