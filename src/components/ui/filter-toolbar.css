@@ -100,13 +100,106 @@
   min-width: 0;
 }
 
+.ft-unified-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.ft-leading {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+/* Match SegmentedControl height & compactness to .ft-tabs when embedded in FilterToolbar */
+.ft-leading .ui-segmented {
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--color-card);
+}
+
+.ft-leading .ui-segmented__indicator {
+  left: 3px;
+  top: 3px;
+  bottom: 3px;
+  width: calc((100% - 6px) / var(--segments));
+  border-radius: 6px;
+  background: var(--color-primary-subtle);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-brand-navy) 6%, transparent);
+}
+
+.ft-leading .ui-segmented button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ft-query-group {
+  display: flex;
+  flex: 1 1 280px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ft-bar--inline .ft-tab {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.ft-bar--inline .ft-search {
+  flex: 1 1 140px;
+  min-width: 132px;
+}
+
+.ft-bar--inline .ft-controls {
+  gap: 6px;
+}
+
+.ft-bar--inline .ft-controls select {
+  padding: 5px 24px 5px 8px !important;
+  background-position: right 6px center;
+  font-size: 12px;
+  max-width: 210px;
+}
+
+.ft-bar--inline .ft-sort-wrap .ft-sort-select {
+  padding: 5px 24px 5px 26px !important;
+  background-position: right 6px center;
+  font-size: 12px;
+  max-width: 195px;
+}
+
+.ft-bar--inline .ft-sort-label {
+  left: 7px;
+}
+
+.ft-bar--inline .ft-btn {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.ft-bar--inline .ft-btn-icon {
+  padding: 0 7px;
+}
+
 .ft-search {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 200px;
+  flex: 1 1 180px;
   min-width: 155px;
-  max-width: 420px;
+  max-width: none;
+}
+
+.ft-main-row:not(:has(.ft-controls)):not(:has(.ft-sort-wrap)):not(:has(.ft-right-actions)) .ft-search {
+  max-width: 460px;
 }
 
 .ft-search-icon {
@@ -290,9 +383,6 @@
     background-position: right 7px center;
     font-size: 12px;
   }
-  .ft-bar--dense .ft-controls select {
-    max-width: 155px;
-  }
   .ft-bar--compact .ft-sort-wrap .ft-sort-select {
     max-width: 145px;
     padding: 5px 24px 5px 26px !important;
@@ -304,13 +394,127 @@
   }
 }
 
+.ft-bar--dense {
+  padding: 9px 10px;
+}
+
+.ft-bar--dense .ft-main-row,
+.ft-bar--dense .ft-controls {
+  gap: 5px;
+}
+
+.ft-bar--dense .ft-search {
+  flex: 1 1 112px;
+  min-width: 108px;
+}
+
+.ft-bar--dense .ft-search .ft-search-input {
+  padding: 6px 8px 6px 30px !important;
+  font-size: 12px;
+}
+
+.ft-bar--dense .ft-controls select {
+  max-width: 118px;
+  padding: 5px 24px 5px 7px !important;
+  background-position: right 6px center;
+  font-size: 12px;
+}
+
+.ft-bar--dense .ft-sort-wrap .ft-sort-select {
+  max-width: 112px;
+  padding: 5px 24px 5px 24px !important;
+  background-position: right 6px center;
+  font-size: 12px;
+}
+
+.ft-bar--dense .ft-sort-label {
+  left: 6px;
+}
+
+.ft-bar--dense .ft-btn {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.ft-bar--dense .ft-btn-icon {
+  min-width: 34px;
+  padding: 0 6px;
+}
+
+.ft-bar--dense .ft-pager {
+  gap: 5px;
+}
+
 .ft-right-actions {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  gap: 6px;
+  gap: 8px;
   margin-left: auto;
   flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* Compact Top Micro-Pagination (synchronized with bottom Pagination) */
+.ft-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ft-pager-range {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ft-pager-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 8px;
+  background: var(--color-card);
+}
+
+.ft-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.ft-pager-btn:hover:not(:disabled) {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+.ft-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ft-pager-page {
+  min-width: 34px;
+  padding: 0 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .ft-btn {

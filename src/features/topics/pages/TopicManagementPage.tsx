@@ -546,6 +546,7 @@ export function TopicManagementPage() {
         }}
         hasActiveFilters={hasActiveFilters}
         resultSummary={`${visibleTopics.length} / ${topics.totalCount} đề tài`}
+        pagination={totalPages > 1 ? { page: topics.page, pages: totalPages, total: topics.totalCount, pageSize: topics.pageSize, busy: topics.loading, onPage: nextPage => topics.setFilters({ ...topics.filters, page: nextPage }) } : undefined}
       />
 
       {createOpen && (

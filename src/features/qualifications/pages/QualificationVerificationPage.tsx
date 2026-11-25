@@ -126,6 +126,15 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
       onClearAll={() => { queue.setSearch(''); setTrainingFilter('ALL'); setSortBy('default') }}
       hasActiveFilters={hasActiveFilters}
       resultSummary={`${displayedItems.length} / ${queue.totalCount} hồ sơ`}
+      pagination={
+        !queue.loading && !queue.error
+          ? queue.totalPages > 1
+            ? { page: queue.page, pages: queue.totalPages, total: queue.totalCount, pageSize: queue.pageSize, busy: pendingId !== null, onPage: queue.setPage }
+            : clientPager.showPagination
+              ? { page: clientPager.page, pages: clientPager.pages, total: clientPager.total, pageSize: clientPager.pageSize, busy: pendingId !== null, onPage: clientPager.setPage }
+              : undefined
+          : undefined
+      }
     />
     {queue.error && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{queue.error}</div>}
     {notice && (

@@ -248,6 +248,7 @@ export function MilestoneTemplatesPage() {
               }}
               onClearAll={() => { setSearch(''); setStatusFilter('ALL') }}
               hasActiveFilters={activeChips.length > 0}
+              pagination={templatePagination.showPagination ? { page: templatePagination.page, pages: templatePagination.pages, total: templatePagination.total, pageSize: templatePagination.pageSize, onPage: templatePagination.setPage } : undefined}
             />
           </div>
 

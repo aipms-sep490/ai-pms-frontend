@@ -292,11 +292,10 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     )}
 
     <section className="workspace-surface overflow-hidden" aria-label="Danh sách tài liệu">
-      <div className="border-b border-hairline px-5 py-4">
-        <h2 className="text-lg font-semibold text-ink">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
-      </div>
+      <h2 className="sr-only">{manager ? 'Phiên bản tài liệu' : 'Tài liệu đã công bố'}</h2>
       <FilterToolbar
         embedded
+        layout="stacked"
         className={manager ? 'ft-bar--compact' : undefined}
         tabs={manager ? [
           { value: '', label: 'Tất cả' },
@@ -336,6 +335,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         hasActiveFilters={hasLocalFilters}
         onClearAll={clearLocalFilters}
         resultSummary={rows ? `${filteredRows.length} / ${rows.length} tài liệu` : undefined}
+        pagination={docPager.showPagination ? { page: docPager.page, pages: docPager.pages, total: docPager.total, pageSize: docPager.pageSize, busy: loading, onPage: docPager.setPage } : undefined}
       />
 
       <div className="space-y-3 p-5">

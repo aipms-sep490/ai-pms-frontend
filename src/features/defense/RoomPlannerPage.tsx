@@ -548,6 +548,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                   onClearAll={() => { setPublishedSearch(''); setPublishedRoomFilter('ALL') }}
                   hasActiveFilters={hasPublishedFilters}
                   resultSummary={`${filteredPublished.length} / ${published.length} phiên`}
+                  pagination={publishedPager.showPagination ? { page: publishedPager.page, pages: publishedPager.pages, total: publishedPager.total, pageSize: publishedPager.pageSize, busy: publishedLoading, onPage: publishedPager.setPage } : undefined}
                 />
               )}
               {publishedLoading && <p role="status" className="text-sm text-ink-muted">Đang tải lịch đã công bố…</p>}

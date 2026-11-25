@@ -443,6 +443,7 @@ export function CalendarAttentionPage() {
                   onClearAll={() => { setSearch(''); setSourceFilter('ALL'); setStatusFilter('ALL'); setSortBy('soonest') }}
                   hasActiveFilters={activeChips.length > 0 || sortBy !== 'soonest'}
                   resultSummary={activeChips.length > 0 ? `Hiển thị ${items.length} / ${baseItems.length} sự kiện` : undefined}
+                  pagination={view === 'agenda' && agendaPagination.showPagination ? { page: agendaPagination.page, pages: agendaPagination.pages, total: agendaPagination.total, pageSize: agendaPagination.pageSize, onPage: agendaPagination.setPage } : undefined}
                 />
               </div>
 

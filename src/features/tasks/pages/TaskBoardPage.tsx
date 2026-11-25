@@ -361,6 +361,7 @@ export function TaskBoardPage() {
         {view !== 'sprint' && (
           <FilterToolbar
             embedded
+            className="ft-bar--compact ft-bar--dense"
             search={search}
             onSearchChange={(val) => updateParam('search', val.trim())}
             searchLabel="Tìm công việc"
@@ -436,6 +437,7 @@ export function TaskBoardPage() {
             hasActiveFilters={hasActiveFilters}
             onClearAll={clearAllFilters}
             resultSummary={hasActiveFilters && data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} công việc` : undefined}
+            pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (nextPage) => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) } } : undefined}
           />
         )}
 
@@ -552,7 +554,9 @@ export function TaskBoardPage() {
                 )}
               </>
             )}
-            <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+            {data.totalPages > 1 && (
+              <ExPagination page={page} pages={data.totalPages} total={data.totalCount} onPage={nextPage => { const next = new URLSearchParams(params); next.set('page', String(nextPage)); setParams(next) }} />
+            )}
           </>
         )}
       </section>

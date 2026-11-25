@@ -230,6 +230,7 @@ export function ProjectReviewPage() {
           onClearAll={clearQueueFilters}
           hasActiveFilters={activeChips.length > 0}
           resultSummary={activeChips.length > 0 ? `Hiển thị ${visibleQueueItems.length} / ${queueItems.length} đề cương` : undefined}
+          pagination={queue ? { page: queue.page, pages: queue.totalPages ?? Math.max(1, Math.ceil(queue.totalCount / Math.max(1, queue.pageSize))), total: queue.totalCount, pageSize: queue.pageSize, onPage: review.goToPage } : undefined}
         />
 
         <div className="grid items-stretch gap-4 md:grid-cols-2">

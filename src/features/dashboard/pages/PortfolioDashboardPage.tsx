@@ -230,6 +230,7 @@ export function PortfolioDashboardPage() {
       </>}
 
       <FilterToolbar
+        className="ft-bar--compact ft-bar--dense"
         search={filter.search ?? ''}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm mã, tên đồ án…"
@@ -239,7 +240,7 @@ export function PortfolioDashboardPage() {
             <label className="ft-select-wrap" htmlFor="portfolio-status">
               <span className="sr-only">Trạng thái</span>
               <select id="portfolio-status" aria-label="Trạng thái" className="ft-select" value={filter.status ?? ''} onChange={event => handleStatusChange(event.target.value)}>
-                <option value="">Tất cả trạng thái</option>
+                <option value="">Mọi trạng thái</option>
                 {statuses.map(status => <option key={status} value={status}>{projectStatusLabel(status)}</option>)}
               </select>
             </label>
@@ -286,6 +287,7 @@ export function PortfolioDashboardPage() {
         onClearAll={clearFilters}
         hasActiveFilters={activeChips.length > 0 || sortBy !== 'default'}
         resultSummary={data ? `Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án` : undefined}
+        pagination={data && (data.projects.totalPages > 1 || data.projects.totalCount > data.projects.pageSize) ? { page: filter.page ?? 1, pages: data.projects.totalPages, total: data.projects.totalCount, pageSize: filter.pageSize ?? data.projects.pageSize, busy: loading, onPage: (page) => setFilter(current => ({ ...current, page })) } : undefined}
       />
 
       {loading && <PageLoading label="Đang tải danh mục đồ án…" />}

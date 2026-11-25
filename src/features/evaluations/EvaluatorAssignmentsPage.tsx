@@ -80,6 +80,7 @@ export function EvaluatorAssignmentsPage() {
           onClearAll={() => { setSearch(''); setStageFilter('ALL') }}
           hasActiveFilters={Boolean(search.trim() || stageFilter !== 'ALL')}
           resultSummary={search.trim() || stageFilter !== 'ALL' ? `Hiển thị ${filtered.length} / ${items.length} phân công` : undefined}
+          pagination={pager.showPagination ? { page: pager.page, pages: pager.pages, total: pager.total, pageSize: pager.pageSize, onPage: pager.setPage } : undefined}
         />
       )}
 

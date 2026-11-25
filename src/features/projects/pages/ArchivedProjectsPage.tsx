@@ -145,6 +145,7 @@ export function ArchivedProjectsPage() {
               onClearAll={clearFilters}
               hasActiveFilters={activeChips.length > 0}
               resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${data.projects.items.length} đồ án` : undefined}
+              pagination={pagination.showPagination ? { page: pagination.page, pages: pagination.pages, total: pagination.total, pageSize: pagination.pageSize, onPage: pagination.setPage } : undefined}
             />
           )}
           <div className="p-5">

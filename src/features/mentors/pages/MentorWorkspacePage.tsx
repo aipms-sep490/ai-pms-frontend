@@ -203,6 +203,7 @@ export function MentorWorkspacePage() {
             onClearAll={clearFilters}
             hasActiveFilters={activeChips.length > 0}
             resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${items.length} phân công` : undefined}
+            pagination={pager.showPagination ? { page: pager.page, pages: pager.pages, total: pager.total, pageSize: pager.pageSize, onPage: pager.setPage } : undefined}
           />
 
           {filteredItems.length === 0 ? (

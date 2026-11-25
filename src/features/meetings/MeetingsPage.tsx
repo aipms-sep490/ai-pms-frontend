@@ -177,7 +177,7 @@ function MeetingList() {
           onTabChange={(val) => updateParam('status', val)}
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Tìm theo tiêu đề, địa điểm hoặc người tổ chức…"
+          searchPlaceholder="Tìm cuộc họp…"
           controls={
             <select aria-label="Hình thức họp" value={channel} onChange={(e) => setChannel(e.target.value as MeetingChannel)}>
               <option value="ALL">Mọi hình thức</option>
@@ -213,11 +213,12 @@ function MeetingList() {
           }}
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAll}
-          resultSummary={data ? `${visibleItems.length} / ${data.totalCount} cuộc họp · Giờ Việt Nam (UTC+7)` : undefined}
+          resultSummary={data ? `${visibleItems.length} / ${data.totalCount} cuộc họp` : undefined}
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: goToPage } : undefined}
         />
 
         {validation && <p role="alert" className="mtg-notice mtg-notice--error">{validation}</p>}
-        <div className="mtg-list-heading"><h2>Các cuộc họp</h2>{data && <span className="text-xs text-ink-muted">{data.totalCount} cuộc họp</span>}</div>
+        <h2 className="sr-only">Các cuộc họp</h2>
 
         {loading ? (
           <MeetingLoading />
@@ -269,13 +270,15 @@ function MeetingList() {
                 ))}
               </ul>
             )}
-            <nav className="mtg-pagination" aria-label="Phân trang cuộc họp">
-              <span>{data.totalCount} cuộc họp · Trang {page} / {Math.max(1, data.totalPages)}</span>
-              <div>
-                <button className="mtg-button mtg-button--secondary" disabled={page <= 1} onClick={() => goToPage(page - 1)}>Trang trước</button>
-                <button className="mtg-button mtg-button--secondary" disabled={page >= data.totalPages} onClick={() => goToPage(page + 1)}>Trang sau</button>
-              </div>
-            </nav>
+            {data.totalPages > 1 && (
+              <nav className="mtg-pagination" aria-label="Phân trang cuộc họp">
+                <span>{data.totalCount} cuộc họp · Trang {page} / {Math.max(1, data.totalPages)}</span>
+                <div>
+                  <button className="mtg-button mtg-button--secondary" disabled={page <= 1} onClick={() => goToPage(page - 1)}>Trang trước</button>
+                  <button className="mtg-button mtg-button--secondary" disabled={page >= data.totalPages} onClick={() => goToPage(page + 1)}>Trang sau</button>
+                </div>
+              </nav>
+            )}
           </>
         )}
       </section>

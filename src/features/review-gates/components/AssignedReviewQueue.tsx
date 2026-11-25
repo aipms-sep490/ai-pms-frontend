@@ -291,6 +291,7 @@ export function AssignedReviewQueue({
         onClearAll={clearFilters}
         hasActiveFilters={activeChips.length > 0}
         resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredAssignments.length} / ${assignments.length} đợt thẩm định` : undefined}
+        pagination={queuePager.showPagination ? { page: queuePager.page, pages: queuePager.pages, total: queuePager.total, pageSize: queuePager.pageSize, onPage: queuePager.setPage } : undefined}
       />
 
       {!selectedItem ? (

@@ -72,4 +72,31 @@ describe('FilterToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: /Xóa lọc/i }))
     expect(onClearAll).toHaveBeenCalledTimes(1)
   })
+
+  it('merges compact tabs and query controls into one unified row and supports top micro-pagination', () => {
+    const onPage = vi.fn()
+    const { container } = render(
+      <FilterToolbar
+        tabs={[
+          { value: 'ALL', label: 'Tất cả' },
+          { value: 'OPEN', label: 'Đang mở' },
+          { value: 'DONE', label: 'Hoàn tất' },
+        ]}
+        activeTab="ALL"
+        onTabChange={vi.fn()}
+        search=""
+        onSearchChange={vi.fn()}
+        pagination={{ page: 1, pages: 4, total: 36, pageSize: 10, onPage }}
+      />,
+    )
+
+    expect(container.querySelector('.ft-bar--inline')).not.toBeNull()
+    expect(container.querySelector('.ft-unified-row')).not.toBeNull()
+    expect(screen.getByText('1–10 / 36')).toBeTruthy()
+    expect(screen.getByText('1/4')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Trang trước (đầu danh sách)' }) as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trang sau (đầu danh sách)' }))
+    expect(onPage).toHaveBeenCalledWith(2)
+  })
 })

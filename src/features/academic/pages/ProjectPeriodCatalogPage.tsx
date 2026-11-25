@@ -220,7 +220,7 @@ export function ProjectPeriodCatalogPage() {
       search={urlSearch}
       onSearchChange={handleSearchChange}
       searchLabel="Tìm theo mã hoặc tên kỳ"
-      searchPlaceholder="Tìm theo mã hoặc tên kỳ (ví dụ: Fall 2026)…"
+      searchPlaceholder="Tìm mã, tên kỳ…"
       controls={
         <select aria-label="Học kỳ" value={urlSemesterId ?? ''} onChange={event => handleSemesterChange(event.target.value)}>
           <option value="">Tất cả học kỳ</option>

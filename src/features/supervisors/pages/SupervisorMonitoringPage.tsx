@@ -104,6 +104,7 @@ export function SupervisorMonitoringPage() {
       </div>
 
       <FilterToolbar
+        layout="stacked"
         className="ft-bar--compact"
         search={supervisors.filters.search ?? ''}
         onSearchChange={value => supervisors.setFilters({ ...supervisors.filters, search: value || undefined, page: 1 })}
@@ -177,6 +178,7 @@ export function SupervisorMonitoringPage() {
         onClearAll={() => supervisors.setFilters({ ...supervisors.filters, search: undefined, expertise: undefined, isAvailable: undefined, page: 1 })}
         hasActiveFilters={hasActiveFilters}
         resultSummary={`${sortedItems.length} / ${supervisors.totalCount} hồ sơ`}
+        pagination={!supervisors.loading && supervisors.totalCount > supervisors.pageSize ? { page: supervisors.page, pages: Math.max(1, Math.ceil(supervisors.totalCount / Math.max(1, supervisors.pageSize))), total: supervisors.totalCount, pageSize: supervisors.pageSize, busy: supervisors.loading, onPage: (next) => supervisors.setFilters({ ...supervisors.filters, page: next }) } : undefined}
       />
 
       {supervisors.loading ? (

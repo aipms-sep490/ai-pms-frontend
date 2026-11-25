@@ -291,6 +291,7 @@ export function SupervisorDashboardPage() {
           onClearAll={clearFilters}
           hasActiveFilters={activeChips.length > 0 || sortBy !== 'default'}
           resultSummary={`Hiển thị ${visibleProjects.length} / ${data.projects.totalCount} đồ án`}
+          pagination={(data.projects.totalPages > 1 || data.projects.totalCount > data.projects.pageSize) ? { page: filter.page ?? 1, pages: data.projects.totalPages, total: data.projects.totalCount, pageSize: filter.pageSize ?? data.projects.pageSize, busy: loading, onPage: (page) => setFilter(current => ({ ...current, page })) } : undefined}
         />
         {visibleProjects.length === 0 ? (
           <p className="text-sm text-ink-muted">Không có đồ án phù hợp với bộ lọc hiện tại.</p>

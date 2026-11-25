@@ -170,6 +170,7 @@ export function TopicCataloguePage() {
       hasActiveFilters={hasFilters}
       onClearAll={clearAll}
       resultSummary={`${visibleTopics.length} / ${discovery.totalCount} đề tài`}
+      pagination={discovery.totalCount > pageSize ? { page, pages: totalPages, total: discovery.totalCount, pageSize, busy: discovery.isLoading, onPage: setPage } : undefined}
     />
     {discovery.isLoading ? <TopicLoading /> : null}
     {discovery.error ? <TopicError title={errorTitle} error={discovery.error} onRetry={discovery.retry} /> : null}

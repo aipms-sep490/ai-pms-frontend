@@ -384,7 +384,7 @@ export function DepartmentStudentsPage() {
             search={search}
             onSearchChange={val => setFilter({ search: val })}
             searchLabel="Tìm kiếm"
-            searchPlaceholder="Tìm MSSV, tên…"
+            searchPlaceholder="Tìm MSSV…"
             debounceMs={200}
             controls={
               <>
@@ -513,6 +513,7 @@ export function DepartmentStudentsPage() {
             onClearAll={clearAllFilters}
             hasActiveFilters={hasActiveFilters}
             resultSummary={activeChips.length > 0 && data ? `${sortedStudents.length} / ${data.totalCount} sinh viên` : undefined}
+            pagination={data ? { page: data.page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize, busy: loading, onPage: nextPage => setFilter({ page: String(nextPage) }) } : undefined}
           />
 
           {loading ? (

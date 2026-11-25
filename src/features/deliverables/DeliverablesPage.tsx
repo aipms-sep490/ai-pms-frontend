@@ -408,6 +408,7 @@ function DeliverablesView() {
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAll}
           resultSummary={data ? `${sortedItems.length} / ${data.totalCount} hạng mục` : undefined}
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) } } : undefined}
         />
 
         {loading ? (
@@ -450,7 +451,9 @@ function DeliverablesView() {
                 </article>
               ))}
             </div>
-            <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
+            {data.totalPages > 1 && (
+              <ExPagination page={page} pages={data.totalPages} total={data.totalCount} busy={loading} onPage={(next) => { const query = new URLSearchParams(params); query.set('page', String(next)); setParams(query) }} />
+            )}
           </>
         )}
       </section>

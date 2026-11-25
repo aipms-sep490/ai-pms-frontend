@@ -343,6 +343,7 @@ export function EvaluatorAssignmentManagementPage() {
               onClearAll={() => { setListSearch(''); setAssignmentStatus('ALL'); setStageFilter(''); setRoleFilter('') }}
               hasActiveFilters={hasListFilters}
               resultSummary={`${visibleAssignments.length} / ${assignments.length} phân công`}
+              pagination={assignmentPager.showPagination ? { page: assignmentPager.page, pages: assignmentPager.pages, total: assignmentPager.total, pageSize: assignmentPager.pageSize, busy, onPage: assignmentPager.setPage } : undefined}
             />
 
             {visibleAssignments.length === 0 ? <p className="mt-4 text-sm text-ink-muted">Chưa có người chấm phù hợp với bộ lọc này.</p> : (

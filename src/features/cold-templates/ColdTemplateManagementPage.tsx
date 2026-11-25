@@ -406,6 +406,7 @@ export function ColdTemplateManagementPage() {
           onClearAll={clearTemplateLocalFilters}
           hasActiveFilters={hasTemplateLocalFilters}
           resultSummary={templates ? `${filteredTemplates?.length ?? 0} / ${templates.length} mẫu` : undefined}
+          pagination={templatePager.showPagination ? { page: templatePager.page, pages: templatePager.pages, total: templatePager.total, pageSize: templatePager.pageSize, busy: loading, onPage: templatePager.setPage } : undefined}
         />
 
         {loading && <p role="status" className="text-sm text-ink-muted">Đang tải danh sách mẫu…</p>}

@@ -321,6 +321,7 @@ export function LecturerWorkspacePage() {
               onClearAll={() => { setProjectSearch(''); setProjectStatus('ALL'); setProjectRole('ALL'); setProjectSort('default') }}
               hasActiveFilters={projectActiveChips.length > 0}
               resultSummary={projectActiveChips.length > 0 ? `Hiển thị ${filteredProjects.length} / ${assignedProjects.length} đồ án` : undefined}
+              pagination={projectPager.showPagination ? { page: projectPager.page, pages: projectPager.pages, total: projectPager.total, pageSize: projectPager.pageSize, onPage: projectPager.setPage } : undefined}
             />
           )}
 
@@ -435,6 +436,7 @@ export function LecturerWorkspacePage() {
               onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}
               hasActiveFilters={requestActiveChips.length > 0 || requestSort !== 'pending-first'}
               resultSummary={requestActiveChips.length > 0 ? `Hiển thị ${filteredRequests.length} / ${inbox.requests.length} yêu cầu` : undefined}
+              pagination={requestPager.showPagination ? { page: requestPager.page, pages: requestPager.pages, total: requestPager.total, pageSize: requestPager.pageSize, onPage: requestPager.setPage } : undefined}
             />
           )}
 

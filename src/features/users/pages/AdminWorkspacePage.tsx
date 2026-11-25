@@ -523,6 +523,17 @@ export function AdminWorkspacePage() {
                 ? `Hiển thị ${filteredUsers.length} / ${admin.users.value.totalCount} tài khoản`
                 : undefined
             }
+            pagination={
+              admin.users.state === 'ready'
+                ? {
+                    page: admin.users.value.page,
+                    pages: Math.max(1, Math.ceil(admin.users.value.totalCount / Math.max(1, admin.users.value.pageSize))),
+                    total: admin.users.value.totalCount,
+                    pageSize: admin.users.value.pageSize,
+                    onPage: (next) => setFilter({ page: String(next) }),
+                  }
+                : undefined
+            }
           />
         </div>
 
@@ -748,6 +759,17 @@ export function AdminWorkspacePage() {
             onClearAll={() => setFilter({ auditAction: '', auditEntityType: '', auditOutcome: '', auditFrom: '', auditTo: '', auditPage: '1' })}
             hasActiveFilters={auditChips.length > 0}
             clearAllLabel="Đặt lại"
+            pagination={
+              admin.audit.state === 'ready'
+                ? {
+                    page: admin.audit.value.page,
+                    pages: Math.max(1, Math.ceil(admin.audit.value.totalCount / Math.max(1, admin.audit.value.pageSize))),
+                    total: admin.audit.value.totalCount,
+                    pageSize: admin.audit.value.pageSize,
+                    onPage: (next) => setFilter({ auditPage: String(next) }),
+                  }
+                : undefined
+            }
           />
         </div>
         {admin.audit.state === 'loading' ? <ListLoading label="Đang tải nhật ký…" /> : null}

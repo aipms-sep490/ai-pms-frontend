@@ -528,6 +528,7 @@ export function ReviewGateGovernancePage() {
                     }}
                     hasActiveFilters={hasTemplateFilters}
                     resultSummary={`Hiển thị ${filteredTemplates.length}/${templates.length} mẫu`}
+                    pagination={templatePager.showPagination ? { page: templatePager.page, pages: templatePager.pages, total: templatePager.total, pageSize: templatePager.pageSize, onPage: templatePager.setPage } : undefined}
                   />
                 </div>
 

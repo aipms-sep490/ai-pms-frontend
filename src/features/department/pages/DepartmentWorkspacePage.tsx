@@ -415,6 +415,15 @@ export function DepartmentWorkspacePage() {
             onClearAll={clearMiniFilters}
             hasActiveFilters={miniActiveChips.length > 0 || portfolioSort !== 'default'}
             resultSummary={portfolio.data ? `${portfolioClientPager.paginatedItems.length} / ${portfolio.data.projects.totalCount} đồ án` : undefined}
+            pagination={
+              portfolio.state === 'success' && portfolio.data
+                ? portfolio.data.projects.totalPages > 1
+                  ? { page: portfolio.data.projects.page, pages: portfolio.data.projects.totalPages, total: portfolio.data.projects.totalCount, pageSize: portfolioPageSize, onPage: (nextPage) => { setSelectedIds([]); setPortfolioPage(nextPage) } }
+                  : portfolioClientPager.showPagination
+                    ? { page: portfolioClientPager.page, pages: portfolioClientPager.pages, total: portfolioClientPager.total, pageSize: portfolioClientPager.pageSize, onPage: (nextPage) => { setSelectedIds([]); portfolioClientPager.setPage(nextPage) } }
+                    : undefined
+                : undefined
+            }
           />
 
           <div className="p-4 sm:p-5">

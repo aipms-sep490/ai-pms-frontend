@@ -243,15 +243,7 @@ export function ProjectContributionsPage() {
           )}
 
           <section className="overflow-hidden rounded-lg border border-hairline bg-card" aria-labelledby="contribution-members-heading">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-5">
-              <div>
-                <h2 id="contribution-members-heading" className="font-semibold text-ink">Hoạt động theo thành viên</h2>
-                <p className="mt-1 text-xs text-ink-muted">{summary.snapshotHash ? `Bản lưu đối chiếu · ${formatDate(summary.snapshotAt ?? '')}` : 'Cập nhật theo hoạt động hiện tại'}</p>
-              </div>
-              <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
-                {filteredMembers.length} thành viên
-              </span>
-            </div>
+            <h2 id="contribution-members-heading" className="sr-only">Hoạt động theo thành viên</h2>
 
             <FilterToolbar
               embedded
@@ -280,6 +272,8 @@ export function ProjectContributionsPage() {
               }}
               hasActiveFilters={Boolean(memberSearch.trim()) || memberSort !== 'score_desc'}
               onClearAll={() => { setMemberSearch(''); setMemberSort('score_desc') }}
+              resultSummary={`${filteredMembers.length} thành viên`}
+              pagination={summary.totalCount > 20 ? { page, pages: Math.max(1, Math.ceil(summary.totalCount / 20)), total: summary.totalCount, pageSize: 20, busy: loading, onPage: setPage } : undefined}
             />
 
             {filteredMembers.length === 0 ? (

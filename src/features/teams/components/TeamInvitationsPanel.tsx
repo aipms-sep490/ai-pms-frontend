@@ -249,6 +249,7 @@ export function TeamInvitationsPanel({
                 hasActiveFilters={hasInviteFilters}
                 onClearAll={clearInviteFilters}
                 resultSummary={hasInviteFilters ? `${filteredSent.length} / ${sentInvitations.length} lời mời` : undefined}
+                pagination={sentPagination.showPagination ? { page: sentPagination.page, pages: sentPagination.pages, total: sentPagination.total, pageSize: sentPagination.pageSize, onPage: sentPagination.setPage } : undefined}
               />
             )}
             {sentInvitations.length === 0 ? (
@@ -362,6 +363,7 @@ export function TeamInvitationsPanel({
               hasActiveFilters={hasInviteFilters}
               onClearAll={clearInviteFilters}
               resultSummary={hasInviteFilters ? `${filteredReceived.length} / ${receivedInvitations.length} lời mời` : undefined}
+              pagination={receivedPagination.showPagination ? { page: receivedPagination.page, pages: receivedPagination.pages, total: receivedPagination.total, pageSize: receivedPagination.pageSize, onPage: receivedPagination.setPage } : undefined}
             />
           )}
           {receivedInvitations.length === 0 ? (

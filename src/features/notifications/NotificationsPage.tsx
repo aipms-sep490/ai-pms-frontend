@@ -203,6 +203,13 @@ export function NotificationsPage() {
       description={pageDescription}
       action={
         <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`notification-live-badge ${unreadStale ? 'notification-live-badge--stale' : ''}`}
+            title={unreadStale ? 'Đang chờ kết nối lại để đồng bộ tự động' : 'Tự động cập nhật thông báo mới không cần tải lại trang'}
+          >
+            <span className="notification-live-dot" aria-hidden="true" />
+            <span>{unreadStale ? 'Đang chờ đồng bộ' : 'Tự động đồng bộ'}</span>
+          </span>
           <Button
             variant="secondary"
             size="sm"
@@ -233,8 +240,11 @@ export function NotificationsPage() {
         />
       </div>
       <section className="notification-panel" aria-label="Danh sách thông báo" aria-busy={loading}>
-        <div className="notification-toolbar">
-          <div className="flex flex-wrap items-center gap-2.5">
+        <FilterToolbar
+          embedded
+          debounceMs={0}
+          ariaLabel="Tìm kiếm và phân loại thông báo"
+          leading={
             <SegmentedControl
               label="Lọc thông báo"
               value={filter}
@@ -249,69 +259,52 @@ export function NotificationsPage() {
                 setPage(1)
               }}
             />
-            {unreadCount !== null && unreadCount > 0 && (
-              <span className="notification-popover-count" title="Số thông báo chưa đọc">
-                {unreadCount} chưa đọc
-              </span>
-            )}
-          </div>
-          <span
-            className={`notification-live-badge ${unreadStale ? 'notification-live-badge--stale' : ''}`}
-            title={unreadStale ? 'Đang chờ kết nối lại để đồng bộ tự động' : 'Tự động cập nhật thông báo mới không cần tải lại trang'}
-          >
-            <span className="notification-live-dot" aria-hidden="true" />
-            <span>{unreadStale ? 'Đang chờ đồng bộ' : 'Tự động đồng bộ'}</span>
-          </span>
-        </div>
-
-        <div className="border-b border-line px-4 py-2.5 sm:px-5">
-          <FilterToolbar
-            embedded
-            debounceMs={0}
-            ariaLabel="Tìm kiếm và phân loại thông báo"
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Tìm theo tiêu đề hoặc nội dung thông báo…"
-            searchLabel="Tìm kiếm thông báo"
-            controls={
-              <label className="ft-select-wrap">
-                <span className="sr-only">Lọc theo nhóm thông báo</span>
-                <select aria-label="Nhóm thông báo" value={category} onChange={(e) => setCategory(e.target.value as NotificationCategory)}>
-                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </label>
-            }
-            sort={{
-              value: sortBy,
-              onChange: (value) => setSortBy(value as NotificationSort),
-              options: [
-                { value: 'newest', label: 'Mới nhất trước' },
-                { value: 'unread-first', label: 'Chưa đọc trước' },
-                { value: 'oldest', label: 'Cũ nhất trước' },
-              ],
-            }}
-            activeChips={activeChips}
-            onRemoveChip={(id) => {
-              if (id === 'search') setSearch('')
-              if (id === 'category') setCategory('ALL')
-              if (id === 'actionable') setFilter('all')
-            }}
-            onClearAll={() => {
-              setSearch('')
-              setCategory('ALL')
-              setSortBy('newest')
-              if (filter === 'actionable') setFilter('all')
-            }}
-            hasActiveFilters={activeChips.length > 0 || sortBy !== 'newest'}
-            resultSummary={
-              data && hasClientFilter
-                ? `Hiển thị ${visibleItems.length} / ${data.items.length} thông báo trên trang này`
+          }
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Tìm thông báo…"
+          searchLabel="Tìm kiếm thông báo"
+          controls={
+            <label className="ft-select-wrap">
+              <span className="sr-only">Lọc theo nhóm thông báo</span>
+              <select aria-label="Nhóm thông báo" value={category} onChange={(e) => setCategory(e.target.value as NotificationCategory)}>
+                {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </label>
+          }
+          sort={{
+            value: sortBy,
+            onChange: (value) => setSortBy(value as NotificationSort),
+            options: [
+              { value: 'newest', label: 'Mới nhất trước' },
+              { value: 'unread-first', label: 'Chưa đọc trước' },
+              { value: 'oldest', label: 'Cũ nhất trước' },
+            ],
+          }}
+          activeChips={activeChips}
+          onRemoveChip={(id) => {
+            if (id === 'search') setSearch('')
+            if (id === 'category') setCategory('ALL')
+            if (id === 'actionable') setFilter('all')
+          }}
+          onClearAll={() => {
+            setSearch('')
+            setCategory('ALL')
+            setSortBy('newest')
+            if (filter === 'actionable') setFilter('all')
+          }}
+          hasActiveFilters={activeChips.length > 0 || sortBy !== 'newest'}
+          resultSummary={
+            data && hasClientFilter
+              ? `${visibleItems.length} / ${data.items.length} thông báo`
+              : data
+                ? `${data.items.length} / ${data.totalCount} thông báo`
                 : undefined
-            }
-          />
-        </div>
+          }
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize, busy: busy || loading, onPage: setPage } : undefined}
+        />
 
         {error && (
           <div className="p-4">

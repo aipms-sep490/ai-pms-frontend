@@ -180,6 +180,7 @@ export function ProjectProgressMatrix({
             }}
             hasActiveFilters={hasActiveFilters}
             resultSummary={`Hiển thị ${filteredProjects.length}/${projects.length} đồ án`}
+            pagination={matrixPager.showPagination ? { page: matrixPager.page, pages: matrixPager.pages, total: matrixPager.total, pageSize: matrixPager.pageSize, onPage: matrixPager.setPage } : undefined}
           />
         </div>
 

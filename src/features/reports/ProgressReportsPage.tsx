@@ -140,7 +140,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           onTabChange={(val) => filter('status', val)}
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Tìm theo tóm tắt, kỳ báo cáo hoặc người nộp…"
+          searchPlaceholder="Tìm báo cáo…"
           controls={
             <>
               <select aria-label="Loại báo cáo" value={reportType ?? ''} onChange={(event) => filter('reportType', event.target.value)}>
@@ -175,6 +175,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAll}
           resultSummary={data ? `${visibleItems.length} / ${data.totalCount} báo cáo` : undefined}
+          pagination={data ? { page, pages: Math.max(1, data.totalPages), total: data.totalCount, pageSize: data.pageSize, busy: loading, onPage: (next) => filter('page', String(next)) } : undefined}
         />
 
         {loading ? (
@@ -183,7 +184,7 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
           <ReportError message={error} retry={() => setRevision((value) => value + 1)} />
         ) : data && (
           <>
-            <div className="report-list-heading"><h2>Lịch sử báo cáo</h2><span>{data.totalCount} báo cáo{hasActiveFilters ? ' phù hợp' : ''}</span></div>
+            <h2 className="sr-only">Lịch sử báo cáo</h2>
             {visibleItems.length === 0 ? (
               <div className="report-empty">
                 <span className="material-symbols-outlined" aria-hidden="true">description</span>
@@ -213,13 +214,15 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
                 ))}
               </ul>
             )}
-            <nav className="report-pagination" aria-label="Phân trang báo cáo">
-              <span>Trang {page} / {Math.max(1, data.totalPages)}</span>
-              <div>
-                <button type="button" className="report-button report-button--secondary" disabled={page <= 1} onClick={() => filter('page', String(page - 1))}>Trang trước</button>
-                <button type="button" className="report-button report-button--secondary" disabled={page >= data.totalPages} onClick={() => filter('page', String(page + 1))}>Trang sau</button>
-              </div>
-            </nav>
+            {data.totalPages > 1 && (
+              <nav className="report-pagination" aria-label="Phân trang báo cáo">
+                <span>Trang {page} / {Math.max(1, data.totalPages)}</span>
+                <div>
+                  <button type="button" className="report-button report-button--secondary" disabled={page <= 1} onClick={() => filter('page', String(page - 1))}>Trang trước</button>
+                  <button type="button" className="report-button report-button--secondary" disabled={page >= data.totalPages} onClick={() => filter('page', String(page + 1))}>Trang sau</button>
+                </div>
+              </nav>
+            )}
           </>
         )}
       </section>

@@ -105,6 +105,13 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
             onClearAll={() => { setSearch(''); setStatusFilter('ALL') }}
             hasActiveFilters={hasFilters}
             resultSummary={`${filteredRequests.length} / ${requests.totalCount} yêu cầu`}
+            pagination={
+              useServerPaging
+                ? { page, pages: Math.max(1, Math.ceil(requests.totalCount / 20)), total: requests.totalCount, pageSize: 20, busy: loading, onPage: setPage }
+                : requestPager.showPagination
+                  ? { page: requestPager.page, pages: requestPager.pages, total: requestPager.total, pageSize: requestPager.pageSize, onPage: requestPager.setPage }
+                  : undefined
+            }
           />
         )}
         {loading && <ListLoading label="Đang tải danh sách yêu cầu…" />}

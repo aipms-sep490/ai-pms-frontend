@@ -420,6 +420,13 @@ export function RubricManagementPage() {
       onClearAll={() => { setListSearch(''); setStatus(''); setDeptFilter(''); setSemesterFilter(''); setStageFilter(''); setPage(1) }}
       hasActiveFilters={hasListFilters}
       resultSummary={`${filteredRubrics.length} / ${total} bộ tiêu chí`}
+      pagination={
+        useServerPaging
+          ? { page, pages: Math.max(1, Math.ceil(total / pageSize)), total, pageSize, busy: loading, onPage: setPage }
+          : rubricPager.showPagination
+            ? { page: rubricPager.page, pages: rubricPager.pages, total: rubricPager.total, pageSize: rubricPager.pageSize, onPage: rubricPager.setPage }
+            : undefined
+      }
     />
     {selected && !detailLoading && <RubricWorkbookPanel key={`${selected.id}:${selected.concurrencyToken}`} rubric={selected} dirty={dirty}
       onCommitted={async preview => {

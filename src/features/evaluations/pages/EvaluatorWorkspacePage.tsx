@@ -169,6 +169,7 @@ export function EvaluatorWorkspacePage() {
 
         {assignments.length > 0 && (
           <FilterToolbar
+            layout="stacked"
             search={search}
             onSearchChange={(val) => { setSearch(val); groupPager.setPage(1) }}
             searchPlaceholder="Tìm đồ án, bộ tiêu chí…"
@@ -238,6 +239,7 @@ export function EvaluatorWorkspacePage() {
             onClearAll={clearFilters}
             hasActiveFilters={activeChips.length > 0}
             resultSummary={activeChips.length > 0 ? `Hiển thị ${visibleAssignments.length} / ${assignments.length} phân công` : undefined}
+            pagination={groupPager.showPagination ? { page: groupPager.page, pages: groupPager.pages, total: groupPager.total, pageSize: groupPager.pageSize, onPage: groupPager.setPage } : undefined}
           />
         )}
 

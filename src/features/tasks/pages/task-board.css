@@ -376,3 +376,16 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+.task-board-top-strip {
+  padding: 10px 16px;
+  gap: 8px 12px;
+}
+.task-board-top-strip .ex-tabs {
+  padding: 3px;
+  gap: 2px;
+}
+.task-board-top-strip .ex-tabs button {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+}

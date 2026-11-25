@@ -374,18 +374,8 @@ export function ProjectFilesPage() {
         ]}
       />
 
-      <section className="workspace-surface" aria-labelledby="project-file-list">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-4 sm:px-6">
-          <div>
-            <h2 id="project-file-list" className="font-semibold text-ink">Tệp trong phạm vi đồ án</h2>
-            <p className="mt-1 text-xs text-ink-muted">Tìm nhanh theo nguồn phát sinh, định dạng và tên tệp.</p>
-          </div>
-          {data && !loading && (
-            <span className="rounded-full border border-primary/20 bg-primary-subtle px-2.5 py-1 text-xs font-bold text-primary">
-              {data.totalCount} tệp
-            </span>
-          )}
-        </div>
+      <section className="workspace-surface overflow-hidden" aria-labelledby="project-file-list">
+        <h2 id="project-file-list" className="sr-only">Tệp trong phạm vi đồ án</h2>
 
         <FilterToolbar
           embedded
@@ -451,7 +441,8 @@ export function ProjectFilesPage() {
           }}
           hasActiveFilters={hasActiveFilters}
           onClearAll={clearAllFilters}
-          resultSummary={data ? `Hiển thị ${sortedItems.length} / ${data.totalCount} tệp` : undefined}
+          resultSummary={data ? `${sortedItems.length} / ${data.totalCount} tệp` : undefined}
+          pagination={data ? { page: data.page, pages: totalPages, total: data.totalCount, pageSize: data.pageSize, busy: loading || busy, onPage: (nextPage) => setFilters(current => ({ ...current, page: nextPage })) } : undefined}
         />
 
         {loading ? (
@@ -523,15 +514,17 @@ export function ProjectFilesPage() {
                 )
               })}
             </ul>
-            <Pagination
-              page={data.page}
-              pages={totalPages}
-              total={data.totalCount}
-              pageSize={data.pageSize}
-              busy={busy}
-              onPage={(nextPage) => setFilters(current => ({ ...current, page: nextPage }))}
-              onPageSizeChange={(newSize) => setFilters(current => ({ ...current, page: 1, pageSize: newSize }))}
-            />
+            {(totalPages > 1 || data.totalCount > data.pageSize) && (
+              <Pagination
+                page={data.page}
+                pages={totalPages}
+                total={data.totalCount}
+                pageSize={data.pageSize}
+                busy={busy}
+                onPage={(nextPage) => setFilters(current => ({ ...current, page: nextPage }))}
+                onPageSizeChange={(newSize) => setFilters(current => ({ ...current, page: 1, pageSize: newSize }))}
+              />
+            )}
           </>
         )}
       </section>
