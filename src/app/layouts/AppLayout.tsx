@@ -12,6 +12,7 @@ import '../../components/ui/workspace-polish.css'
 import '../../components/ui/workspace-consistency.css'
 import '../../components/ui/workspace-experience.css'
 import { useAuthSession } from '../../features/auth/context/useAuthSession'
+import { NotificationLiveProvider } from '../../features/notifications/NotificationLiveContext'
 import { TourProvider } from '../../features/onboarding/TourProvider'
 
 export function AppLayout() {
@@ -72,6 +73,7 @@ export function AppLayout() {
 
   return (
     <TourProvider>
+    <NotificationLiveProvider>
     <a
       href="#main-content"
       className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:font-semibold focus:rounded-lg focus:shadow-md focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-primary"
@@ -114,6 +116,7 @@ export function AppLayout() {
       <ChatDock />
       <AssistantDock />
     </div>
+    </NotificationLiveProvider>
     </TourProvider>
   )
 }
