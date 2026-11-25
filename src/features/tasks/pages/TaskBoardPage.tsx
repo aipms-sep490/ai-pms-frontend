@@ -337,20 +337,21 @@ export function TaskBoardPage() {
             )}
           </div>
           {view !== 'sprint' && data && (
-            <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted tabular-nums">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted tabular-nums">
               {data.items.length > 0 && (
-                <div className="inline-flex items-center gap-2" aria-label="Tổng quan tiến trình công việc">
+                <div className="inline-flex items-center gap-1.5" aria-label="Tổng quan tiến trình công việc">
                   <span>Tiến độ trang:</span>
-                  <div className="flex h-1.5 w-20 overflow-hidden rounded-full bg-hairline">
+                  <div className="flex h-1.5 w-14 overflow-hidden rounded-full bg-hairline">
                     <div style={{ width: `${(data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100}%` }} className="bg-primary transition-all" />
                     <div style={{ width: `${(data.items.filter(t => t.status === 'IN_REVIEW').length / data.items.length) * 100}%` }} className="bg-status-warning-text transition-all" />
                     <div style={{ width: `${(data.items.filter(t => t.status === 'BLOCKED').length / data.items.length) * 100}%` }} className="bg-status-error-text transition-all" />
                   </div>
                   <span className="rounded-full bg-primary-subtle px-2 py-0.5 font-bold text-primary">
-                    {Math.round((data.items.filter(t => t.status === 'DONE').length / data.items.length) * 100)}%
+                    {doneCount}/{data.items.length} ({Math.round((doneCount / data.items.length) * 100)}%)
                   </span>
                 </div>
               )}
+              {data.items.length > 0 && <span className="text-hairline" aria-hidden="true">|</span>}
               <span>
                 Tổng số công việc: <strong className="text-ink">{data.totalCount}</strong>
               </span>
@@ -361,7 +362,7 @@ export function TaskBoardPage() {
         {view !== 'sprint' && (
           <FilterToolbar
             embedded
-            className="ft-bar--compact ft-bar--dense"
+            className="ft-bar--compact"
             search={search}
             onSearchChange={(val) => updateParam('search', val.trim())}
             searchLabel="Tìm công việc"

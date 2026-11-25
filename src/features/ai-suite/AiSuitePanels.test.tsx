@@ -56,6 +56,18 @@ describe('AI Copilot Suite — All 8 Modules', () => {
     vi.clearAllMocks()
   })
 
+  it('#1 DefenseMockPanel hides empty body strip while idle and expands cleanly when options open', () => {
+    const { container, unmount } = render(<DefenseMockPanel projectId={20} />)
+    const card = container.querySelector('.ais-card')
+    expect(card?.className).toContain('ais-card--header-only')
+    expect(container.querySelector('.ais-body')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /Tùy chỉnh/i }))
+    expect(card?.className).not.toContain('ais-card--header-only')
+    expect(container.querySelector('.ais-body')).not.toBeNull()
+    unmount()
+  })
+
   it('#1 DefenseMockPanel generates questions, supports Web Speech voice recording & AI scores answers 0-10', async () => {
     vi.mocked(aiSuiteApi.generateDefenseMock).mockResolvedValue({
       projectId: 20,

@@ -1,7 +1,17 @@
-import { useState, type ReactNode } from 'react'
+import { Children, Fragment, isValidElement, useState, type ReactNode } from 'react'
 import { formatVnTime } from './ai-suite-api'
 import type { AiSnapshotMetaDto } from './ai-suite.types'
 import './ai-suite.css'
+
+function hasRenderableChildren(node: ReactNode): boolean {
+  return Children.toArray(node).some((child) => {
+    if (child == null || typeof child === 'boolean' || child === '') return false
+    if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+      return hasRenderableChildren(child.props.children)
+    }
+    return true
+  })
+}
 
 export function AiSuiteCardShell({
   icon,
@@ -46,12 +56,12 @@ export function AiSuiteCardShell({
     }
   }
 
-  const hasBody = Boolean(error || notice || children || meta)
+  const hasBody = Boolean(error || notice || hasRenderableChildren(children) || meta)
   const showBody = hasBody && (!collapsible || !collapsed)
 
   return (
     <section
-      className={`ais-card${compact ? ' ais-card--compact' : ''}${collapsible && collapsed ? ' ais-card--collapsed' : ''}`}
+      className={`ais-card${compact ? ' ais-card--compact' : ''}${collapsible && collapsed ? ' ais-card--collapsed' : ''}${!showBody ? ' ais-card--header-only' : ''}`}
       aria-label={title}
     >
       <header className="ais-header">

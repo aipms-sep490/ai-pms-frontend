@@ -21,9 +21,10 @@
 }
 
 .app-avatar--xs {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   font-size: 12px;
+  letter-spacing: -0.02em;
 }
 
 .app-avatar--sm {

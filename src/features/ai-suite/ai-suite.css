@@ -22,7 +22,8 @@
   border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 16%, var(--color-hairline));
 }
 
-.ais-card--collapsed .ais-header {
+.ais-card--collapsed .ais-header,
+.ais-card--header-only .ais-header {
   border-bottom: 0;
 }
 
