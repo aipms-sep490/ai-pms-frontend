@@ -1,6 +1,7 @@
 import { reportError } from './report-errors'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
@@ -195,23 +196,41 @@ function ReportList({ projectId, projectTitle, actor, routeBase, canCreate }: { 
               </div>
             ) : (
               <ul className="report-list">
-                {visibleItems.map((report) => (
-                  <li key={report.id}>
-                    <Link to={`${routeBase}/reports/${report.id}`} className="report-row">
-                      <div className="report-row-icon" aria-hidden="true"><span className="material-symbols-outlined">article</span></div>
-                      <div className="report-row-main">
-                        <div className="report-row-meta"><span className="workspace-kicker">{reportTypeLabels[report.reportType]}</span></div>
-                        <h3>{formatReportDate(report.periodStart)} – {formatReportDate(report.periodEnd)}</h3>
-                        <p>{report.summary}</p>
-                        <small>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}: {report.submittedByName}</small>
-                      </div>
-                      <div className="report-row-state">
-                        <ReportBadge status={report.status} />
-                        {report.isLate === true && <small className="report-late">Nộp trễ hạn</small>}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                {visibleItems.map((report) => {
+                  const startFmt = formatReportDate(report.periodStart)
+                  const endFmt = formatReportDate(report.periodEnd)
+                  const shortRange = `${startFmt.slice(0, 5)} – ${endFmt.slice(0, 5)}`
+                  const yearText = endFmt.slice(-4)
+                  return (
+                    <li key={report.id}>
+                      <Link to={`${routeBase}/reports/${report.id}`} className="report-row">
+                        <div className="report-period-tile">
+                          <span className="report-type-pill">{reportTypeLabels[report.reportType]}</span>
+                          <strong>{shortRange}</strong>
+                          <small>{yearText}</small>
+                        </div>
+                        <div className="report-row-main">
+                          <h3>{report.summary || `${startFmt} – ${endFmt}`}</h3>
+                          <div className="report-row-sub">
+                            <span>Kỳ {startFmt} – {endFmt}</span>
+                            {report.isLate === true && <span className="report-late-pill">Nộp trễ hạn</span>}
+                          </div>
+                        </div>
+                        <div className="report-row-author">
+                          <Avatar name={report.submittedByName} size="xs" shape="circle" />
+                          <div className="min-w-0">
+                            <strong className="block truncate">{report.submittedByName}</strong>
+                            <span>{report.status === 'DRAFT' ? 'Người tạo' : 'Người nộp'}</span>
+                          </div>
+                        </div>
+                        <div className="report-row-state">
+                          <ReportBadge status={report.status} />
+                          <span className="report-row-chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             )}
             {data.totalPages > 1 && (

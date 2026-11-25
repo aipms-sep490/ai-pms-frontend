@@ -32,6 +32,31 @@ const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
   PROGRESS_REPORT: 'Báo cáo tiến độ',
 }
 
+const sourceIcons: Record<CalendarProjectionItem['sourceType'], string> = {
+  TASK: 'task_alt',
+  MILESTONE: 'flag',
+  MEETING: 'videocam',
+  DELIVERABLE: 'inventory_2',
+  FINAL_SUBMISSION: 'publish',
+  EVALUATION_ASSIGNMENT: 'grading',
+  PROGRESS_REPORT: 'description',
+}
+
+function sourceAccentClass(sourceType: CalendarProjectionItem['sourceType']): string {
+  if (sourceType === 'MEETING') return 'calendar-event--meeting'
+  if (sourceType === 'TASK') return 'calendar-event--task'
+  if (sourceType === 'MILESTONE') return 'calendar-event--milestone'
+  return 'calendar-event--deliverable'
+}
+
+function formatClockVn(iso?: string): string {
+  if (!iso) return '—'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'Cả ngày'
+  const parsed = new Date(iso)
+  if (!Number.isFinite(parsed.getTime())) return '—'
+  return parsed.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })
+}
+
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
 const STATUS_LABELS: Record<string, string> = {
@@ -464,10 +489,18 @@ export function CalendarAttentionPage() {
                     <div className="calendar-agenda">
                       {Object.entries(agendaGrouped).map(([date, entries]) => (
                         <div className="calendar-agenda__group" key={date}>
-                          <h3>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</h3>
-                          {entries.map((item) => (
-                            <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
-                          ))}
+                          <div className="calendar-agenda__group-head">
+                            <h3>
+                              <span>{date === 'undated' ? 'Chưa có thời điểm' : formatCalendarDate(date)}</span>
+                              {date === todayKey && <span className="calendar-agenda__today-pill">Hôm nay</span>}
+                            </h3>
+                            <span className="calendar-agenda__group-count">{entries.length} sự kiện</span>
+                          </div>
+                          <div className="calendar-agenda__list">
+                            {entries.map((item) => (
+                              <CalendarRow item={item} key={`${item.sourceType}-${item.sourceId}`} />
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -693,21 +726,29 @@ export function CalendarAttentionPage() {
 
 function CalendarRow({ item }: { item: CalendarProjectionItem }) {
   const timestamp = datedAt(item)
+  const clock = formatClockVn(timestamp)
   return (
-    <Link className="calendar-event" to={item.deepLink}>
+    <Link className={`calendar-event ${sourceAccentClass(item.sourceType)}`} to={item.deepLink}>
+      <span className="calendar-event__time" title={timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}>
+        {clock}
+      </span>
       <div className="calendar-event__main">
-        <div className="calendar-event__badges">
-          <span className="calendar-event__type">{sourceLabels[item.sourceType]}</span>
-          <StatusBadge tone={calendarStatusTone(item.status)} label={calendarStatusLabel(item.status)} />
+        <div className="calendar-event__headline">
+          <span className="calendar-event__type">
+            <span className="material-symbols-outlined" aria-hidden="true">{sourceIcons[item.sourceType]}</span>
+            <span>{sourceLabels[item.sourceType]}</span>
+          </span>
+          <strong className="calendar-event__title">{item.title}</strong>
         </div>
-        <strong className="calendar-event__title">{item.title}</strong>
-        <div className="calendar-event__meta">
-          {item.projectName && <span>{item.projectName}</span>}
-          <span>{timestamp ? formatCalendarDate(timestamp) : 'Chưa có thời điểm'}</span>
-        </div>
+        {item.projectName && (
+          <div className="calendar-event__meta">
+            <span>{item.projectName}</span>
+          </div>
+        )}
       </div>
       <span className="calendar-event__trail">
-        <span className="material-symbols-outlined text-ink-muted" aria-hidden="true">chevron_right</span>
+        <StatusBadge tone={calendarStatusTone(item.status)} label={calendarStatusLabel(item.status)} />
+        <span className="calendar-event__chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
       </span>
     </Link>
   )

@@ -259,32 +259,44 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
         {!isTeamLeader && (
           <div className="cw-secondary-grid">
             <section className="cw-panel cw-panel--stretch" aria-labelledby="milestone-heading">
-              <div className="cw-section-heading"><h2 id="milestone-heading">Mốc gần nhất</h2><Icon name="flag" /></div>
+              <div className="cw-section-heading cw-section-heading--compact">
+                <div className="flex items-center gap-2">
+                  <span className="cw-heading-icon" aria-hidden="true"><Icon name="flag" /></span>
+                  <h2 id="milestone-heading">Mốc gần nhất</h2>
+                </div>
+                {data.timeline.state === 'ready' && closestMilestone && (
+                  <span className="cw-milestone-pct">{Math.round(closestMilestone.progressPercentage)}%</span>
+                )}
+              </div>
               <div className="cw-panel-body-fill">
                 <ResourceState resource={data.timeline} retry={data.reload} />
-                {data.timeline.state === 'ready' && (closestMilestone ? (
-                  <div className="cw-milestone">
-                    <p className="cw-milestone-date">{dateLabel(closestMilestone.dueDate)}</p>
-                    <h3>{closestMilestone.title}</h3>
-                    <p>{closestMilestone.tasks.filter(task => task.status === 'DONE').length}/{closestMilestone.tasks.length} công việc hoàn thành</p>
-                    <Progress value={closestMilestone.progressPercentage} label={`Tiến độ mốc ${closestMilestone.title}`} />
-                  </div>
-                ) : <p className="cw-empty">Không có mốc nào đang thực hiện.</p>)}
+                {data.timeline.state === 'ready' && <ClosestMilestoneBody milestone={closestMilestone} now={now} />}
               </div>
               {data.timeline.state === 'ready' && closestMilestone && (
-                <div className="cw-panel-footer">
+                <div className="cw-panel-footer cw-panel-footer--between">
                   <Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link>
+                  <Link className="cw-subtle-link" to="/project/gantt">Lịch thực hiện</Link>
                 </div>
               )}
             </section>
 
             <section className="cw-panel cw-panel--stretch" aria-labelledby="meeting-heading">
-              <div className="cw-section-heading"><h2 id="meeting-heading">Lịch họp tiếp theo</h2><Icon name="calendar_month" /></div>
+              <div className="cw-section-heading cw-section-heading--compact">
+                <div className="flex items-center gap-2">
+                  <span className="cw-heading-icon" aria-hidden="true"><Icon name="calendar_month" /></span>
+                  <h2 id="meeting-heading">Lịch họp tiếp theo</h2>
+                </div>
+                {data.meetings.state === 'ready' && data.meetings.data.length > 0 && (
+                  <span className="cw-count">{data.meetings.data.length}</span>
+                )}
+              </div>
               <div className="cw-panel-body-fill">
                 <ResourceState resource={data.meetings} retry={data.reload} />
                 {data.meetings.state === 'ready' && <UpcomingMeeting meetings={data.meetings.data} />}
               </div>
-              <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link></div>
+              <div className="cw-panel-footer cw-panel-footer--between">
+                <Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link>
+              </div>
             </section>
           </div>
         )}
@@ -354,16 +366,41 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
           </section>
         ) : (
           <>
-            <section className="cw-panel" aria-labelledby="milestone-heading"><div className="cw-section-heading"><h2 id="milestone-heading">Mốc gần nhất</h2><Icon name="flag" /></div>
+            <section className="cw-panel" aria-labelledby="milestone-heading">
+              <div className="cw-section-heading cw-section-heading--compact">
+                <div className="flex items-center gap-2">
+                  <span className="cw-heading-icon" aria-hidden="true"><Icon name="flag" /></span>
+                  <h2 id="milestone-heading">Mốc gần nhất</h2>
+                </div>
+                {data.timeline.state === 'ready' && closestMilestone && (
+                  <span className="cw-milestone-pct">{Math.round(closestMilestone.progressPercentage)}%</span>
+                )}
+              </div>
               <ResourceState resource={data.timeline} retry={data.reload} />
-              {data.timeline.state === 'ready' && (closestMilestone ? <div className="cw-milestone"><p className="cw-milestone-date">{dateLabel(closestMilestone.dueDate)}</p><h3>{closestMilestone.title}</h3><p>{closestMilestone.tasks.filter(task => task.status === 'DONE').length}/{closestMilestone.tasks.length} công việc hoàn thành</p><Progress value={closestMilestone.progressPercentage} label={`Tiến độ mốc ${closestMilestone.title}`} /><Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link></div>
-                : <p className="cw-empty">Không có mốc nào đang thực hiện.</p>)}
+              {data.timeline.state === 'ready' && <ClosestMilestoneBody milestone={closestMilestone} now={now} />}
+              {data.timeline.state === 'ready' && closestMilestone && (
+                <div className="cw-panel-footer cw-panel-footer--between">
+                  <Link className="cw-text-link" to={`/project/milestones/${closestMilestone.id}`}>Xem mốc đồ án<Icon name="arrow_forward" /></Link>
+                  <Link className="cw-subtle-link" to="/project/gantt">Lịch thực hiện</Link>
+                </div>
+              )}
             </section>
 
-            <section className="cw-panel" aria-labelledby="meeting-heading"><div className="cw-section-heading"><h2 id="meeting-heading">Lịch họp tiếp theo</h2><Icon name="calendar_month" /></div>
+            <section className="cw-panel" aria-labelledby="meeting-heading">
+              <div className="cw-section-heading cw-section-heading--compact">
+                <div className="flex items-center gap-2">
+                  <span className="cw-heading-icon" aria-hidden="true"><Icon name="calendar_month" /></span>
+                  <h2 id="meeting-heading">Lịch họp tiếp theo</h2>
+                </div>
+                {data.meetings.state === 'ready' && data.meetings.data.length > 0 && (
+                  <span className="cw-count">{data.meetings.data.length}</span>
+                )}
+              </div>
               <ResourceState resource={data.meetings} retry={data.reload} />
               {data.meetings.state === 'ready' && <UpcomingMeeting meetings={data.meetings.data} />}
-              <div className="cw-panel-footer"><Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link></div>
+              <div className="cw-panel-footer cw-panel-footer--between">
+                <Link className="cw-text-link" to="/project/meetings">Lịch họp và biên bản<Icon name="arrow_forward" /></Link>
+              </div>
             </section>
           </>
         )}
@@ -373,10 +410,102 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   </div>
 }
 
+function ClosestMilestoneBody({ milestone, now }: { milestone: import('../../../types/backend').TimelineMilestoneDto | undefined; now: number }) {
+  if (!milestone) {
+    return (
+      <div className="cw-empty-card">
+        <span className="cw-empty-icon" aria-hidden="true"><Icon name="flag" /></span>
+        <div>
+          <p className="cw-empty-title">Không có mốc nào đang thực hiện.</p>
+          <p className="cw-empty-sub">Tạo mốc tiến độ để theo dõi hạn bàn giao của nhóm.</p>
+        </div>
+      </div>
+    )
+  }
+  const doneCount = milestone.tasks.filter(task => task.status === 'DONE').length
+  const totalCount = milestone.tasks.length
+  const openTasks = milestone.tasks.filter(isOpenTask).sort((a, b) => utcTimestamp(a.dueAt) - utcTimestamp(b.dueAt))
+  const overdueCount = openTasks.filter(task => isOverdue(task, now)).length
+  const dueTs = milestone.dueDate ? Date.parse(`${milestone.dueDate.slice(0, 10)}T23:59:59+07:00`) : NaN
+  const daysDelta = Number.isFinite(dueTs) ? Math.ceil((dueTs - now) / 86400000) : null
+  const deltaTone = daysDelta === null ? '' : daysDelta < 0 ? 'cw-status-danger' : daysDelta <= 3 ? 'cw-status-warning' : 'cw-status-success'
+  const deltaText = daysDelta === null ? null : daysDelta < 0 ? `Quá hạn ${Math.abs(daysDelta)} ngày` : daysDelta === 0 ? 'Hạn hôm nay' : `Còn ${daysDelta} ngày`
+
+  return (
+    <div className="cw-milestone">
+      <div className="cw-milestone-head">
+        <div className="cw-milestone-date-box">
+          <strong>{dateLabel(milestone.dueDate)}</strong>
+          <span>Hạn mốc</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3>{milestone.title}</h3>
+          <div className="cw-milestone-chips">
+            {deltaText && <span className={`cw-status ${deltaTone}`}>{deltaText}</span>}
+            {overdueCount > 0 && <span className="cw-status cw-status-danger">{overdueCount} việc quá hạn</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="cw-milestone-meter">
+        <div className="cw-milestone-meter-row">
+          <span>{doneCount}/{totalCount} công việc hoàn thành</span>
+          <strong>{openTasks.length} việc còn lại</strong>
+        </div>
+        <Progress value={milestone.progressPercentage} label={`Tiến độ mốc ${milestone.title}`} />
+      </div>
+
+      {openTasks.length > 0 && (
+        <ul className="cw-milestone-preview" aria-label="Công việc sắp đến hạn trong mốc">
+          {openTasks.slice(0, 2).map(task => {
+            const taskOverdue = isOverdue(task, now)
+            return (
+              <li key={task.id}>
+                <Link to={`/project/tasks/${task.id}`} className="cw-milestone-task-link">
+                  <span className={`cw-milestone-dot ${taskOverdue ? 'is-overdue' : ''}`} aria-hidden="true" />
+                  <span className="truncate">{task.title}</span>
+                  <span className={`cw-milestone-task-due ${taskOverdue ? 'is-overdue' : ''}`}>{dateLabel(task.dueAt)}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function UpcomingMeeting({ meetings }: { meetings: import('../../meetings/meeting-types').Meeting[] }) {
   const next = [...meetings].sort((a, b) => utcTimestamp(a.startAt) - utcTimestamp(b.startAt))[0]
-  if (!next) return <p className="cw-empty">Nhóm chưa có lịch họp sắp tới.</p>
-  return <Link className="cw-meeting" to={`/project/meetings/${next.id}`}><div className="cw-meeting-date"><strong>{dateLabel(next.startAt)}</strong><span>{new Date(utcTimestamp(next.startAt)).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}</span></div><div><strong>{next.title}</strong><p>{next.location || (next.onlineUrl ? 'Họp trực tuyến' : 'Chưa có địa điểm')}</p></div><Icon name="chevron_right" /></Link>
+  if (!next) {
+    return (
+      <div className="cw-empty-card">
+        <span className="cw-empty-icon" aria-hidden="true"><Icon name="event_available" /></span>
+        <div>
+          <p className="cw-empty-title">Nhóm chưa có lịch họp sắp tới.</p>
+          <p className="cw-empty-sub">Lên lịch họp để thống nhất kế hoạch và ghi nhận biên bản với GVHD.</p>
+        </div>
+      </div>
+    )
+  }
+  const isOnline = Boolean(next.onlineUrl || next.meetingDeliveryMode === 'REMOTE' || next.meetingDeliveryMode === 'HYBRID')
+  return (
+    <Link className="cw-meeting" to={`/project/meetings/${next.id}`}>
+      <div className="cw-meeting-date">
+        <strong>{dateLabel(next.startAt)}</strong>
+        <span>{new Date(utcTimestamp(next.startAt)).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <strong>{next.title}</strong>
+          <span className="cw-status">{isOnline ? 'Trực tuyến' : 'Trực tiếp'}</span>
+        </div>
+        <p>{next.location || (next.onlineUrl ? 'Họp trực tuyến' : 'Chưa có địa điểm')}</p>
+        <small className="cw-meeting-sub">{next.participantCount} người tham gia · {next.createdByName}</small>
+      </div>
+      <Icon name="chevron_right" />
+    </Link>
+  )
 }
 
 function Icon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Avatar } from '../../components/ui/Avatar'
 import { Button } from '../../components/ui/Button'
 import { FilterToolbar } from '../../components/ui/FilterToolbar'
 import type { FilterChipItem } from '../../components/ui/FilterChips'
@@ -242,32 +243,53 @@ function MeetingList() {
               </div>
             ) : (
               <ul className="mtg-list">
-                {visibleItems.map((meeting) => (
-                  <li key={meeting.id}>
-                    <Link
-                      className="mtg-row"
-                      to={`${routeBase}/meetings/${meeting.id}`}
-                      state={assistant.draft ? { assistantDraft: { ...assistant.draft, projectId: project.id } } : undefined}
-                    >
-                      <span className="mtg-row-icon material-symbols-outlined" aria-hidden="true">
-                        {meeting.onlineUrl || meeting.meetingDeliveryMode === 'REMOTE' || meeting.meetingDeliveryMode === 'HYBRID' || meeting.videoChannel === 'IN_APP_VIDEO' || meeting.videoChannel === 'EXTERNAL_LINK' ? 'videocam' : 'calendar_month'}
-                      </span>
-                      <div className="mtg-row-main">
-                        <p className="mtg-eyebrow">{formatMeetingTime(meeting.startAt)}</p>
-                        <h3>{meeting.title}</h3>
-                        <p>{meetingVenue(meeting)}</p>
-                        <small>{meeting.participantCount} người tham gia · Tổ chức bởi {meeting.createdByName}</small>
-                      </div>
-                      <div className="mtg-row-state">
-                        <MeetingStatusBadge status={meeting.status} />
-                        <span className="mtg-row-open workspace-action-link">
-                          Xem chi tiết
-                          <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
+                {visibleItems.map((meeting) => {
+                  const isOnline = Boolean(meeting.onlineUrl || meeting.meetingDeliveryMode === 'REMOTE' || meeting.meetingDeliveryMode === 'HYBRID' || meeting.videoChannel === 'IN_APP_VIDEO' || meeting.videoChannel === 'EXTERNAL_LINK')
+                  const isHybrid = meeting.meetingDeliveryMode === 'HYBRID'
+                  const ts = utcTimestamp(meeting.startAt)
+                  const validTs = Number.isFinite(ts)
+                  const dayShort = validTs ? new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }) : '--/--'
+                  const clockShort = validTs ? new Date(ts).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }) : '--:--'
+                  const tileTone = meeting.status === 'COMPLETED' ? 'is-completed' : meeting.status === 'CANCELLED' ? 'is-cancelled' : ''
+                  return (
+                    <li key={meeting.id}>
+                      <Link
+                        className="mtg-row"
+                        to={`${routeBase}/meetings/${meeting.id}`}
+                        state={assistant.draft ? { assistantDraft: { ...assistant.draft, projectId: project.id } } : undefined}
+                      >
+                        <div className={`mtg-date-tile ${tileTone}`} aria-label={formatMeetingTime(meeting.startAt)}>
+                          <strong>{dayShort}</strong>
+                          <span>{clockShort}</span>
+                        </div>
+                        <div className="mtg-row-main">
+                          <h3>{meeting.title}</h3>
+                          <div className="mtg-row-subline">
+                            <span className={`mtg-mode-chip ${isOnline ? 'is-online' : ''}`}>
+                              <span className="material-symbols-outlined" aria-hidden="true">{isOnline ? 'videocam' : 'location_on'}</span>
+                              <span>{isHybrid ? 'Kết hợp' : isOnline ? 'Trực tuyến' : 'Trực tiếp'}</span>
+                            </span>
+                            <p className="mtg-row-venue">{meetingVenue(meeting)}</p>
+                          </div>
+                        </div>
+                        <div className="mtg-row-people">
+                          <div className="mtg-people-host">
+                            <Avatar name={meeting.createdByName} size="xs" shape="circle" />
+                            <span className="truncate">{meeting.createdByName}</span>
+                          </div>
+                          <span className="mtg-people-count">
+                            <span className="material-symbols-outlined" aria-hidden="true">group</span>
+                            <span>{meeting.participantCount} người tham gia</span>
+                          </span>
+                        </div>
+                        <div className="mtg-row-state">
+                          <MeetingStatusBadge status={meeting.status} />
+                          <span className="mtg-row-chevron material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             )}
             {data.totalPages > 1 && (
