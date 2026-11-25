@@ -62,7 +62,7 @@
   border: 1px solid color-mix(in oklab, var(--color-academic-emerald) 26%, transparent);
   background: color-mix(in oklab, var(--color-academic-emerald) 8%, var(--color-card));
   color: var(--color-academic-emerald);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -208,13 +208,13 @@
 }
 
 .notification-icon--meeting {
-  background: var(--color-status-info-bg);
-  color: var(--color-status-info-text);
+  background: var(--color-tag-se-bg);
+  color: var(--color-tag-se);
 }
 
 .notification-icon--evaluation {
-  background: color-mix(in oklab, #7c3aed 10%, var(--color-card));
-  color: #6d28d9;
+  background: var(--color-tag-ai-bg);
+  color: var(--color-tag-ai);
 }
 
 .notification-icon--success {
@@ -251,7 +251,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
   line-height: 1.4;
   letter-spacing: 0.01em;
@@ -263,13 +263,13 @@
 }
 
 .notification-type-chip--meeting {
-  background: var(--color-status-info-bg);
-  color: var(--color-status-info-text);
+  background: var(--color-tag-se-bg);
+  color: var(--color-tag-se);
 }
 
 .notification-type-chip--evaluation {
-  background: color-mix(in oklab, #7c3aed 10%, var(--color-card));
-  color: #6d28d9;
+  background: var(--color-tag-ai-bg);
+  color: var(--color-tag-ai);
 }
 
 .notification-type-chip--success {
@@ -283,7 +283,7 @@
 }
 
 .notification-time {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--color-ink-muted);
   white-space: nowrap;
@@ -512,7 +512,7 @@
   border-radius: 999px;
   background: var(--color-primary-subtle);
   color: var(--color-primary);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -570,7 +570,7 @@
 .notification-row--compact .notification-link {
   min-height: 24px;
   padding: 1px 8px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .notification-popover-footer {
@@ -723,7 +723,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-ink-muted);
 }
 

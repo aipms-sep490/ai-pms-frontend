@@ -59,12 +59,12 @@ export function StatTileRow({ tiles }: { tiles: readonly StatTile[] }) {
           : ''
         const interactiveClass = isInteractive
           ? (hero
-              ? 'cursor-pointer transition-colors duration-150 hover:bg-primary-hover text-left w-full'
-              : 'cursor-pointer transition-colors duration-150 hover:border-primary/60 hover:bg-primary-subtle/20 text-left w-full')
-          : ''
+              ? 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:brightness-[1.03] active:translate-y-0 text-left w-full'
+              : 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm active:translate-y-0 text-left w-full')
+          : 'transition-shadow duration-200 hover:shadow-sm'
 
         const surfaceClass = hero
-          ? 'border-primary bg-primary text-white shadow-sm'
+          ? 'border-primary bg-gradient-to-br from-primary to-primary-hover text-white shadow-[0_6px_18px_-8px_color-mix(in_oklab,var(--color-primary)_48%,transparent)]'
           : `border-line-strong/75 border-t-[3px] ${toneAccentBorder[tone]} bg-card text-ink shadow-xs`
 
         const iconChipClass = hero
