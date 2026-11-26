@@ -113,8 +113,26 @@ describe('DepartmentDocumentsPage', () => {
 
     await screen.findByText(/Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách/)
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại danh sách' }))
-    await screen.findByText(/Chưa thấy bản nháp vừa tải lên trong danh sách/)
+    await screen.findByText(/Chưa thấy bản nháp vừa tải lên/)
     expect((screen.getByRole('button', { name: 'Tải lên bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(api.uploadDepartmentDocument).toHaveBeenCalledTimes(1)
+  })
+
+  it('auto-retries once silently when post-upload readback hits a transient 502/503 restart blip', async () => {
+    api.uploadDepartmentDocument.mockResolvedValue(row)
+    api.listDepartmentDocuments.mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new HttpError('Bad Gateway', 502))
+      .mockResolvedValueOnce([row])
+    render(<DepartmentDocumentsPage manager />)
+    await screen.findByText('Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.')
+    fireEvent.click(screen.getByRole('button', { name: /Tải lên phiên bản mới/ }))
+    fireEvent.change(screen.getByLabelText('Mã tài liệu'), { target: { value: 'REPORT' } })
+    fireEvent.change(screen.getByLabelText('Tên tài liệu'), { target: { value: 'Mẫu báo cáo' } })
+    fireEvent.change(screen.getByLabelText('Tệp mẫu'), { target: { files: [new File(['%PDF-1.4'], 'report.pdf', { type: 'application/pdf' })] } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Tải lên bản nháp' }).closest('form')!)
+
+    await waitFor(() => expect(screen.getByText(/Đã tải lên bản nháp REPORT \(v1\)/)).toBeTruthy(), { timeout: 3000 })
+    expect(screen.getByText('Mẫu báo cáo')).toBeTruthy()
     expect(api.uploadDepartmentDocument).toHaveBeenCalledTimes(1)
   })
 })
