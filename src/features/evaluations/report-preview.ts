@@ -8,7 +8,7 @@ export function previewKind(file: Pick<EvidenceFile, 'contentType' | 'fileName'>
   const name = (file.fileName || '').toLowerCase()
   if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
   if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name)) return 'image'
-  if (/\.(docx|xlsx)$/.test(name)) return 'office'
+  if (/\.(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(name)) return 'office'
   return 'other'
 }
 

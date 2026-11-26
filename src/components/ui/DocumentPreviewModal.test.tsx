@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { DocumentPreviewModal, getFileCategory } from './DocumentPreviewModal'
 
-const office = vi.hoisted(() => ({ previewOfficeFile: vi.fn() }))
+const office = vi.hoisted(() => ({
+  OFFICE_PDF_PREVIEW_EXTENSIONS: /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i,
+  previewOfficeFile: vi.fn(),
+  previewOfficeAsPdf: vi.fn(),
+}))
 vi.mock('../../services/api/office-preview.api', () => office)
 
 describe('getFileCategory', () => {
@@ -19,6 +23,8 @@ describe('getFileCategory', () => {
 describe('DocumentPreviewModal', () => {
   beforeEach(() => {
     office.previewOfficeFile.mockReset()
+    office.previewOfficeAsPdf.mockReset()
+    office.previewOfficeAsPdf.mockRejectedValue(new Error('pdf preview disabled'))
     vi.stubGlobal('URL', {
       ...URL,
       createObjectURL: vi.fn(() => 'blob:mock-url'),
@@ -80,7 +86,7 @@ describe('DocumentPreviewModal', () => {
     expect(download).toHaveBeenCalledTimes(1)
   })
 
-  it.each([['archive.zip', 1024], ['report.docx', 6 * 1024 * 1024]])('does not prefetch unsupported or oversized %s previews', async (fileName, fileSize) => {
+  it.each([['archive.zip', 1024], ['report.docx', 21 * 1024 * 1024]])('does not prefetch unsupported or oversized %s previews', async (fileName, fileSize) => {
     const loadBlob = vi.fn().mockResolvedValue(new Blob(['content']))
     render(<DocumentPreviewModal open onClose={vi.fn()} fileName={String(fileName)} fileSize={Number(fileSize)} loadBlob={loadBlob} />)
     await screen.findByRole('alert')
@@ -128,6 +134,18 @@ describe('DocumentPreviewModal', () => {
     expect(await screen.findByRole('table', { name: 'Bảng tính Tiêu chí' })).toBeTruthy()
     expect(screen.getByText('Gate 1')).toBeTruthy()
     expect(screen.getByText(/chỉ hiển thị phần đầu/)).toBeTruthy()
+  })
+
+  it('renders Office documents as faithful PDF preview when PDF conversion succeeds', async () => {
+    const pdfBlob = new Blob(['%PDF-1.7'], { type: 'application/pdf' })
+    office.previewOfficeAsPdf.mockResolvedValueOnce(pdfBlob)
+    const loadBlob = vi.fn().mockResolvedValue(new Blob(['docx bytes']))
+    render(<DocumentPreviewModal open fileId={9} onClose={vi.fn()} fileName="MỞ BÀI.docx" fileSize={17000} loadBlob={loadBlob} />)
+    const iframe = await screen.findByTitle('Bản xem trước MỞ BÀI.docx')
+    expect(iframe.tagName).toBe('IFRAME')
+    expect(office.previewOfficeAsPdf).toHaveBeenCalledWith(expect.any(Blob), 'MỞ BÀI.docx', expect.any(AbortSignal))
+    expect(office.previewOfficeFile).not.toHaveBeenCalled()
+    expect(screen.getByTitle('Mở trong tab mới')).toBeTruthy()
   })
 
   it('shows a recoverable error when an authorized download fails', async () => {

@@ -3,7 +3,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { Table, TableBody, TableCell, TableRow } from '../../../components/ui/Table'
 import { downloadEvaluationEvidenceFile, type EvidenceFile } from '../../../services/api/evaluations.api'
 import { fileLabel, formatBytes, previewKind } from '../report-preview'
-import { previewOfficeFile, type OfficePreview } from '../../../services/api/office-preview.api'
+import { previewOfficeAsPdf, previewOfficeFile, type OfficePreview } from '../../../services/api/office-preview.api'
 
 const fileKey = (file: EvidenceFile) => String(file.evidenceItemId ?? file.id) + ':' + String(file.deliverableVersionId ?? '') + ':' + String(file.coldSubmissionId ?? '')
 
@@ -159,11 +159,30 @@ function PreviewStage({
       .then(async blob => {
         if (!alive) return
         if (kind === 'office') {
-          const result = await previewOfficeFile(blob, file.fileName, abort.signal)
-          if (alive) { setOffice(result); setStatus('ready') }
+          try {
+            const pdfBlob = await previewOfficeAsPdf(blob, file.fileName, abort.signal)
+            if (alive) {
+              const next = URL.createObjectURL(pdfBlob)
+              objectUrl.current = next
+              setUrl(next)
+              setStatus('ready')
+            }
+            return
+          } catch {
+            if (!alive || abort.signal.aborted) return
+          }
+          if (/\.(docx|xlsx)$/i.test(file.fileName)) {
+            const result = await previewOfficeFile(blob, file.fileName, abort.signal)
+            if (alive) { setOffice(result); setStatus('ready') }
+            return
+          }
+          if (alive) setStatus('error')
           return
         }
-        const next = URL.createObjectURL(blob); objectUrl.current = next; setUrl(next); setStatus('ready')
+        const displayBlob = kind === 'pdf' && blob.type !== 'application/pdf'
+          ? new Blob([blob], { type: 'application/pdf' })
+          : blob
+        const next = URL.createObjectURL(displayBlob); objectUrl.current = next; setUrl(next); setStatus('ready')
       })
       .catch(() => { if (alive) setStatus('error') })
     return () => { alive = false; abort.abort(); if (objectUrl.current) { URL.revokeObjectURL(objectUrl.current); objectUrl.current = null } }
@@ -195,11 +214,10 @@ function PreviewStage({
         </div>
       ) : null}
 
-      {status === 'ready' && kind === 'pdf' && url ? (
+      {status === 'ready' && (kind === 'pdf' || kind === 'office') && url ? (
         <iframe
           title={`Báo cáo ${fileLabel(file)}`}
           src={url}
-          sandbox="allow-same-origin"
           className={`report-preview-frame ${isFullscreen ? '!h-full !max-h-none' : ''}`}
         />
       ) : null}

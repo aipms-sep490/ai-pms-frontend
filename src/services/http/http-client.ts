@@ -131,6 +131,31 @@ export async function httpPostForm<TResponse>(
   return send<TResponse>('POST', path, body, options)
 }
 
+/** Sends a multipart request and reads a binary Blob response (e.g. rendered PDF preview). */
+export async function httpPostFormBlob(
+  path: string,
+  body: FormData,
+  options?: HttpRequestOptions,
+  hasRetriedAfterRefresh = false,
+): Promise<Blob> {
+  const requestInit = createRequestInit(options)
+  const response = await fetch(resolveUrl(path), {
+    ...requestInit,
+    method: 'POST',
+    headers: { ...requestInit.headers, Accept: 'application/pdf, */*' },
+    body,
+  })
+  if (response.status === 401 && !options?.skipAuthRefresh && !hasRetriedAfterRefresh) {
+    const token = await refreshAccessToken()
+    if (token) return httpPostFormBlob(path, body, { ...options, accessToken: token, skipAuthRefresh: true }, true)
+  }
+  if (!response.ok) {
+    const problem = await readProblem(response)
+    throw new HttpError(problem.message || problem.detail || problem.title || `Request failed with status ${response.status}.`, response.status, problem)
+  }
+  return response.blob()
+}
+
 // Bound decoded characters per NDJSON event, independently of network chunk size.
 // Provisional client ceiling until BE documents a maximum serialized response size.
 const STREAM_FRAME_LIMIT = 1024 * 1024

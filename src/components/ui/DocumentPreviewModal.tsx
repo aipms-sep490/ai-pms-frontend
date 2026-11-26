@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { previewOfficeFile, type OfficePreview } from '../../services/api/office-preview.api'
+import { OFFICE_PDF_PREVIEW_EXTENSIONS, previewOfficeAsPdf, previewOfficeFile, type OfficePreview } from '../../services/api/office-preview.api'
 import { humanizeHttpError } from '../../services/http/humanize-http-error'
 import './document-preview-modal.css'
 
@@ -62,6 +62,7 @@ export function DocumentPreviewModal({
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
   const [url, setUrl] = useState<string | null>(null)
+  const [officePdfUrl, setOfficePdfUrl] = useState<string | null>(null)
   const [textContent, setTextContent] = useState<string | null>(null)
   const [officePreview, setOfficePreview] = useState<OfficePreview | null>(null)
   const [officeError, setOfficeError] = useState<string | null>(null)
@@ -71,6 +72,7 @@ export function DocumentPreviewModal({
   const [rotation, setRotation] = useState(0)
   const [downloading, setDownloading] = useState(false)
   const objectUrlRef = useRef<string | null>(null)
+  const officePdfUrlRef = useRef<string | null>(null)
   // Callers pass a new inline loadBlob closure every render. Read it through a ref so an unrelated
   // parent re-render does not re-trigger the fetch effect and re-download the file; the effect keys
   // on the file identity (fileName/contentType) instead, which still re-fetches when the file changes.
@@ -100,6 +102,7 @@ export function DocumentPreviewModal({
     if (!open) {
       setBlob(null)
       setUrl(null)
+      setOfficePdfUrl(null)
       setTextContent(null)
       setOfficePreview(null)
       setOfficeError(null)
@@ -110,6 +113,10 @@ export function DocumentPreviewModal({
         URL.revokeObjectURL(objectUrlRef.current)
         objectUrlRef.current = null
       }
+      if (officePdfUrlRef.current) {
+        URL.revokeObjectURL(officePdfUrlRef.current)
+        officePdfUrlRef.current = null
+      }
       return
     }
 
@@ -119,6 +126,7 @@ export function DocumentPreviewModal({
     setError(null)
     setBlob(null)
     setUrl(null)
+    setOfficePdfUrl(null)
     setTextContent(null)
     setOfficePreview(null)
     setOfficeError(null)
@@ -126,10 +134,14 @@ export function DocumentPreviewModal({
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
     }
+    if (officePdfUrlRef.current) {
+      URL.revokeObjectURL(officePdfUrlRef.current)
+      officePdfUrlRef.current = null
+    }
 
-    if (category === 'archive' || (category === 'office' && fileSize != null && fileSize > 5 * 1024 * 1024) || (fileSize != null && fileSize > 20 * 1024 * 1024)) {
+    if (category === 'archive' || (fileSize != null && fileSize > 20 * 1024 * 1024)) {
       setLoading(false)
-      setError(category === 'archive' ? 'Tệp nén không hỗ trợ xem trước. Hãy tải bản gốc về máy.' : category === 'office' ? 'Tệp Office lớn hơn 5 MiB. Hãy tải bản gốc về máy để xem.' : 'Tệp lớn hơn 20 MiB. Hãy tải bản gốc về máy để xem, tránh làm trình duyệt quá tải.')
+      setError(category === 'archive' ? 'Tệp nén không hỗ trợ xem trước. Hãy tải bản gốc về máy.' : category === 'office' ? 'Tệp Office lớn hơn 20 MiB. Hãy tải bản gốc về máy để xem.' : 'Tệp lớn hơn 20 MiB. Hãy tải bản gốc về máy để xem, tránh làm trình duyệt quá tải.')
       return
     }
 
@@ -137,7 +149,10 @@ export function DocumentPreviewModal({
       .then(async (resultBlob) => {
         if (!active) return
         setBlob(resultBlob)
-        const objectUrl = URL.createObjectURL(resultBlob)
+        const displayBlob = category === 'pdf' && resultBlob.type !== 'application/pdf'
+          ? new Blob([resultBlob], { type: 'application/pdf' })
+          : resultBlob
+        const objectUrl = URL.createObjectURL(displayBlob)
         objectUrlRef.current = objectUrl
         setUrl(objectUrl)
 
@@ -149,12 +164,26 @@ export function DocumentPreviewModal({
             if (active) setTextContent('Không thể giải mã văn bản dưới dạng UTF-8.')
           }
         }
-        if (category === 'office' && /\.(docx|xlsx)$/i.test(fileName)) {
+        if (category === 'office' && OFFICE_PDF_PREVIEW_EXTENSIONS.test(fileName)) {
           try {
-            const preview = await previewOfficeFile(resultBlob, fileName, controller.signal)
-            if (active) setOfficePreview(preview)
+            const pdfBlob = await previewOfficeAsPdf(resultBlob, fileName, controller.signal)
+            if (!active) return
+            const pdfUrl = URL.createObjectURL(pdfBlob)
+            officePdfUrlRef.current = pdfUrl
+            setOfficePdfUrl(pdfUrl)
+            return
           } catch {
-            if (active && !controller.signal.aborted) setOfficeError('Chưa tạo được bản xem trước an toàn cho tệp này. Bạn có thể tải bản gốc về máy.')
+            if (!active || controller.signal.aborted) return
+          }
+          if (/\.(docx|xlsx)$/i.test(fileName) && resultBlob.size <= 5 * 1024 * 1024) {
+            try {
+              const preview = await previewOfficeFile(resultBlob, fileName, controller.signal)
+              if (active) setOfficePreview(preview)
+            } catch {
+              if (active && !controller.signal.aborted) setOfficeError('Chưa tạo được bản xem trước an toàn cho tệp này. Bạn có thể tải bản gốc về máy.')
+            }
+          } else if (active) {
+            setOfficeError('Chưa tạo được bản xem trước định dạng gốc cho tệp này. Bạn có thể tải bản gốc về máy.')
           }
         }
       })
@@ -172,6 +201,10 @@ export function DocumentPreviewModal({
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current)
         objectUrlRef.current = null
+      }
+      if (officePdfUrlRef.current) {
+        URL.revokeObjectURL(officePdfUrlRef.current)
+        officePdfUrlRef.current = null
       }
     }
   }, [open, fileId, fileName, fileSize, contentType, category])
@@ -200,9 +233,10 @@ export function DocumentPreviewModal({
   }
 
   // Open in new window
+  const externalPreviewUrl = category === 'office' ? officePdfUrl : url
   const handleOpenExternal = () => {
-    if (!url) return
-    window.open(url, '_blank', 'noopener,noreferrer')
+    if (!externalPreviewUrl) return
+    window.open(externalPreviewUrl, '_blank', 'noopener,noreferrer')
   }
 
   if (!open) return null
@@ -281,7 +315,7 @@ export function DocumentPreviewModal({
             </>
           )}
 
-          {(category === 'pdf' || category === 'image') && url && (
+          {(((category === 'pdf' || category === 'image') && url) || (category === 'office' && officePdfUrl)) && (
             <button
               type="button"
               className="doc-preview-btn"
@@ -351,7 +385,6 @@ export function DocumentPreviewModal({
                 src={url}
                 title={`Bản xem trước ${fileName}`}
                 className="doc-preview-iframe"
-                sandbox="allow-same-origin allow-scripts allow-forms"
               />
             )}
 
@@ -375,7 +408,15 @@ export function DocumentPreviewModal({
               </div>
             )}
 
-            {category === 'office' && officePreview && (
+            {category === 'office' && officePdfUrl && (
+              <iframe
+                src={officePdfUrl}
+                title={`Bản xem trước ${fileName}`}
+                className="doc-preview-iframe"
+              />
+            )}
+
+            {category === 'office' && !officePdfUrl && officePreview && (
               <div className="doc-preview-office-stage">
                 <p className="doc-preview-office-note">Nội dung xem nhanh chỉ đọc; bố cục và công thức có thể khác bản gốc. Tải về để kiểm tra chính xác.</p>
                 {officePreview.truncated && <p role="status" className="doc-preview-office-note">Bản xem nhanh chỉ hiển thị phần đầu tài liệu.</p>}
@@ -392,7 +433,7 @@ export function DocumentPreviewModal({
               </div>
             )}
 
-            {((category === 'office' && !officePreview) || category === 'archive' || category === 'other') && (
+            {((category === 'office' && !officePdfUrl && !officePreview) || category === 'archive' || category === 'other') && (
               <div className="doc-preview-fallback">
                 <div className="doc-preview-fallback-icon">
                   <span className="material-symbols-outlined">
