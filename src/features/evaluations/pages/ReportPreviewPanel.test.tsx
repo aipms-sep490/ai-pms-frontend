@@ -4,13 +4,14 @@ import { ReportPreviewPanel } from './ReportPreviewPanel'
 import { downloadEvaluationEvidenceFile } from '../../../services/api/evaluations.api'
 
 vi.mock('../../../services/api/evaluations.api', () => ({ downloadEvaluationEvidenceFile: vi.fn() }))
-const office = vi.hoisted(() => ({ previewOfficeFile: vi.fn() }))
+const office = vi.hoisted(() => ({ previewOfficeFile: vi.fn(), previewOfficeAsPdf: vi.fn() }))
 vi.mock('../../../services/api/office-preview.api', () => office)
 
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
 it('shows assignment-authorized DOCX content beside the scoring form', async () => {
   vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['office']))
+  office.previewOfficeAsPdf.mockRejectedValue(new Error('pdf unavailable'))
   office.previewOfficeFile.mockResolvedValue({ kind: 'DOCX_TEXT', paragraphs: ['Yêu cầu Gate 1'], sheets: [], truncated: false })
   render(<ReportPreviewPanel assignmentId={41} files={[
     { id: 8, fileName: 'Bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 500 },
@@ -20,8 +21,28 @@ it('shows assignment-authorized DOCX content beside the scoring form', async () 
   expect(office.previewOfficeFile).toHaveBeenCalledWith(expect.any(Blob), 'Bao-cao.docx', expect.any(AbortSignal))
 })
 
+it('renders faithful PDF iframe when Gotenberg office PDF preview succeeds', async () => {
+  const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-office-pdf')
+  const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  try {
+    vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['office']))
+    office.previewOfficeAsPdf.mockResolvedValue(new Blob(['%PDF-1.7'], { type: 'application/pdf' }))
+    render(<ReportPreviewPanel assignmentId={41} files={[
+      { id: 8, fileName: 'Bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 500 },
+    ]} />)
+    const frame = await screen.findByTitle('Báo cáo Bao-cao.docx')
+    expect(frame.tagName).toBe('IFRAME')
+    expect(frame.getAttribute('src')).toBe('blob:mock-office-pdf')
+    expect(office.previewOfficeFile).not.toHaveBeenCalled()
+  } finally {
+    createUrl.mockRestore()
+    revokeUrl.mockRestore()
+  }
+})
+
 it('uses a native modal for fullscreen viewing and restores focus when cancelled', () => {
   vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['office']))
+  office.previewOfficeAsPdf.mockRejectedValue(new Error('pdf unavailable'))
   office.previewOfficeFile.mockResolvedValue({ kind: 'DOCX_TEXT', paragraphs: ['Report'], sheets: [], truncated: false })
   render(<ReportPreviewPanel assignmentId={41} files={[
     { id: 8, fileName: 'Bao-cao.docx', contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', sizeBytes: 500 },
