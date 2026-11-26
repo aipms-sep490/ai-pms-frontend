@@ -35,6 +35,17 @@ function errorText(error: unknown) {
   return 'Chưa kết nối được kho tài liệu. Hãy thử lại.'
 }
 
+function isTransientReadbackError(error: unknown) {
+  if (error instanceof HttpError) return error.status === 502 || error.status === 503 || error.status === 504
+  return error instanceof Error && error.name !== 'AbortError'
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 async function saveDownload(row: DepartmentDocument) {
   const blob = await downloadDepartmentDocument(row.id)
   const url = URL.createObjectURL(blob)
@@ -69,11 +80,11 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
   const [file, setFile] = useState<File | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [pendingUploadId, setPendingUploadId] = useState<number | null>(null)
+  const [pendingUpload, setPendingUpload] = useState<DepartmentDocument | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sortBy, setSortBy] = useState<'newest' | 'title_asc' | 'version_desc'>('newest')
-  const uploadedNeedsReload = pendingUploadId !== null
+  const uploadedNeedsReload = pendingUpload !== null
 
   const filterKey = `${majorId}:${periodId}`
   const activeList = majorId && listState?.key === filterKey ? listState : null
@@ -123,7 +134,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     try {
       const loaded = await listDepartmentDocuments(Number(id), period ? Number(period) : undefined, signal)
       if (signal?.aborted) return null
-      return { key, rows: loaded, error: '', unsupported: false }
+      return { key, rows: loaded, error: '', unsupported: false, transient: false }
     } catch (reason) {
       if (signal?.aborted) return null
       return {
@@ -131,18 +142,22 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
         rows: null as DepartmentDocument[] | null,
         error: errorText(reason),
         unsupported: reason instanceof HttpError && reason.status === 404,
+        transient: isTransientReadbackError(reason),
       }
     }
   }, [])
 
-  const refresh = useCallback(async (id: string, period: string) => {
+  const refresh = useCallback(async (id: string, period: string, options?: { retryTransient?: boolean; retryDelayMs?: number }) => {
     if (!id) return null
     setActionError('')
     setReloading(true)
-    setListState(null)
     try {
-      const next = await readDocuments(id, period)
-      if (next) setListState(next)
+      let next = await readDocuments(id, period)
+      if (next && next.rows === null && next.transient && options?.retryTransient) {
+        await new Promise(resolve => window.setTimeout(resolve, options.retryDelayMs ?? 1200))
+        next = await readDocuments(id, period)
+      }
+      if (next) setListState({ key: next.key, rows: next.rows, error: next.error, unsupported: next.unsupported })
       return next?.rows ?? null
     } finally {
       setReloading(false)
@@ -153,10 +168,19 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     if (!majorId) return
     const controller = new AbortController()
     void readDocuments(majorId, periodId, controller.signal).then(next => {
-      if (next && !controller.signal.aborted) setListState(next)
+      if (next && !controller.signal.aborted) setListState({ key: next.key, rows: next.rows, error: next.error, unsupported: next.unsupported })
     })
     return () => controller.abort()
   }, [majorId, periodId, readDocuments])
+
+  function completeUploadedDraft(uploaded: DepartmentDocument, message: string) {
+    setPendingUpload(null)
+    setCode(''); setTitle(''); setFile(null); setUploadOpen(false)
+    if (statusFilter && statusFilter !== 'DRAFT') setStatusFilter('')
+    const input = document.getElementById('department-document-file') as HTMLInputElement | null
+    if (input) input.value = ''
+    setSuccess(message.replace('{doc}', `${uploaded.code} (v${uploaded.version})`))
+  }
 
   async function submitUpload(event: FormEvent) {
     event.preventDefault()
@@ -165,17 +189,13 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     try {
       const uploaded = await uploadDepartmentDocument({ majorId: Number(majorId), projectPeriodId: periodId ? Number(periodId) : undefined,
         code: code.trim(), title: title.trim(), file })
-      setPendingUploadId(uploaded.id)
-      const loaded = await refresh(majorId, periodId)
+      setPendingUpload(uploaded)
+      const loaded = await refresh(majorId, periodId, { retryTransient: true })
       if (!loaded?.some(row => row.id === uploaded.id && row.status === 'DRAFT')) {
-        setError('Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách. Hãy chọn Tải lại; không gửi tệp lần nữa.')
+        setError(`Máy chủ đã nhận bản nháp nhưng chưa xác nhận được trong danh sách (${uploaded.code} · v${uploaded.version}). Hãy bấm Tải lại danh sách; không gửi tệp lần nữa.`)
         return
       }
-      setPendingUploadId(null)
-      setCode(''); setTitle(''); setFile(null); setUploadOpen(false)
-      const input = document.getElementById('department-document-file') as HTMLInputElement | null
-      if (input) input.value = ''
-      setSuccess('Đã tải lên bản nháp. Hãy kiểm tra và công bố để sinh viên xem được.')
+      completeUploadedDraft(uploaded, 'Đã tải lên bản nháp {doc}. Hãy kiểm tra và công bố để sinh viên xem được.')
     } catch (reason) { setError(errorText(reason)) }
     finally { setUploading(false) }
   }
@@ -185,7 +205,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     try {
       if (target === 'PUBLISHED') await publishDepartmentDocument(row)
       else await retireDepartmentDocument(row)
-      const loaded = await refresh(majorId, periodId)
+      const loaded = await refresh(majorId, periodId, { retryTransient: true })
       if (!loaded?.some(item => item.id === row.id && item.status === target)) {
         setError('Máy chủ đã nhận thay đổi nhưng chưa xác nhận được trạng thái mới. Hãy chọn Tải lại trước khi thao tác tiếp.')
         return
@@ -203,17 +223,13 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
 
   async function retryList() {
     const loaded = await refresh(majorId, periodId)
-    if (!uploadedNeedsReload || !loaded) return
-    const pending = loaded.some(row => row.id === pendingUploadId && row.status === 'DRAFT')
-    if (!pending) {
-      setError('Chưa thấy bản nháp vừa tải lên trong danh sách. Hãy thử Tải lại, không gửi tệp lần nữa.')
+    if (!pendingUpload || !loaded) return
+    const confirmed = loaded.some(row => row.id === pendingUpload.id && row.status === 'DRAFT')
+    if (!confirmed) {
+      setError(`Chưa thấy bản nháp vừa tải lên trong danh sách (${pendingUpload.code} · v${pendingUpload.version}). Hãy thử Tải lại, không gửi tệp lần nữa.`)
       return
     }
-    setPendingUploadId(null)
-    setCode(''); setTitle(''); setFile(null); setUploadOpen(false)
-    const input = document.getElementById('department-document-file') as HTMLInputElement | null
-    if (input) input.value = ''
-    setSuccess('Đã xác nhận bản nháp trong danh sách. Hãy kiểm tra và công bố để sinh viên xem được.')
+    completeUploadedDraft(pendingUpload, 'Đã xác nhận bản nháp trong danh sách ({doc}). Hãy kiểm tra và công bố để sinh viên xem được.')
   }
 
   const filteredRows = useMemo(() => {
@@ -246,7 +262,7 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void retryList()} disabled={loading || !majorId} />
         {manager && !unsupported && (
-          <button type="button" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!majorId} onClick={() => setUploadOpen(true)}>
+          <button type="button" className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!majorId} onClick={() => { if (!uploadedNeedsReload) setActionError(''); setUploadOpen(true) }}>
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">upload_file</span>
             Tải lên phiên bản mới
           </button>
@@ -259,33 +275,47 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
     {manager && !unsupported && uploadOpen && (
       <Modal open title="Tải lên phiên bản mới" description="PDF, DOCX hoặc XLSX; tối đa 20 MB. Cùng mã tài liệu sẽ tạo phiên bản kế tiếp trong ngành và kỳ đã chọn." busy={uploading} onClose={() => setUploadOpen(false)}>
         <form className="space-y-4" onSubmit={event => void submitUpload(event)}>
-          {error && <InlineAlert tone="error">{error}</InlineAlert>}
+          {error && <InlineAlert tone={uploadedNeedsReload ? 'warning' : 'error'}>{error}</InlineAlert>}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium text-ink-soft">Mã tài liệu
-              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={code} onChange={event => setCode(event.target.value)} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
+              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-canvas disabled:opacity-70" value={code} onChange={event => setCode(event.target.value)} disabled={uploading || uploadedNeedsReload} minLength={2} maxLength={60} pattern="[A-Za-z0-9_-]+" required />
             </label>
             <label className="text-sm font-medium text-ink-soft">Tên tài liệu
-              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" value={title} onChange={event => setTitle(event.target.value)} minLength={2} maxLength={200} required />
+              <input className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-canvas disabled:opacity-70" value={title} onChange={event => setTitle(event.target.value)} disabled={uploading || uploadedNeedsReload} minLength={2} maxLength={200} required />
             </label>
           </div>
           <div>
             <label htmlFor="department-document-file" className="block text-sm font-medium text-ink-soft">Tệp mẫu</label>
-            <div className="relative mt-1 grid min-h-11 min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+            <div className={`relative mt-1 grid min-h-11 min-w-0 grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-hairline bg-card font-normal transition-colors ${uploading || uploadedNeedsReload ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'}`}>
               <span aria-hidden="true" className="flex items-center border-r border-hairline bg-primary-subtle px-3.5 text-xs font-semibold text-primary">Chọn tệp</span>
-              <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">{file ? file.name : 'Chưa chọn tệp'}</span>
-              <input id="department-document-file" type="file" className="absolute inset-0 cursor-pointer opacity-0" accept=".pdf,.docx,.xlsx" required
+              <span aria-hidden="true" className="flex items-center truncate px-3 text-xs font-medium text-ink-muted">
+                {file ? `${file.name} (${formatFileSize(file.size)})` : 'Chưa chọn tệp'}
+              </span>
+              <input id="department-document-file" type="file" className="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-not-allowed" accept=".pdf,.docx,.xlsx" disabled={uploading || uploadedNeedsReload} required
                 onChange={event => setFile(event.target.files?.[0] ?? null)} />
             </div>
+            {file && file.size > 20 * 1024 * 1024 && (
+              <p role="alert" className="mt-1.5 text-xs text-status-error-text">Tệp vượt quá giới hạn 20 MB. Hãy nén nhẹ hơn trước khi tải lên.</p>
+            )}
           </div>
           <div className="app-modal__actions">
             {uploadedNeedsReload ? (
-              <button type="button" className="app-modal__button" onClick={() => void retryList()} disabled={loading}>Tải lại danh sách</button>
+              <>
+                <button type="submit" className="app-modal__button disabled:cursor-not-allowed disabled:opacity-50" disabled>
+                  Tải lên bản nháp
+                </button>
+                <button type="button" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void retryList()} disabled={loading}>
+                  {loading ? 'Đang tải lại…' : 'Tải lại danh sách'}
+                </button>
+              </>
             ) : (
-              <button type="button" className="app-modal__button" disabled={uploading} onClick={() => setUploadOpen(false)}>Hủy</button>
+              <>
+                <button type="button" className="app-modal__button" disabled={uploading} onClick={() => setUploadOpen(false)}>Hủy</button>
+                <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={uploading || !majorId || !file || file.size > 20 * 1024 * 1024}>
+                  {uploading ? 'Đang tải lên…' : 'Tải lên bản nháp'}
+                </button>
+              </>
             )}
-            <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={uploading || uploadedNeedsReload || !majorId || !file || file.size > 20 * 1024 * 1024}>
-              {uploading ? 'Đang tải lên…' : 'Tải lên bản nháp'}
-            </button>
           </div>
         </form>
       </Modal>
@@ -339,7 +369,16 @@ export function DepartmentDocumentsPage({ manager = false }: { manager?: boolean
       />
 
       <div className="space-y-3 p-5">
-        {error && !uploadOpen && <InlineAlert tone="error">{error}</InlineAlert>}
+        {error && !uploadOpen && (
+          <InlineAlert
+            tone={uploadedNeedsReload ? 'warning' : 'error'}
+            action={uploadedNeedsReload ? (
+              <Button variant="secondary" size="sm" onClick={() => void retryList()} disabled={loading}>Tải lại danh sách</Button>
+            ) : undefined}
+          >
+            {error}
+          </InlineAlert>
+        )}
         {success && <InlineAlert tone="success">{success}</InlineAlert>}
         {loading && <p role="status" className="text-sm text-ink-muted">Đang tải tài liệu…</p>}
         {!loading && !error && rows?.length === 0 && <p className="rounded-lg border border-hairline bg-canvas p-4 text-sm text-ink-muted">Chưa có tài liệu phù hợp với ngành và kỳ đã chọn.</p>}
