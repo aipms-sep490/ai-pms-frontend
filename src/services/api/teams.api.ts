@@ -431,16 +431,52 @@ export async function getLeaderChangeRequests(
   status?: string,
   page = 1,
   pageSize = 20,
+  projectId?: number,
 ): Promise<PagedResult<TeamLeaderChangeRequestDto>> {
   if (env.isMockMode) {
     const items = mockLeaderChangeRequests.filter((request) =>
-      (!teamId || request.teamId === teamId) && (!status || request.status === status))
+      (!teamId || request.teamId === teamId)
+      && (!projectId || request.projectId === projectId)
+      && (!status || request.status === status))
     return { items, page, pageSize, totalCount: items.length, totalPages: items.length ? 1 : 0 }
   }
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
   if (teamId) params.set('teamId', String(teamId))
+  if (projectId) params.set('projectId', String(projectId))
   if (status) params.set('status', status)
   return httpGet<PagedResult<TeamLeaderChangeRequestDto>>('/team-leader-change-requests?' + params.toString())
+}
+
+export async function cancelLeaderChangeRequest(requestId: number): Promise<TeamLeaderChangeRequestDto> {
+  if (env.isMockMode) {
+    const found = mockLeaderChangeRequests.find((item) => item.id === requestId)
+    if (!found) throw new Error('Leader change request #' + requestId + ' not found.')
+    found.status = 'CANCELLED'
+    found.respondedAt = new Date().toISOString()
+    return { ...found }
+  }
+  return httpPost<TeamLeaderChangeRequestDto, Record<string, never>>(`/team-leader-change-requests/${requestId}/cancel`, {})
+}
+
+export async function disbandTeam(teamId: number): Promise<TeamDto> {
+  if (env.isMockMode) {
+    if (!mockTeamStore || mockTeamStore.id !== teamId) throw new Error(`Team #${teamId} not found.`)
+    const disbanded: TeamDto = { ...mockTeamStore, status: 'DISBANDED', members: [] }
+    mockTeamStore = null
+    return disbanded
+  }
+  return httpPost<TeamDto, Record<string, never>>(`/teams/${teamId}/disband`, {})
+}
+
+export async function unlockTeam(teamId: number, reason: string): Promise<TeamDto> {
+  return httpPost<TeamDto, { reason: string }>(`/teams/${teamId}/unlock`, { reason })
+}
+
+export async function forceTeamLeader(teamId: number, newLeaderUserId: number, reason: string): Promise<TeamDto> {
+  return httpPost<TeamDto, { newLeaderUserId: number; reason: string }>(`/teams/${teamId}/force-leader`, {
+    newLeaderUserId,
+    reason,
+  })
 }
 
 export async function respondToLeaderChange(

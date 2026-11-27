@@ -8,6 +8,7 @@ import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getSemesters } from '../../academic/api/governance-api'
+import { AcademicBlueprintPanel } from '../../academic/components/AcademicBlueprintPanel'
 import { readAllPages } from '../../../services/api/paged-read'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
@@ -393,6 +394,25 @@ export function PreSemesterSetupHubPage() {
             )
           })}
         </section>
+      )}
+
+      {/* AcademicBlueprint (QD-01) */}
+      {(readiness?.semesterId ?? targetSemesterId) > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-ink">Khung kế hoạch học vụ (AcademicBlueprint)</h2>
+            <Link
+              to="/department/blueprints"
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Mở trang quản lý Blueprint &amp; Lịch nghỉ lễ →
+            </Link>
+          </div>
+          <AcademicBlueprintPanel
+            semesterId={readiness?.semesterId ?? targetSemesterId}
+            actorDepartmentId={readiness?.departmentId ?? workflow?.academic?.departments?.[0]?.id ?? undefined}
+          />
+        </div>
       )}
 
       {/* 3-Step Rollover Wizard Modal */}

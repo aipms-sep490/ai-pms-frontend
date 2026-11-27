@@ -50,7 +50,9 @@ export function TopicCataloguePage() {
   const project = selectionProject?.id === journey.project?.id ? selectionProject : journey.project
   const projectStatus = project?.status.replaceAll('_', '').toUpperCase()
   const isLeader = Boolean(journey.team?.members.some((member) => member.userId === journey.profile?.id && member.isLeader))
-  const canSelect = Boolean(project && (projectStatus === 'DRAFT' || projectStatus === 'REVISIONREQUIRED') && isLeader && isActionAllowed(journey.projectActions?.actions ?? [], 'edit_project_draft'))
+  const canOneStepCreate = Boolean((!project || projectStatus === 'REJECTED') && isLeader && journey.team?.eligibility.canRegister)
+  const canSelectExistingDraft = Boolean(project && (projectStatus === 'DRAFT' || projectStatus === 'REVISIONREQUIRED') && isLeader && isActionAllowed(journey.projectActions?.actions ?? [], 'edit_project_draft'))
+  const canSelect = canSelectExistingDraft || canOneStepCreate
 
   const departmentOptions = useMemo(() => {
     const names = new Set<string>()
@@ -84,10 +86,18 @@ export function TopicCataloguePage() {
   }, [accessToken])
 
   const selectTopic = useCallback(async (topic: Topic) => {
-    if (!project || !canSelect) return
+    if (!canSelect) return
     setSelectionError(null)
     setSelecting(true)
     try {
+      if (canOneStepCreate) {
+        const created = await services.project.createProjectFromTopic(topic.id)
+        setSelectionProject(created)
+        await journey.refreshAll()
+        navigate('/project/edit')
+        return
+      }
+      if (!project) return
       const updated = await services.project.selectTopic(project.id, { topicId: topic.id, concurrencyToken: project.concurrencyToken })
       setSelectionProject(updated)
       await journey.refreshAll()
@@ -95,13 +105,13 @@ export function TopicCataloguePage() {
       if (reason instanceof HttpError) {
         if (reason.status === 409) {
           await Promise.all([journey.refreshAll(), discovery.retry()])
-          setSelectionError('Thông tin đã thay đổi. Đã tải lại hồ sơ và đề tài; hãy kiểm tra trước khi chọn lại.')
+          setSelectionError(reason.problem?.detail ?? 'Thông tin đã thay đổi hoặc đề tài đã đủ suất. Đã tải lại hồ sơ và đề tài; hãy kiểm tra trước khi chọn lại.')
         } else if (reason.status === 403) setSelectionError('Bạn chưa có quyền chọn đề tài cho đồ án này.')
         else if (reason.status === 404) setSelectionError('Hồ sơ hoặc đề tài không còn khả dụng. Hãy tải lại danh sách.')
         else setSelectionError('Thông tin chưa hợp lệ hoặc chưa thể chọn đề tài. Kiểm tra hồ sơ rồi thử lại.')
       } else setSelectionError('Chưa chọn được đề tài. Hãy thử lại.')
     } finally { setSelecting(false) }
-  }, [canSelect, discovery, journey, project])
+  }, [canOneStepCreate, canSelect, discovery, journey, navigate, project])
 
   const errorTitle = discovery.errorKind === 'authentication' ? 'Phiên đăng nhập cần được xác thực lại' : discovery.errorKind === 'forbidden' ? 'Bạn không có quyền xem danh mục đề tài này' : 'Không thể tải danh mục đề tài'
   const totalPages = Math.max(1, Math.ceil(discovery.totalCount / pageSize))
@@ -192,20 +202,28 @@ export function TopicCataloguePage() {
         ) : null}
       </>
     ) : null}
-    <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
+    <TopicDetailDrawer topic={selectedTopic} isLoading={detailLoading} error={detailError} onClose={() => { setSelectedTopic(null); setDetailError(null) }} canSelect={canSelect} isOneStepCreate={canOneStepCreate} selecting={selecting} onSelectTopic={(topic) => void selectTopic(topic)} />
   </WorkspacePage>
 }
 
 function TopicCard({ topic, onDetail }: { topic: Topic; onDetail: (id: number) => Promise<void> }) {
   const isInterdisciplinary = topic.projectMode === 'INTERDISCIPLINARY'
+  const maxTeams = topic.maxTeams ?? 1
+  const selectedCount = topic.selectedTeamCount ?? 0
+  const remaining = Math.max(0, maxTeams - selectedCount)
   return (
     <article className="flex h-full flex-col justify-between gap-4 rounded-xl border border-hairline bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="rounded-md border border-primary/20 bg-primary-subtle px-2 py-0.5 font-mono text-xs font-bold text-primary">{topic.code}</span>
-          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isInterdisciplinary ? 'border-tag-ai/20 bg-tag-ai-bg text-tag-ai' : 'border-hairline bg-canvas text-ink-soft'}`}>
-            {isInterdisciplinary ? 'LIÊN NGÀNH' : 'ĐƠN NGÀNH'}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${remaining > 0 ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-status-error-border bg-status-error-bg text-status-error-text'}`}>
+              {remaining > 0 ? `Còn ${remaining}/${maxTeams} suất` : 'Đã đủ suất'}
+            </span>
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isInterdisciplinary ? 'border-tag-ai/20 bg-tag-ai-bg text-tag-ai' : 'border-hairline bg-canvas text-ink-soft'}`}>
+              {isInterdisciplinary ? 'LIÊN NGÀNH' : 'ĐƠN NGÀNH'}
+            </span>
+          </div>
         </div>
         <h3 className="mt-3 text-base font-bold leading-snug text-ink">{topic.title}</h3>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">

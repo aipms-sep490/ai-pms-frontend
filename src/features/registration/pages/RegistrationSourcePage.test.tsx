@@ -22,12 +22,12 @@ describe('RegistrationSourcePage', () => {
     expect(screen.queryByText('5')).toBeNull()
   })
 
-  it('requires a Project Draft before Published Topic selection', () => {
+  it('directs teams without a draft straight to Published Topic catalogue for 1-step creation (TK-W1-16)', () => {
     journey.useStudentJourney.mockReturnValue(baseJourney(null as any))
     page()
-    expect(screen.getByText(/Tạo bản nháp trước khi chọn đề tài/)).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp đồ án' }))
-    expect(screen.getByText('Project draft route')).toBeTruthy()
+    expect(screen.getByText(/Chọn đề tài & Tạo bản nháp ngay/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Xem danh mục đề tài' }))
+    expect(screen.getByText('Topic catalogue route')).toBeTruthy()
   })
 
   it('opens the selectable catalogue only for an editable Backend draft', () => {

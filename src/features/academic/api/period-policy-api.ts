@@ -8,6 +8,8 @@ export interface PeriodPolicyFields {
   minDistinctMajors: number
   maxProjectsPerSupervisor: number
   requireWorkingAgreement?: boolean
+  supervisorInvitationExpiryDays?: number
+  maxPendingSupervisorRequestsPerSlot?: number
 }
 
 export interface PeriodPolicy {

@@ -13,10 +13,16 @@ export interface AccessEventQuery{search?:string;userId?:number;eventType?:'LOGI
 export interface UserDraft{departmentId:number|null;majorId:number|null;email:string;password:string;fullName:string;phone:string|null;studentCode:string|null;employeeCode:string|null;title:string|null;roleIds:number[]}
 export interface AdminListQuery { search?: string; status?: string; role?: string; departmentId?: number; majorId?: number; page?: number; pageSize?: number }
 export interface AuditListQuery extends AdminListQuery { actorUserId?: number; action?: string; entityType?: string; outcome?: string; fromUtc?: string; toUtc?: string }
+export interface UserObligationItem { category: string; entityId: number; projectCode: string | null; projectTitle: string | null; roleOrScope: string; status: string; departmentId: number | null; departmentName: string | null }
+export interface UserActiveObligations { userId: number; totalCount: number; teamMemberships: UserObligationItem[]; supervisions: UserObligationItem[]; gateReviews: UserObligationItem[]; evaluationsAndAppeals: UserObligationItem[]; impactedDepartmentIds: number[] }
+export interface UserStatusActionPayload { reason?: string | null; acknowledgeObligations?: boolean }
+export interface TemporaryPasswordResult { userId: number; temporaryPassword: string; mustChangePassword: boolean; expiresAt: string | null }
 const query=(path:string, values:Record<string,string|number|undefined>)=>{const params=new URLSearchParams();Object.entries(values).forEach(([key,value])=>{if(value!==undefined&&value!=='')params.set(key,String(value))});return params.size?`${path}?${params}`:path}
 export const getUsers=(token:string, filters:AdminListQuery={})=>httpGet<Page<UserAccount>>(query(endpoints.users,{search:filters.search,status:filters.status,role:filters.role,departmentId:filters.departmentId,majorId:filters.majorId,page:filters.page??1,pageSize:filters.pageSize??10}),{accessToken:token})
 export const exportAdminUserAccounts=(filters:Pick<AdminListQuery,'search'|'status'|'role'|'departmentId'|'majorId'>,token:string,signal?:AbortSignal)=>httpGetBlob(query(`${endpoints.users}/export`,{search:filters.search,status:filters.status,role:filters.role,departmentId:filters.departmentId,majorId:filters.majorId}),{accessToken:token,signal})
 export const getUser=(id:number,token:string)=>httpGet<UserAccount>(`${endpoints.users}/${id}`,{accessToken:token})
+export const getUserActiveObligations=(id:number,token:string)=>httpGet<UserActiveObligations>(`${endpoints.users}/${id}/active-obligations`,{accessToken:token})
+export const issueTemporaryPassword=(id:number,reason:string|null,token:string)=>httpPost<TemporaryPasswordResult>(`${endpoints.users}/${id}/temporary-password`,{reason},{accessToken:token})
 export const updateAcademicProfile=(id:number,body:{departmentId:number|null;majorId:number|null;concurrencyToken:string},token:string)=>httpPatch<AcademicProfile>(`${endpoints.users}/${id}/academic-profile`,body,{accessToken:token})
 export const getRoles=(token:string)=>httpGet<Page<Role>>(query(endpoints.securityRoles,{page:1,pageSize:100}),{accessToken:token})
 export const getPermissions=(token:string)=>httpGet<Page<Permission>>(query(endpoints.securityPermissions,{page:1,pageSize:100}),{accessToken:token})
@@ -25,10 +31,10 @@ export const getAudit=(token:string, filters:AuditListQuery={})=>httpGet<Page<Au
 export const getAccessEvents=(token:string, filters:AccessEventQuery={}, signal?:AbortSignal)=>httpGet<Page<AccessEvent>>(query(endpoints.securityAccessEvents,{search:filters.search,userId:filters.userId,eventType:filters.eventType,outcome:filters.outcome,fromUtc:filters.fromUtc,toUtc:filters.toUtc,page:filters.page??1,pageSize:filters.pageSize??10}),{accessToken:token,signal})
 export const createUser=(draft:UserDraft,token:string)=>httpPost<UserAccount>(endpoints.users,draft,{accessToken:token})
 export const importUsers=(accounts:UserDraft[],token:string)=>httpPost<UserAccount[]>(`${endpoints.users}/import`,{accounts},{accessToken:token})
-export const setUserStatus=(id:number,status:UserAccount['status'],token:string)=>httpPatch<UserAccount>(`${endpoints.users}/${id}/status`,{status},{accessToken:token})
+export const setUserStatus=(id:number,status:UserAccount['status'],token:string,body?:UserStatusActionPayload)=>httpPatch<UserAccount>(`${endpoints.users}/${id}/status`,{status,...body},{accessToken:token})
 export const activateUser=(id:number,token:string)=>httpPost<UserAccount>(`${endpoints.users}/${id}/activate`,{}, {accessToken:token})
-export const deactivateUser=(id:number,token:string)=>httpPost<UserAccount>(`${endpoints.users}/${id}/deactivate`,{}, {accessToken:token})
-export const blockUser=(id:number,token:string)=>httpPost<UserAccount>(`${endpoints.users}/${id}/block`,{}, {accessToken:token})
+export const deactivateUser=(id:number,token:string,body?:UserStatusActionPayload)=>httpPost<UserAccount>(`${endpoints.users}/${id}/deactivate`,body??{}, {accessToken:token})
+export const blockUser=(id:number,token:string,body?:UserStatusActionPayload)=>httpPost<UserAccount>(`${endpoints.users}/${id}/block`,body??{}, {accessToken:token})
 export const unblockUser=(id:number,token:string)=>httpPost<UserAccount>(`${endpoints.users}/${id}/unblock`,{}, {accessToken:token})
 export const assignRole=(userId:number,roleId:number,token:string)=>httpPut<void>(`${endpoints.users}/${userId}/roles/${roleId}`,{}, {accessToken:token})
 export const removeRole=(userId:number,roleId:number,token:string)=>httpDelete<void>(`${endpoints.users}/${userId}/roles/${roleId}`,{accessToken:token})

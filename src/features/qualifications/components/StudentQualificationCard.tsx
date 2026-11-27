@@ -4,7 +4,13 @@ import { services } from '../../../services/service-gateway'
 import type { StudentQualificationDto } from '../../../types/backend'
 import { QualificationCertificateForm } from './QualificationCertificateForm'
 
-export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => Promise<void> }) {
+export function StudentQualificationCard({
+  onSubmitted,
+  qualificationType = 'CAPSTONE_READINESS',
+}: {
+  onSubmitted?: () => Promise<void>
+  qualificationType?: string
+}) {
   const [qualification, setQualification] = useState<StudentQualificationDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +23,7 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
     setLoading(true)
     setError(null)
     try {
-      const value = await services.qualification.getMine()
+      const value = await services.qualification.getMine(qualificationType)
       if (request === sequence.current) setQualification(value)
     } catch (reason) {
       if (request === sequence.current) setError(reason instanceof Error ? reason.message : 'Không thể tải điều kiện tham gia đồ án.')
@@ -29,12 +35,14 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
   useEffect(() => {
     const requests = sequence
     const request = ++requests.current
-    void services.qualification.getMine()
+    void services.qualification.getMine(qualificationType)
       .then(value => { if (request === requests.current) { setQualification(value); setError(null) } })
       .catch((reason: unknown) => { if (request === requests.current) setError(reason instanceof Error ? reason.message : 'Không thể tải điều kiện tham gia đồ án.') })
       .finally(() => { if (request === requests.current) setLoading(false) })
     return () => { requests.current++ }
-  }, [])
+  }, [qualificationType])
+  const isVerifiedAndValid = qualification?.verificationStatus === 'VERIFIED'
+    && (!qualification.expiresAt || Date.parse(qualification.expiresAt) > Date.now())
   const submitted = (value: StudentQualificationDto) => {
     sequence.current++; setQualification(value); setLoading(false); setError(null)
     setNotice('Đã nộp chứng nhận. Trạng thái xác minh được cập nhật từ hệ thống.')
@@ -72,7 +80,13 @@ export function StudentQualificationCard({ onSubmitted }: { onSubmitted?: () => 
           <p role="status">{notice}</p>
         </div>
       )}
-      {!loading && !error && <QualificationCertificateForm onSubmitted={submitted} onBusyChange={setUploadBusy} />}
+      {!loading && !error && (isVerifiedAndValid ? (
+        <div className="mt-4 rounded-xl border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-text">
+          Chứng nhận của bạn đã được xác minh và đang còn hiệu lực. Hệ thống khóa nộp đè để bảo toàn điều kiện tham gia đồ án của bạn.
+        </div>
+      ) : (
+        <QualificationCertificateForm qualificationType={qualificationType} onSubmitted={submitted} onBusyChange={setUploadBusy} />
+      ))}
     </section>
   )
 }

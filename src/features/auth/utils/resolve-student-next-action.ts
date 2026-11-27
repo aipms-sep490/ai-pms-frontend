@@ -5,6 +5,7 @@ export interface StudentNextActionInput {
   journeyState: StudentJourneyState
   /** The Project status is backend data. It only refines the eligible-team CTA for an existing draft. */
   projectStatus?: string | null
+  hasActivePrimarySupervisor?: boolean
 }
 
 export interface StudentNextAction {
@@ -30,13 +31,20 @@ const details: Record<StudentJourneyState, Omit<StudentNextAction, 'route'>> = {
  * The sole client-side next-action resolver. It interprets data already loaded
  * from Backend; it neither changes Project state nor grants an action.
  */
-export function resolveStudentNextAction({ journeyState, projectStatus }: StudentNextActionInput): StudentNextAction {
+export function resolveStudentNextAction({ journeyState, projectStatus, hasActivePrimarySupervisor }: StudentNextActionInput): StudentNextAction {
   const configured = studentNavigation.find((step) => step.state === journeyState)
   if (!configured) throw new Error(`No student destination is configured for ${journeyState}.`)
 
   const isDraft = projectStatus?.replaceAll('_', '').toUpperCase() === 'DRAFT'
   if (journeyState === 'TEAM_ELIGIBLE' && isDraft) {
     return { label: 'Tiếp tục bản nháp', route: '/project/edit', detail: 'Cập nhật bản nháp hiện có trước khi nộp.' }
+  }
+  if (journeyState === 'SUPERVISOR_PENDING' && hasActivePrimarySupervisor) {
+    return {
+      label: 'Ký Cam kết nhóm',
+      route: '/project/agreement',
+      detail: 'Tất cả thành viên cần xác nhận Cam kết nhóm để kích hoạt đồ án sang Đang thực hiện.',
+    }
   }
 
   return { ...details[journeyState], route: configured.route }

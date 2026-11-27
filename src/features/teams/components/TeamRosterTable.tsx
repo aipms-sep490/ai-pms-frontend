@@ -13,6 +13,8 @@ interface TeamRosterTableProps {
   majorNames?: Record<number, string>
   isLeader: boolean
   rosterLocked: boolean
+  canTransferLeader?: boolean
+  requiresLeaderApproval?: boolean
   onRemoveMember: (userId: number) => Promise<void>
   onOpenTransferLeader: () => void
 }
@@ -24,12 +26,15 @@ export function TeamRosterTable({
   majorNames = {},
   isLeader,
   rosterLocked,
+  canTransferLeader,
+  requiresLeaderApproval = false,
   onRemoveMember,
   onOpenTransferLeader,
 }: TeamRosterTableProps) {
   const [removingId, setRemovingId] = useState<number | null>(null)
   const [confirmKickId, setConfirmKickId] = useState<number | null>(null)
   const showActions = isLeader && !rosterLocked
+  const showTransferButton = (canTransferLeader ?? (isLeader && !rosterLocked)) && members.length > 1
 
   const handleKick = async (userId: number) => {
     setRemovingId(userId)
@@ -50,14 +55,14 @@ export function TeamRosterTable({
             {members.length} thành viên
           </span>
         </div>
-        {isLeader && !rosterLocked && members.length > 1 && (
+        {showTransferButton && (
           <button
             type="button"
             onClick={onOpenTransferLeader}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary"
           >
             <span className="material-symbols-outlined text-[16px]" aria-hidden="true">swap_horiz</span>
-            Chuyển quyền Trưởng nhóm
+            {requiresLeaderApproval ? 'Gửi yêu cầu đổi Trưởng nhóm' : 'Chuyển quyền Trưởng nhóm'}
           </button>
         )}
       </div>

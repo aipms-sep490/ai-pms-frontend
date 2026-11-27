@@ -9,11 +9,79 @@ import type {
 import { HttpError, httpGet, httpPost, httpPostForm, httpPut } from '../http/http-client'
 const MOCK_CURRENT_STUDENT_ID = 1
 
+export interface QualificationTypeOption {
+  code: string
+  name: string
+  description: string
+}
+
+export const DEFAULT_QUALIFICATION_TYPES: readonly QualificationTypeOption[] = [
+  { code: 'CAPSTONE_READINESS', name: 'Đủ điều kiện làm đồ án tốt nghiệp', description: 'Điều kiện học vụ chung để đăng ký đồ án tốt nghiệp.' },
+  { code: 'CREDITS_THRESHOLD', name: 'Đủ tín chỉ tích lũy', description: 'Đạt ngưỡng tín chỉ tích lũy tối thiểu.' },
+  { code: 'ENGLISH_PROFICIENCY', name: 'Chuẩn ngoại ngữ', description: 'Đạt chuẩn ngoại ngữ theo quy định chương trình.' },
+  { code: 'INTERNSHIP_COMPLETED', name: 'Hoàn thành thực tập doanh nghiệp', description: 'Đã hoàn thành học phần thực tập doanh nghiệp (OJT).' },
+]
+
+export interface StudentQualificationImportRow {
+  rowNumber: number
+  studentCode: string
+  qualificationType: string
+  certificateNumber?: string | null
+  issuedAt?: string | null
+  expiresAt?: string | null
+}
+
+export interface StudentQualificationImportPreviewRow {
+  row: StudentQualificationImportRow
+  matchedUserId: number | null
+  studentFullName: string | null
+  errors: string[]
+}
+
+export interface StudentQualificationImportPreview {
+  departmentId: number
+  departmentName: string
+  rows: StudentQualificationImportPreviewRow[]
+  canCommit: boolean
+}
+
+export interface StudentQualificationImportResult {
+  upsertedCount: number
+  createdCount: number
+  updatedCount: number
+}
+
 export interface UploadQualificationCertificatePayload {
   file: File
+  qualificationType?: string
   certificateNumber?: string
   issuedAt?: string
   expiresAt?: string
+}
+
+export async function getQualificationTypes(): Promise<readonly QualificationTypeOption[]> {
+  if (env.isMockMode) return DEFAULT_QUALIFICATION_TYPES
+  try {
+    const list = await httpGet<QualificationTypeOption[]>('/student-qualifications/types')
+    return list.length > 0 ? list : DEFAULT_QUALIFICATION_TYPES
+  } catch {
+    return DEFAULT_QUALIFICATION_TYPES
+  }
+}
+
+export async function previewQualificationImport(file: File, signal?: AbortSignal): Promise<StudentQualificationImportPreview> {
+  if (env.isMockMode) throw new HttpError('Qualification import requires API mode.', 503)
+  const form = new FormData()
+  form.append('File', file)
+  return httpPostForm<StudentQualificationImportPreview>('/student-qualifications/import/preview', form, { signal })
+}
+
+export async function commitQualificationImport(
+  rows: StudentQualificationImportRow[],
+  signal?: AbortSignal,
+): Promise<StudentQualificationImportResult> {
+  if (env.isMockMode) throw new HttpError('Qualification import requires API mode.', 503)
+  return httpPost<StudentQualificationImportResult>('/student-qualifications/import/commit', { rows }, { signal })
 }
 
 /** This endpoint stores the certificate AND submits the evidence in one transaction. */
@@ -21,7 +89,7 @@ export async function uploadCertificate(payload: UploadQualificationCertificateP
   if (env.isMockMode) throw new HttpError('Certificate upload requires API mode.', 503)
   const body = new FormData()
   body.append('File', payload.file)
-  body.append('QualificationType', 'CAPSTONE_READINESS')
+  body.append('QualificationType', payload.qualificationType?.trim() || 'CAPSTONE_READINESS')
   body.append('TrainingStatus', 'TRAINING_COMPLETED')
   if (payload.certificateNumber) body.append('CertificateNumber', payload.certificateNumber)
   if (payload.issuedAt) body.append('IssuedAt', payload.issuedAt)

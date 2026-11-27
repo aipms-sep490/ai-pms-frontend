@@ -10,6 +10,7 @@ import { ChangeDiff } from '../../../components/ui/ChangeDiff'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { HistoryTimeline } from '../../../components/ui/HistoryTimeline'
 import { Pagination } from '../../../components/ui/Pagination'
+import { Modal } from '../../../components/ui/Modal'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { useAcademicStructure } from '../../academic/hooks/useAcademicStructure'
@@ -29,9 +30,11 @@ import { schemeStatusTone } from '../../../components/ui/status-badge-tone'
 const pendingActionLabel: Record<string, string> = {
   begin: 'bắt đầu thẩm định',
   approve: 'phê duyệt đề cương',
+  'lead-override': 'phê duyệt vượt quyền (Lead Override)',
   reject: 'từ chối đề cương',
   revision: 'yêu cầu chỉnh sửa',
   department: 'ghi nhận ý kiến bộ môn',
+  'department-revision': 'ghi nhận yêu cầu chỉnh sửa từ bộ môn',
   requirements: 'cập nhật yêu cầu theo ngành',
 }
 
@@ -111,6 +114,9 @@ export function ProjectReviewPage() {
 
   const [reason, setReason] = useState('')
   const [message, setMessage] = useState('')
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false)
+  const [overrideReason, setOverrideReason] = useState('')
+  const [overrideError, setOverrideError] = useState<string | null>(null)
 
   const queueItems = review.queue?.items ?? []
   const queueMajors = useMemo(() => {
@@ -286,15 +292,42 @@ export function ProjectReviewPage() {
     if (ok) setReason('')
   }
 
-  const submitDepartment = async (decision: 'APPROVED' | 'REJECTED') => {
-    if (decision === 'REJECTED' && !reason.trim()) {
-      setMessage('Lý do là bắt buộc khi bộ môn từ chối.')
+  const submitDepartment = async (decision: 'APPROVED' | 'REVISION_REQUIRED' | 'REJECTED') => {
+    if ((decision === 'REJECTED' || decision === 'REVISION_REQUIRED') && !reason.trim()) {
+      setMessage('Lý do là bắt buộc khi bộ môn yêu cầu chỉnh sửa hoặc không chấp thuận.')
       return
     }
-    if (await requestConfirmation({ title: decision === 'REJECTED' ? 'Từ chối với tư cách bộ môn tham gia?' : 'Đồng ý với tư cách bộ môn tham gia?', description: 'Quyết định của bộ môn được ghi nhận cho phiên bản đăng ký hiện tại; quyết định này không thay thế phê duyệt cuối của bộ môn chủ trì.', confirmLabel: decision === 'REJECTED' ? 'Ghi nhận từ chối' : 'Ghi nhận đồng ý', danger: decision === 'REJECTED' }) === null) return
+    const title = decision === 'APPROVED'
+      ? 'Đồng ý với tư cách bộ môn tham gia?'
+      : decision === 'REVISION_REQUIRED'
+        ? 'Yêu cầu chỉnh sửa với tư cách bộ môn tham gia?'
+        : 'Từ chối với tư cách bộ môn tham gia?'
+    const confirmLabel = decision === 'APPROVED'
+      ? 'Ghi nhận đồng ý'
+      : decision === 'REVISION_REQUIRED'
+        ? 'Ghi nhận yêu cầu chỉnh sửa'
+        : 'Ghi nhận từ chối'
+    if (await requestConfirmation({ title, description: 'Quyết định của bộ môn được ghi nhận cho phiên bản đăng ký hiện tại; Khoa chủ trì sẽ tổng hợp phản hồi (POL-02) hoặc quyết định cuối.', confirmLabel, danger: decision === 'REJECTED' }) === null) return
     const ok = await review.decideParticipatingDepartment(decision, reason.trim() || undefined)
     setMessage(ok ? 'Đã ghi nhận quyết định của bộ môn và cập nhật hồ sơ.' : 'Không thể ghi nhận thao tác. Vui lòng tải lại và thử lại.')
     if (ok) setReason('')
+  }
+
+  const submitLeadOverride = async () => {
+    const trimmed = overrideReason.trim()
+    if (trimmed.length < 20) {
+      setOverrideError('Lý do phê duyệt vượt quyền (Lead Override) phải có ít nhất 20 ký tự.')
+      return
+    }
+    setOverrideError(null)
+    const ok = await review.leadOverrideApprove(trimmed)
+    if (ok) {
+      setOverrideModalOpen(false)
+      setOverrideReason('')
+      setMessage('Đã thực hiện phê duyệt vượt quyền (Lead Override - POL-02) và thông báo cho các Khoa liên quan.')
+    } else {
+      setOverrideError(review.error?.message ?? 'Không thể phê duyệt vượt quyền lúc này.')
+    }
   }
 
   const decisions = review.detail?.latestSubmission?.decisions ?? []
@@ -385,6 +418,26 @@ export function ProjectReviewPage() {
         </div>
 
         <aside className="review-page__detail-rail">
+          {review.detail?.slaState && review.detail.slaState !== 'ON_TIME' && (
+            <div role="status" className={`rounded-xl border p-3.5 text-xs font-medium ${review.detail.slaState === 'ESCALATED_3WD' ? 'border-status-error-border bg-status-error-bg text-status-error-text' : 'border-status-warning-border bg-status-warning-bg text-status-warning-text'}`}>
+              <p className="font-bold">
+                {review.detail.slaState === 'ESCALATED_3WD'
+                  ? `Quá hạn SLA đồng duyệt (${review.detail.elapsedWorkingDays ?? 3} ngày làm việc)`
+                  : `Nhắc SLA thẩm định (${review.detail.elapsedWorkingDays ?? 2} ngày làm việc)`}
+              </p>
+              <p className="mt-1">
+                {review.detail.slaState === 'ESCALATED_3WD'
+                  ? 'Đơn vị phối hợp chưa phản hồi quá 3 ngày làm việc. Khoa chủ trì có thể phê duyệt vượt quyền (Lead Override) theo POL-02.'
+                  : 'Hồ sơ đã chờ phản hồi từ 2 ngày làm việc trở lên.'}
+              </p>
+            </div>
+          )}
+          {review.detail?.consolidatedRevisionNotes && (
+            <section className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-xs text-status-warning-text space-y-1">
+              <h3 className="font-bold uppercase tracking-wider">Tổng hợp góp ý chỉnh sửa (POL-02)</h3>
+              <p className="whitespace-pre-line">{review.detail.consolidatedRevisionNotes}</p>
+            </section>
+          )}
           <ParticipatingDepartmentPanel
             mode={scope?.projectMode ?? ''}
             snapshotId={review.detail?.latestSubmission?.id}
@@ -411,11 +464,49 @@ export function ProjectReviewPage() {
                 secondary={review.canReject ? { label: 'Từ chối đề cương', onClick: () => void submit('reject'), disabled: review.pending !== null } : undefined} />
             </ActionVerdict>}
             {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-ink-muted">Chỉ có thể phê duyệt cuối khi tất cả bộ môn tham gia đã đồng ý với phiên bản hiện tại.</p> : null}
+            {isInterdisciplinary && review.canApprove && review.detail?.canLeadOverride && (
+              <div className="mt-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 space-y-2">
+                <p className="text-xs font-semibold text-status-warning-text">Quyền xử lý ngoại lệ Khoa chủ trì (POL-02)</p>
+                <Button variant="secondary" disabled={review.pending !== null} onClick={() => { setOverrideError(null); setOverrideModalOpen(true) }}>
+                  Phê duyệt vượt quyền (Lead Override)
+                </Button>
+              </div>
+            )}
             {review.pending ? <p role="status" className="text-sm text-ink-muted">Đang xử lý {pendingActionLabel[review.pending] ?? displayLabel(review.pending)}…</p> : null}
             {message ? <p role="status" className="rounded-lg border border-hairline bg-canvas p-3 text-sm font-medium text-ink">{message}</p> : null}
           </section>
         </aside>
       </div>
+      {overrideModalOpen && (
+        <Modal
+          open
+          title="Phê duyệt vượt quyền (Lead Override — POL-02)"
+          description="Khoa chủ trì chịu trách nhiệm quyết định cuối sau khi quá 3 ngày làm việc hoặc khi có bất đồng ý kiến với Khoa phối hợp. Hành động này sẽ được ghi nhật ký kiểm toán và thông báo cho các bên."
+          busy={review.pending === 'lead-override'}
+          onClose={() => setOverrideModalOpen(false)}
+        >
+          <div className="space-y-3">
+            <label htmlFor="lead-override-reason" className="block text-xs font-semibold text-ink-soft">
+              Lý do phê duyệt vượt quyền (tối thiểu 20 ký tự) *
+            </label>
+            <textarea
+              id="lead-override-reason"
+              rows={4}
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder="Nêu rõ căn cứ chuyên môn và trách nhiệm điều phối của Khoa chủ trì..."
+              className="w-full rounded-lg border border-line-strong bg-card p-3 text-sm text-ink"
+            />
+            {overrideError && <p role="alert" className="text-xs font-medium text-status-error-text">{overrideError}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="secondary" disabled={review.pending === 'lead-override'} onClick={() => setOverrideModalOpen(false)}>Hủy</Button>
+              <Button type="button" disabled={review.pending === 'lead-override'} onClick={() => void submitLeadOverride()}>
+                {review.pending === 'lead-override' ? 'Đang xử lý…' : 'Xác nhận Lead Override'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {confirmationDialog}
     </div>
   )

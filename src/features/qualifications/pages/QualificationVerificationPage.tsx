@@ -12,6 +12,7 @@ import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useQualificationQueue } from '../hooks/useQualificationQueue'
 
 import { QualificationCertificateViewer } from '../components/QualificationCertificateViewer'
+import { QualificationImportDialog } from '../components/QualificationImportDialog'
 const statuses: Record<string, string> = { PENDING_VERIFICATION: 'Chờ xác minh', VERIFIED: 'Đã xác minh', REJECTED: 'Bị từ chối', EXPIRED: 'Đã hết hạn' }
 const statusBadgeTone: Record<string, BadgeTone> = {
   PENDING_VERIFICATION: 'warning',
@@ -32,6 +33,7 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
   const [trainingFilter, setTrainingFilter] = useState<'ALL' | 'COMPLETED' | 'PENDING'>('ALL')
   const [sortBy, setSortBy] = useState<'default' | 'name_asc' | 'code_asc' | 'expires_asc'>('default')
   const [pendingId, setPendingId] = useState<number | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [noticeState, setNoticeState] = useState<{ key: string; text: string } | null>(null)
   const notice = noticeState?.key === filterKey ? noticeState.text : null
   const setNotice = (text: string | null) => setNoticeState(text ? { key: filterKey, text } : null)
@@ -120,7 +122,14 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
           { value: 'expires_asc', label: 'Hết hạn sớm nhất' },
         ],
       }}
-      rightActions={embedded ? <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null} /> : undefined}
+      rightActions={
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" icon="upload_file" onClick={() => setImportOpen(true)} disabled={pendingId !== null}>
+            Nhập danh sách đủ điều kiện
+          </Button>
+          {embedded && <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null} />}
+        </div>
+      }
       activeChips={activeChips}
       onRemoveChip={chipId => { if (chipId === 'training') setTrainingFilter('ALL') }}
       onClearAll={() => { queue.setSearch(''); setTrainingFilter('ALL'); setSortBy('default') }}
@@ -191,6 +200,15 @@ export function QualificationVerificationPage({ embedded = false }: { embedded?:
       />
     ) : null)}
     {confirmationDialog}
+    {importOpen && (
+      <QualificationImportDialog
+        onClose={() => setImportOpen(false)}
+        onImported={() => {
+          setNotice('Đã nhập danh sách sinh viên đủ điều kiện tham gia đồ án.')
+          void queue.refresh()
+        }}
+      />
+    )}
   </>
   if (embedded) return <div className="space-y-4">{body}</div>
   return <WorkspacePage title="Xác minh điều kiện tham gia đồ án" eyebrow="Điều kiện tham gia" description="Kiểm tra hồ sơ đào tạo và thông tin chứng chỉ của sinh viên thuộc bộ môn trước khi đăng ký đồ án." action={<Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" onClick={() => void queue.refresh()} disabled={queue.loading || pendingId !== null} />}>

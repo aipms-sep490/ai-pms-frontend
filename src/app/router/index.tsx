@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RouteErrorBoundary, RouteFrame } from './RouteFrame'
 import { AppLayout } from '../layouts/AppLayout'
 import { HomeRedirect, RoleRoute } from '../../features/auth/components/RoleRoute'
@@ -12,7 +12,6 @@ import { AcademicWorkflowGate, StudentJourneyProvider } from '../context'
 import { env } from '../config/env'
 import { DepartmentProjectLayout } from '../../features/department/components/DepartmentProjectLayout'
 import { DepartmentAcademicScopeRoute } from '../../features/department/components/DepartmentAcademicScopeRoute'
-import { AdminEvaluationLayout } from '../../features/evaluations/AdminEvaluationLayout'
 import { ChatPage } from '../../features/chat/ChatPage'
 import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
 import {
@@ -30,7 +29,7 @@ import {
   FinalSubmissionViewerPage, StudentFinalSubmissionPage, RubricManagementPage, EvaluatorAssignmentManagementPage,
   EvaluationSchemeManagementPage, StudentProjectResultPage, ProjectContributionsPage, ProjectFilesPage,
   ProjectEvidenceLedgerPage, ProjectAiPage, ProjectGatesPage, ProjectWorkingAgreementPage, ProjectDefensePage, ProjectDefenseManagementPage, RoomPlannerPage, DefenseSessionChangePage,
-  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, DepartmentStudentsPage, DepartmentStudentDetailPage, PreSemesterSetupHubPage, ArchivedProjectsPage,
+  ProjectPeerEvaluationPage, ColdChecklistPage, DepartmentProjectRiskPage, DepartmentWorkspacePage, DepartmentStudentsPage, DepartmentStudentDetailPage, PreSemesterSetupHubPage, AcademicBlueprintManagementPage, ArchivedProjectsPage,
   ProjectArchiveViewPage, CalendarAttentionPage, ReviewGateGovernancePage,
   StudentReviewTimelinePage, AssignedGateReviewPage,
   AcademicKnowledgeManagementPage,
@@ -114,6 +113,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
         children: [
           { path: 'supervisor/workspace', element: <LecturerWorkspacePage /> },
           { path: 'supervisor/profile', element: <SupervisorProfilePage /> },
+          { path: 'lecturer/topics', element: <TopicManagementPage mode="lecturer" /> },
+          { path: 'lecturer/topics/:id', element: <TopicManagementPage mode="lecturer" /> },
           { path: 'supervisor/dashboard', element: <SupervisorDashboardPage /> },
           { path: 'mentor/workspace', element: <MentorWorkspacePage /> },
           ...(env.defenseScheduleEnabled ? [{ path: 'lecturer/defense-sessions/:sessionId', element: <DefenseSessionChangePage /> }] : []),
@@ -169,21 +170,22 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { element: <DepartmentAcademicScopeRoute />, children: [
             { path: 'department/workspace', element: <DepartmentWorkspacePage /> },
             { path: 'department/projects/progress-matrix', element: <ReviewGateGovernancePage /> },
+            { path: 'department/pre-semester-setup', element: <PreSemesterSetupHubPage /> },
+            { path: 'department/blueprints', element: <AcademicBlueprintManagementPage /> },
+            { path: 'academic/project-periods/:periodId/review-gates', element: <ReviewGateGovernancePage /> },
+            { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
+            { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
+            { path: 'academic/rubrics', element: <RubricManagementPage /> },
           ] },
         ],
       },
       {
         element: <RoleRoute allowed={['department', 'admin']} />,
         children: [
-          { path: 'department/pre-semester-setup', element: <PreSemesterSetupHubPage /> },
           { path: 'academic', element: <AcademicStructurePage /> },
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
-          { path: 'academic/project-periods/:periodId/review-gates', element: <ReviewGateGovernancePage /> },
           ...(env.defenseScheduleEnabled && env.roomPlannerEnabled ? [{ path: 'academic/project-periods/:periodId/room-planner', element: <RoomPlannerPage /> }] : []),
-          { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
-          { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
-          { path: 'academic/rubrics', element: <RubricManagementPage /> },
           ...(env.academicAiAssistantEnabled ? [{ path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> }] : []),
         ],
       },
@@ -229,13 +231,8 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
         element: <RoleRoute allowed={['admin']} />,
         children: [
           { path: 'admin/access', element: <AdminWorkspacePage /> },
-          { path: 'admin/portfolio', element: <PortfolioDashboardPage /> },
-          { path: 'admin/projects/:projectId', element: <AdminEvaluationLayout />, children: [
-            { path: 'evaluation-schemes', element: <EvaluationSchemeManagementPage /> },
-            { path: 'evaluators', element: <EvaluatorAssignmentManagementPage /> },
-            { path: 'final-submission', element: <FinalSubmissionViewerPage backTo="/admin/portfolio" backLabel="Danh mục đồ án" /> },
-            { path: 'result', element: <ResultPublicationPage /> },
-          ] },
+          { path: 'admin/portfolio', element: <Navigate to="/admin/access" replace /> },
+          { path: 'admin/projects/*', element: <Navigate to="/admin/access" replace /> },
           { path: 'admin/access/rbac', element: <AdminRbacPage /> },
           { path: 'admin/access/users/:userId', element: <AdminUserDetailPage /> },
         ],

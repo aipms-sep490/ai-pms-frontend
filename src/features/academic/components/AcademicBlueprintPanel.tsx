@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as api from '../api/academic-blueprints-api'
 import { HttpError } from '../../../services/http/http-client'
+import { BlueprintDraftModal } from './BlueprintDraftModal'
 
 interface AcademicBlueprintPanelProps {
   semesterId: number
   projectId?: number
   actorDepartmentId?: number
+  departments?: Array<{ id: number; code: string; name: string }>
 }
 
 const TRACK_LABELS: Record<api.AcademicTrackCode, string> = {
@@ -14,13 +16,15 @@ const TRACK_LABELS: Record<api.AcademicTrackCode, string> = {
   IT_MKT: 'Liên ngành IT × MKT',
 }
 
-export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentId }: AcademicBlueprintPanelProps) {
+export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentId, departments = [] }: AcademicBlueprintPanelProps) {
   const [blueprints, setBlueprints] = useState<api.AcademicBlueprintDto[]>([])
   const [readiness, setReadiness] = useState<api.SemesterReadinessDto | null>(null)
   const [dryRun, setDryRun] = useState<api.BlueprintDryRunDiffDto | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingBlueprint, setEditingBlueprint] = useState<api.AcademicBlueprintDto | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -77,20 +81,36 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
     <section className="rounded-xl border border-slate-200 bg-white p-5 space-y-4" aria-label="Academic Blueprint & Readiness">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">AcademicBlueprint &amp; Sẵn sàng Mở đợt Học kỳ</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-slate-900">AcademicBlueprint &amp; Sẵn sàng Mở đợt Học kỳ</h2>
+            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+              Nguồn chuẩn (QD-01)
+            </span>
+          </div>
           <p className="text-xs text-slate-600">Đồng duyệt 2 Khoa (Lead + Participating) và mô phỏng Dry-Run Diff lộ trình 4 tháng.</p>
         </div>
-        {readiness && (
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              readiness.isReadyForRegistration
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-amber-50 text-amber-800 border border-amber-200'
-            }`}
-          >
-            {readiness.isReadyForRegistration ? 'Sẵn sàng mở Đăng ký' : 'Chưa đủ Blueprint PUBLISHED'}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {actorDepartmentId && semesterId > 0 && (
+            <button
+              type="button"
+              onClick={() => { setEditingBlueprint(null); setModalOpen(true) }}
+              className="rounded-md bg-blue-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800"
+            >
+              Tạo Blueprint
+            </button>
+          )}
+          {readiness && (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                readiness.isReadyForRegistration
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+              }`}
+            >
+              {readiness.isReadyForRegistration ? 'Sẵn sàng mở Đăng ký' : 'Chưa đủ Blueprint PUBLISHED'}
+            </span>
+          )}
+        </div>
       </div>
 
       {readiness && readiness.blockingIssues.length > 0 && (
@@ -125,11 +145,34 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
                     {a.scopeRole}: <strong>{a.decision}</strong>
                   </span>
                 ))}
+                {bp.status === 'PUBLISHED' && (
+                  <span className="text-amber-700 font-medium">· Bản đã công bố bất biến</span>
+                )}
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {bp.status !== 'PUBLISHED' && actorDepartmentId && (
+              {(bp.status === 'DRAFT' || bp.status === 'IN_REVIEW') && actorDepartmentId && (
+                <button
+                  type="button"
+                  disabled={busyId === bp.id}
+                  onClick={() => { setEditingBlueprint(bp); setModalOpen(true) }}
+                  className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Chỉnh sửa
+                </button>
+              )}
+              {bp.status === 'DRAFT' && (
+                <button
+                  type="button"
+                  disabled={busyId === bp.id}
+                  onClick={() => void handleAction(bp.id, () => api.submitAcademicBlueprintForReview(bp.id), 'Đã trình duyệt AcademicBlueprint.')}
+                  className="rounded-md border border-indigo-300 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                >
+                  Trình duyệt
+                </button>
+              )}
+              {bp.status !== 'PUBLISHED' && bp.status !== 'RETIRED' && actorDepartmentId && (
                 <button
                   type="button"
                   disabled={busyId === bp.id}
@@ -139,7 +182,7 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
                   Duyệt Khoa
                 </button>
               )}
-              {bp.status !== 'PUBLISHED' && (
+              {bp.status !== 'PUBLISHED' && bp.status !== 'RETIRED' && (
                 <button
                   type="button"
                   disabled={busyId === bp.id}
@@ -193,6 +236,21 @@ export function AcademicBlueprintPanel({ semesterId, projectId, actorDepartmentI
             ))}
           </div>
         </div>
+      )}
+      {modalOpen && actorDepartmentId && (
+        <BlueprintDraftModal
+          semesterId={semesterId}
+          leadDepartmentId={actorDepartmentId}
+          departments={departments}
+          editing={editingBlueprint}
+          onClose={() => { setModalOpen(false); setEditingBlueprint(null) }}
+          onSaved={() => {
+            setModalOpen(false)
+            setEditingBlueprint(null)
+            setNotice(editingBlueprint ? 'Đã cập nhật bản nháp AcademicBlueprint.' : 'Đã tạo bản nháp AcademicBlueprint mới.')
+            void load()
+          }}
+        />
       )}
     </section>
   )

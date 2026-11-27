@@ -51,6 +51,7 @@ export function useAcademicGovernance(filters: GovernanceFilters = initial) {
     try { await operation(); retry() } finally { setSubmitting(false) }
   }, [retry])
   const canManage = useMemo(() => !!session?.user?.roles.includes('ADMIN') && canPerformBackendAction(context?.actions ?? [], 'manage_academic_structure'), [context, session])
+  const canUpdatePeriodDates = useMemo(() => canManage || !!session?.user?.roles.includes('DEPARTMENT_STAFF'), [canManage, session])
 
   return {
     semesters,
@@ -62,6 +63,7 @@ export function useAcademicGovernance(filters: GovernanceFilters = initial) {
     isForbidden: error instanceof HttpError && error.status === 403,
     isUnauthorized: !session || (error instanceof HttpError && error.status === 401),
     canManage,
+    canUpdatePeriodDates,
     retry,
     saveSemester: (d: SemesterDraft) => mutate(() => saveSemester(d, session!.accessToken)),
     saveProjectPeriod: (d: ProjectPeriodDraft) => mutate(() => saveProjectPeriod(d, session!.accessToken)),

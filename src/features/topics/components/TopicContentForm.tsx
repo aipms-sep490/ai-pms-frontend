@@ -4,7 +4,7 @@ import { topicErrorMessage } from '../api/topic-api'
 import type { CreateTopic, TopicContent } from '../api/topic-api'
 import type { useTopicCatalog } from '../hooks/useTopicCatalog'
 
-const emptyTopicContent: TopicContent = { title: '', description: null, problemStatement: null, objectives: null, expectedOutput: null, domain: null, technologies: [], keywords: [], projectMode: 'SINGLE_MAJOR', primaryMajorId: null, requirements: [] }
+const emptyTopicContent: TopicContent = { title: '', description: null, problemStatement: null, objectives: null, expectedOutput: null, domain: null, technologies: [], keywords: [], projectMode: 'SINGLE_MAJOR', primaryMajorId: null, requirements: [], maxTeams: 1 }
 type Catalog = ReturnType<typeof useTopicCatalog>
 type Props = { initial?: TopicContent; catalog: Catalog; busy: boolean; onSave: (content: TopicContent) => Promise<unknown>; onDirtyChange?: (dirty: boolean) => void; create?: { onCreate: (input: CreateTopic) => Promise<unknown> } }
 
@@ -43,9 +43,11 @@ export function TopicContentForm({ initial = emptyTopicContent, catalog, busy, o
       if (!Number.isInteger(item.maxMembers) || item.maxMembers < item.minMembers) errors[`max-${index}`] = 'Số tối đa phải là số nguyên, không nhỏ hơn tối thiểu.'
       if (!item.responsibility.trim()) errors[`responsibility-${index}`] = 'Nhập trách nhiệm của ngành.'
     })
+    const maxTeamsVal = content.maxTeams ?? 1
+    if (!Number.isInteger(maxTeamsVal) || maxTeamsVal < 1) errors.maxTeams = 'Số nhóm tối đa phải là số nguyên từ 1.'
     if (Object.keys(errors).length) { setFieldErrors(errors); requestAnimationFrame(() => summary.current?.focus()); return }
     lock.current = true
-    const value = { ...content, title: content.title.trim(), technologies: content.technologies.map(item => item.trim()).filter(Boolean), keywords: content.keywords.map(item => item.trim()).filter(Boolean), requirements: content.requirements.map(item => ({ majorId: item.majorId, minMembers: item.minMembers, maxMembers: item.maxMembers, responsibility: item.responsibility.trim() })) }
+    const value = { ...content, maxTeams: maxTeamsVal, title: content.title.trim(), technologies: content.technologies.map(item => item.trim()).filter(Boolean), keywords: content.keywords.map(item => item.trim()).filter(Boolean), requirements: content.requirements.map(item => ({ majorId: item.majorId, minMembers: item.minMembers, maxMembers: item.maxMembers, responsibility: item.responsibility.trim() })) }
     try {
       if (create) {
         if (!catalog.department || !periodId || !code.trim()) { setMessage('Chọn kỳ đăng ký và nhập mã đề tài trong scope bộ môn đã xác minh.'); return }
@@ -155,6 +157,11 @@ export function TopicContentForm({ initial = emptyTopicContent, catalog, busy, o
               <option value="SINGLE_MAJOR">Một ngành</option>
               <option value="INTERDISCIPLINARY">Liên ngành</option>
             </select>
+          </label>
+          <label>
+            Số nhóm tối đa được chọn
+            <input aria-label="Số nhóm tối đa được chọn" {...attributes('maxTeams')} type="number" min={1} max={20} step={1} value={content.maxTeams ?? 1} onChange={event => patch('maxTeams', Math.max(1, Number(event.target.value) || 1))} />
+            {inlineError('maxTeams')}
           </label>
           {content.projectMode === 'SINGLE_MAJOR' && (
             <label>

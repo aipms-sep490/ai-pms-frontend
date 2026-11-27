@@ -6,7 +6,7 @@ import {
   deletePermission, deleteRole, getAudit, getPermissionMatrix, getPermissions, getRoles, getUsers,
   importUsers, removeRole, replacePermissions, unblockUser, updatePermission, updateRole,
   type AdminListQuery, type AuditListQuery, type Page, type Permission, type PermissionMatrix,
-  type Role, type SecurityCatalogDraft, type UserAccount, type UserDraft,
+  type Role, type SecurityCatalogDraft, type UserAccount, type UserDraft, type UserStatusActionPayload,
 } from '../api/admin-api'
 
 type LoadState = 'loading' | 'ready' | 'error'
@@ -45,8 +45,8 @@ export function useAdminWorkspace(filters: AdminListQuery = {}, auditFilters: Au
     users, rbac, audit, refresh, isUnauthorized: !session,
     createUser: (draft: UserDraft) => mutate(() => createUser(draft, token())),
     importUsers: (accounts: UserDraft[]) => mutate(() => importUsers(accounts, token())),
-    activate: (id: number) => mutate(() => activateUser(id, token())), deactivate: (id: number) => mutate(() => deactivateUser(id, token())),
-    block: (id: number) => mutate(() => blockUser(id, token())), unblock: (id: number) => mutate(() => unblockUser(id, token())),
+    activate: (id: number) => mutate(() => activateUser(id, token())), deactivate: (id: number, body?: UserStatusActionPayload) => mutate(() => deactivateUser(id, token(), body)),
+    block: (id: number, body?: UserStatusActionPayload) => mutate(() => blockUser(id, token(), body)), unblock: (id: number) => mutate(() => unblockUser(id, token())),
     assignRole: (id: number, role: number) => mutate(() => assignRole(id, role, token())), removeRole: (id: number, role: number) => mutate(() => removeRole(id, role, token())),
     replacePermissions: (id: number, permissionIds: number[]) => mutate(() => replacePermissions(id, permissionIds, token())),
     createRole: (draft: SecurityCatalogDraft) => mutate(() => createRole(draft, token())), updateRole: (id: number, draft: SecurityCatalogDraft) => mutate(() => updateRole(id, draft, token())), deleteRole: (id: number) => mutate(() => deleteRole(id, token())),

@@ -23,15 +23,38 @@ export function TeamManagementPage() {
   const navigate = useNavigate()
   const management = useTeamManagement()
   const {
-    team, profile, semester, period, workflowContext, isLoading: contextLoading,
-    currentUserId, rosterLocked, permissions, sentInvitations, sentInvitationError, receivedInvitations,
+    team, project, profile, semester, period, workflowContext, isLoading: contextLoading,
+    currentUserId, isLeader: hookIsLeader, rosterLocked, permissions, sentInvitations, sentInvitationError, receivedInvitations,
     candidates, leaderChangeRequests, requiresMentorApproval, activeMentor,
     candidateSearch, candidateError, isRefreshing, isLoadingCandidates,
     setCandidateSearch, setCandidatePage, retryCandidates, isMutationPending, error, retry,
     createTeam, updateTeam, inviteMember, cancelInvitation, acceptInvitation, rejectInvitation,
-    removeMember, transferLeader, leaveTeam,
+    removeMember, transferLeader, leaveTeam, disbandTeam, cancelLeaderChange,
     refreshEligibility,
   } = management
+  const isLeader = Boolean(hookIsLeader ?? team?.members.some(m => m.userId === currentUserId && m.isLeader))
+  const hasNonRejectedProject = Boolean(project && project.status !== 'REJECTED')
+  const canDisbandTeam = Boolean(
+    team
+    && isLeader
+    && team.members.length === 1
+    && !rosterLocked
+    && !hasNonRejectedProject
+    && team.status !== 'DISBANDED',
+  )
+  const canTransferLeader = Boolean(
+    team
+    && isLeader
+    && team.members.length > 1
+    && team.status !== 'DISBANDED'
+    && project?.status !== 'COMPLETED'
+    && project?.status !== 'ARCHIVED',
+  )
+  const isN1ClosedReadOnly = Boolean(
+    team
+    && team.status === 'FORMING'
+    && team.eligibility.reasons.includes('REGISTRATION_WINDOW_UNAVAILABLE'),
+  )
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const organizationId = workflowContext?.academic.organization?.id ?? team?.members.find(member => member.organizationId)?.organizationId
   const [majorNames, setMajorNames] = useState<Record<number, string>>({})
@@ -49,6 +72,7 @@ export function TeamManagementPage() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
+  const [isDisbandConfirmOpen, setIsDisbandConfirmOpen] = useState(false)
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type })
@@ -132,6 +156,27 @@ export function TeamManagementPage() {
     }
   }
 
+  const handleDisbandTeam = async () => {
+    if (!disbandTeam) return
+    try {
+      await disbandTeam()
+      setIsDisbandConfirmOpen(false)
+      showToast('Đã giải tán nhóm thành công.')
+    } catch (err) {
+      showToast(humanizeHttpError(err, 'Giải tán nhóm thất bại.'), 'error')
+    }
+  }
+
+  const handleCancelLeaderChange = async (requestId: number) => {
+    if (!cancelLeaderChange) return
+    try {
+      await cancelLeaderChange(requestId)
+      showToast('Đã hủy yêu cầu đổi Trưởng nhóm.')
+    } catch (err) {
+      showToast(humanizeHttpError(err, 'Không thể hủy yêu cầu đổi Trưởng nhóm.'), 'error')
+    }
+  }
+
   if (contextLoading) {
     return <PageLoading />
   }
@@ -162,6 +207,16 @@ export function TeamManagementPage() {
           {team && permissions.canEditTeam && (
             <button type="button" onClick={() => setIsUpdateModalOpen(true)} className="inline-flex min-h-11 items-center rounded-lg border border-hairline bg-card px-3.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:bg-primary-subtle hover:text-primary">
               Chỉnh sửa nhóm
+            </button>
+          )}
+          {team && canDisbandTeam && (
+            <button
+              type="button"
+              onClick={() => setIsDisbandConfirmOpen(true)}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-status-error-border bg-card px-3.5 py-2 text-xs font-semibold text-status-error-text transition-colors hover:bg-status-error-bg"
+            >
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">delete_forever</span>
+              Giải tán nhóm
             </button>
           )}
           {team && permissions.canLeave && (
@@ -274,6 +329,11 @@ export function TeamManagementPage() {
                 <p className="mt-1 max-w-3xl text-xs text-ink-muted">{team.description}</p>
               )}
               {rosterLocked && <p className="mt-1 text-xs text-ink-muted">Danh sách thành viên đã được chốt theo hồ sơ đồ án.</p>}
+              {isN1ClosedReadOnly && (
+                <p role="status" className="mt-1 text-xs font-medium text-status-warning-text">
+                  Hết hạn đăng ký (N1) — Nhóm đang ở chế độ chỉ đọc; liên hệ Khoa nếu cần hỗ trợ ngoại lệ.
+                </p>
+              )}
             </div>
 
             {!rosterLocked && team.eligibility.canRegister && permissions.canCreateProjectDraft && (
@@ -298,12 +358,25 @@ export function TeamManagementPage() {
               </div>
               {leaderChangeRequests.filter((request) => request.status === 'PENDING').map((request) => {
                 const target = team.members.find((member) => member.userId === request.newLeaderUserId)
+                const approverLabel = request.mentorName ? `GVHD: ${request.mentorName}` : 'Khoa chủ trì'
                 return (
-                  <p key={request.id} className="mt-2">
-                    {target?.fullName ?? 'Thành viên được đề cử'}
-                    {' · Mentor: ' + request.mentorName}
-                    {' · gửi lúc ' + new Date(request.requestedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
+                  <div key={request.id} className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <p>
+                      {target?.fullName ?? 'Thành viên được đề cử'}
+                      {' · ' + approverLabel}
+                      {' · gửi lúc ' + new Date(request.requestedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                    {isLeader && (
+                      <button
+                        type="button"
+                        disabled={isMutationPending('cancel-leader-change', request.id)}
+                        onClick={() => void handleCancelLeaderChange(request.id)}
+                        className="rounded-md border border-current px-2.5 py-1 text-xs font-semibold hover:bg-white/40 disabled:opacity-50"
+                      >
+                        Hủy yêu cầu
+                      </button>
+                    )}
+                  </div>
                 )
               })}
             </section>
@@ -367,6 +440,8 @@ export function TeamManagementPage() {
                 majorNames={majorNames}
                 isLeader={permissions.canManageRoster}
                 rosterLocked={rosterLocked}
+                canTransferLeader={canTransferLeader}
+                requiresLeaderApproval={Boolean(requiresMentorApproval)}
                 onRemoveMember={handleRemoveMember}
                 onOpenTransferLeader={() => setIsTransferModalOpen(true)}
               />
@@ -421,7 +496,7 @@ export function TeamManagementPage() {
                 fallbackOrganizationId={team.members.find((member) => member.userId === currentUserId)?.organizationId}
                 fallbackMajorId={profile?.majorId}
               />}
-              <EligibilityHistoryPanel teamId={team.id} canCheck={permissions.canRefreshEligibility} canLock={!rosterLocked && team.status === 'ELIGIBLE' && team.members.some(member => member.isLeader && member.userId === currentUserId)} onChanged={() => { retry() }} />
+              <EligibilityHistoryPanel teamId={team.id} canCheck={permissions.canRefreshEligibility} onChanged={() => { retry() }} />
             </div>
           )}
 
@@ -434,7 +509,9 @@ export function TeamManagementPage() {
       {/* Modals */}
       <CreateTeamModal
         isOpen={isCreateModalOpen}
+        semesterId={semester?.id}
         semesterName={semester?.name ?? 'Học kỳ hiện tại'}
+        maxTeamSize={period?.maxTeamSize}
         majors={academicMajors}
         defaultMajorId={profile?.majorId}
         onClose={() => setIsCreateModalOpen(false)}
@@ -461,6 +538,36 @@ export function TeamManagementPage() {
           onClose={() => setIsTransferModalOpen(false)}
           onSubmit={handleTransferLeader}
         />
+      )}
+
+      {/* Disband Team Confirmation Dialog */}
+      {isDisbandConfirmOpen && (
+        <Modal
+          open
+          title="Giải tán nhóm đồ án?"
+          description={`Nhóm ${team?.name ?? ''} chỉ còn 1 thành viên. Sau khi giải tán, toàn bộ lời mời đang chờ sẽ tự hủy và bạn có thể tạo nhóm mới hoặc gia nhập nhóm khác trong kỳ đăng ký (N1).`}
+          busy={isMutationPending('disband', team?.id)}
+          onClose={() => setIsDisbandConfirmOpen(false)}
+        >
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsDisbandConfirmOpen(false)}
+              disabled={isMutationPending('disband', team?.id)}
+              className="app-modal__button"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDisbandTeam()}
+              disabled={isMutationPending('disband', team?.id)}
+              className="app-modal__button app-modal__button--danger"
+            >
+              {isMutationPending('disband', team?.id) ? 'Đang xử lý...' : 'Xác nhận giải tán nhóm'}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Leave Team Confirmation Dialog */}
