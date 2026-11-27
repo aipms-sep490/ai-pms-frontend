@@ -24,9 +24,25 @@ export function CreateTeamModal({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [projectMode, setProjectMode] = useState<'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('SINGLE_MAJOR')
-  const [selectedMajorIds, setSelectedMajorIds] = useState<number[]>(defaultMajorId ? [defaultMajorId] : [])
+  const [selectedMajorIds, setSelectedMajorIds] = useState<number[] | null>(null)
 
   if (!isOpen) return null
+
+  const effectiveSelectedMajorIds = selectedMajorIds ?? (defaultMajorId ? [defaultMajorId] : [])
+  const ownMajor = defaultMajorId ? majors.find((major) => major.id === defaultMajorId) : undefined
+  const ownMajorName = ownMajor?.name
+
+  const handleModeChange = (next: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY') => {
+    setProjectMode(next)
+    setError(null)
+    if (next === 'SINGLE_MAJOR') {
+      setSelectedMajorIds(defaultMajorId ? [defaultMajorId] : effectiveSelectedMajorIds.slice(0, 1))
+    } else if (defaultMajorId && !effectiveSelectedMajorIds.includes(defaultMajorId)) {
+      setSelectedMajorIds([defaultMajorId, ...effectiveSelectedMajorIds])
+    } else {
+      setSelectedMajorIds(effectiveSelectedMajorIds)
+    }
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -35,25 +51,77 @@ export function CreateTeamModal({
       return
     }
 
+    const selected = effectiveSelectedMajorIds.length ? effectiveSelectedMajorIds : (defaultMajorId ? [defaultMajorId] : [])
+    if (majors.length > 0) {
+      if (projectMode === 'SINGLE_MAJOR') {
+        if (selected.length !== 1) {
+          setError(ownMajorName
+            ? `Nhóm Đơn ngành cần chọn đúng chuyên ngành của bạn (${ownMajorName}).`
+            : 'Vui lòng chọn đúng 1 chuyên ngành trước khi tạo nhóm.')
+          return
+        }
+        if (defaultMajorId && selected[0] !== defaultMajorId) {
+          setError(ownMajorName
+            ? `Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn (${ownMajorName}). Nếu muốn ghép cùng ngành khác, hãy chuyển Phạm vi đồ án sang "Liên ngành".`
+            : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn. Nếu muốn làm cùng ngành khác, hãy chuyển Phạm vi đồ án sang "Liên ngành".')
+          return
+        }
+      } else {
+        if (defaultMajorId && !selected.includes(defaultMajorId)) {
+          setError(ownMajorName
+            ? `Nhóm Liên ngành bắt buộc phải bao gồm chuyên ngành của bạn (${ownMajorName}). Hãy tích chọn thêm "${ownMajorName}".`
+            : 'Nhóm Liên ngành bắt buộc phải bao gồm chuyên ngành của bạn.')
+          return
+        }
+        if (selected.length < 2) {
+          setError(ownMajorName
+            ? `Nhóm Liên ngành cần chọn tối thiểu 2 chuyên ngành (bao gồm ngành của bạn: ${ownMajorName}).`
+            : 'Nhóm Liên ngành cần chọn tối thiểu 2 chuyên ngành khác nhau.')
+          return
+        }
+      }
+
+      const leadDepartmentId = (defaultMajorId && selected.includes(defaultMajorId) ? ownMajor?.departmentId : null)
+        ?? majors.find((major) => selected.includes(major.id))?.departmentId
+      if (!leadDepartmentId) {
+        setError('Chuyên ngành đã chọn chưa gắn bộ môn chủ trì hợp lệ. Vui lòng chọn lại hoặc liên hệ bộ môn.')
+        return
+      }
+
+      const orderedMajors = defaultMajorId && selected.includes(defaultMajorId)
+        ? [defaultMajorId, ...selected.filter((id) => id !== defaultMajorId)]
+        : selected
+
+      setError(null)
+      setIsLoading(true)
+      try {
+        await onSubmit({
+          code: code.trim().toUpperCase(),
+          name: name.trim(),
+          description: description.trim() || undefined,
+          academicScope: {
+            projectMode,
+            primaryMajorId: projectMode === 'SINGLE_MAJOR' ? orderedMajors[0] : null,
+            leadDepartmentId,
+            requirements: orderedMajors.map((majorId, index) => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: index === 0 ? 'Chủ trì' : 'Phối hợp' })),
+          },
+        })
+        onClose()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Tạo nhóm thất bại.')
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
     setError(null)
     setIsLoading(true)
     try {
-      const selected = selectedMajorIds.length ? selectedMajorIds : (defaultMajorId ? [defaultMajorId] : [])
-      const leadDepartmentId = majors.find((major) => selected.includes(major.id))?.departmentId
-      if (majors.length > 0 && (!leadDepartmentId || selected.length < (projectMode === 'INTERDISCIPLINARY' ? 2 : 1))) {
-        setError('Vui lòng chọn ngành hợp lệ trước khi tạo nhóm.')
-        return
-      }
       await onSubmit({
         code: code.trim().toUpperCase(),
         name: name.trim(),
         description: description.trim() || undefined,
-        ...(majors.length > 0 ? { academicScope: {
-          projectMode,
-          primaryMajorId: projectMode === 'SINGLE_MAJOR' ? selected[0] : null,
-          leadDepartmentId: leadDepartmentId ?? 0,
-          requirements: selected.map((majorId, index) => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: index === 0 ? 'Chủ trì' : 'Phối hợp' })),
-        } } : {}),
       })
       onClose()
     } catch (err) {
@@ -89,12 +157,45 @@ export function CreateTeamModal({
 
           {majors.length > 0 && <div>
             <label className="block text-xs font-medium text-ink-soft mb-1.5">Phạm vi đồ án *</label>
-            <select value={projectMode} onChange={(event) => { const next = event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; setProjectMode(next); if (next === 'SINGLE_MAJOR' && selectedMajorIds.length > 1) setSelectedMajorIds(selectedMajorIds.slice(0, 1)) }} className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" disabled={isLoading}>
+            <select value={projectMode} onChange={(event) => handleModeChange(event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY')} className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" disabled={isLoading}>
               <option value="SINGLE_MAJOR">Đơn ngành</option>
               <option value="INTERDISCIPLINARY">Liên ngành</option>
             </select>
+            <p className="mt-1.5 text-xs text-ink-muted">
+              {projectMode === 'SINGLE_MAJOR'
+                ? (ownMajorName ? `Nhóm Đơn ngành phải thuộc chuyên ngành của bạn (${ownMajorName}).` : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn.')
+                : (ownMajorName ? `Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn (${ownMajorName}).` : 'Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn.')}
+            </p>
             <div className="mt-2 grid gap-1 text-sm">
-              {majors.map((major) => <label key={major.id} className="flex min-h-9 items-center gap-2"><input type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="create-team-major" checked={selectedMajorIds.includes(major.id)} onChange={() => setSelectedMajorIds((current) => projectMode === 'SINGLE_MAJOR' ? [major.id] : current.includes(major.id) ? current.filter((id) => id !== major.id) : [...current, major.id])} disabled={isLoading} className="accent-primary" />{major.name}</label>)}
+              {majors.map((major) => {
+                const isOwn = defaultMajorId != null && major.id === defaultMajorId
+                return (
+                  <label key={major.id} className="flex min-h-9 items-center gap-2">
+                    <input
+                      type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'}
+                      name="create-team-major"
+                      checked={effectiveSelectedMajorIds.includes(major.id)}
+                      onChange={() => {
+                        setError(null)
+                        setSelectedMajorIds((current) => {
+                          const base = current ?? effectiveSelectedMajorIds
+                          return projectMode === 'SINGLE_MAJOR'
+                            ? [major.id]
+                            : base.includes(major.id) ? base.filter((id) => id !== major.id) : [...base, major.id]
+                        })
+                      }}
+                      disabled={isLoading}
+                      className="accent-primary"
+                    />
+                    <span>{major.name}</span>
+                    {isOwn && (
+                      <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">
+                        Ngành của bạn
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
             </div>
           </div>}
 

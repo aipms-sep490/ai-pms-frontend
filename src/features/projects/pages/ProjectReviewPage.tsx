@@ -282,7 +282,13 @@ export function ProjectReviewPage() {
     }
     if ((kind === 'approve' || kind === 'reject') && await requestConfirmation({ title: kind === 'approve' ? 'Phê duyệt đề cương?' : 'Từ chối đề cương?', description: review.project?.title ?? 'Xác nhận quyết định thẩm định đề cương này.', confirmLabel: kind === 'approve' ? 'Phê duyệt đề cương' : 'Từ chối đề cương', danger: kind === 'reject' }) === null) return
     const ok = await review.decide(kind, reason.trim() || undefined)
-    setMessage(ok ? 'Đã ghi nhận quyết định và cập nhật hồ sơ thẩm định.' : 'Không thể ghi nhận thao tác. Vui lòng tải lại và thử lại.')
+    setMessage(ok
+      ? (kind === 'approve'
+        ? 'Đề cương đã được phê duyệt và cập nhật trạng thái đồ án thành công.'
+        : kind === 'reject'
+          ? 'Đã ghi nhận quyết định từ chối đề cương.'
+          : 'Đã gửi yêu cầu chỉnh sửa đề cương cho nhóm.')
+      : 'Không thể ghi nhận thao tác. Vui lòng tải lại và thử lại.')
     if (ok) setReason('')
   }
 
@@ -305,7 +311,11 @@ export function ProjectReviewPage() {
   const mayPresentFinalApproval = review.canApprove && (!isInterdisciplinary || participatingSummary === 'ALL_APPROVED')
   const snapshots = [...(review.reviewSnapshots?.items ?? [])].sort((a, b) => b.submissionNumber - a.submissionNumber)
   const [currentSnapshot, previousSnapshot] = snapshots
-  const hasBackendApproval = review.workflow?.actions?.some(action => action.code === 'approve_project') ?? false
+  const normalizedCurrentStatus = (review.workflow?.status ?? review.project?.status ?? '').replaceAll('_', '').toUpperCase()
+  const isPostReviewApproved = ['APPROVED', 'SUPERVISORPENDING', 'ACTIVE', 'FINALSUBMISSION', 'COMPLETED', 'ARCHIVED'].includes(normalizedCurrentStatus)
+  const isPostReviewRejected = ['REJECTED', 'CANCELLED'].includes(normalizedCurrentStatus)
+  const isPostReviewFinalized = isPostReviewApproved || isPostReviewRejected
+  const hasBackendApproval = !isPostReviewFinalized && (review.workflow?.actions?.some(action => action.code === 'approve_project') ?? false)
 
   return (
     <div className="workspace-page workspace-page--wide review-page mk-page-enter">
@@ -398,19 +408,65 @@ export function ProjectReviewPage() {
           />
           <section className="space-y-4">
             <h2>Phản hồi thẩm định</h2>
-            <label className="sr-only" htmlFor="review-reason">Lý do thẩm định</label>
-            {(review.canStart || review.canRequestRevision || review.canApprove || review.canReject || review.canApproveDepartment || review.canRejectDepartment) ? <textarea id="review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" /> : <p className="text-sm text-ink-muted">Hồ sơ hiện không có bước thẩm định cần xử lý.</p>}
-            <div className="review-page__actions">
-              {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Bắt đầu thẩm định</Button> : null}
-              {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Yêu cầu chỉnh sửa</Button> : null}
-              {!hasBackendApproval && mayPresentFinalApproval ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Phê duyệt đề cương</Button> : null}
-              {!hasBackendApproval && review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Từ chối đề cương</Button> : null}
-            </div>
-            {hasBackendApproval && <ActionVerdict actions={review.workflow!.actions} actionCode="approve_project" status="ready" okLabel="Điều kiện phê duyệt hợp lệ" blockedLabel="Chưa thể phê duyệt đề cương">
-              <ActionVerdict.Decision primary={{ label: 'Phê duyệt đề cương', onClick: () => void submit('approve'), disabled: review.pending !== null || !mayPresentFinalApproval }}
-                secondary={review.canReject ? { label: 'Từ chối đề cương', onClick: () => void submit('reject'), disabled: review.pending !== null } : undefined} />
-            </ActionVerdict>}
-            {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-ink-muted">Chỉ có thể phê duyệt cuối khi tất cả bộ môn tham gia đã đồng ý với phiên bản hiện tại.</p> : null}
+            {isPostReviewFinalized ? (
+              <div
+                role="status"
+                className={`rounded-xl border p-4 text-sm ${
+                  isPostReviewApproved
+                    ? 'border-status-success-border bg-status-success-bg text-status-success-text'
+                    : 'border-status-error-border bg-status-error-bg text-status-error-text'
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined mt-0.5 text-[20px]" aria-hidden="true">
+                    {isPostReviewApproved ? 'verified' : 'cancel'}
+                  </span>
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      {isPostReviewApproved ? 'Đề cương đã hoàn tất thẩm định' : 'Đề cương đã bị từ chối'}
+                    </p>
+                    <p className="text-xs leading-relaxed opacity-90">
+                      {isPostReviewApproved
+                        ? `Đề cương đã được phê duyệt và đồ án hiện đang ở trạng thái "${projectStatusLabel(review.workflow?.status ?? review.project?.status ?? '')}". Không cần thao tác thẩm định thêm.`
+                        : 'Đề cương đã kết thúc quy trình thẩm định với kết quả từ chối.'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    to="/department/projects/review"
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline bg-card px-3 py-1.5 text-xs font-semibold text-ink hover:border-primary hover:text-primary"
+                  >
+                    <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
+                    Về danh sách chờ duyệt
+                  </Link>
+                  {isPostReviewApproved && (
+                    <Link
+                      to={`/department/projects/${id}/result`}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover"
+                    >
+                      Theo dõi đánh giá →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className="sr-only" htmlFor="review-reason">Lý do thẩm định</label>
+                {(review.canStart || review.canRequestRevision || review.canApprove || review.canReject || review.canApproveDepartment || review.canRejectDepartment) ? <textarea id="review-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nhập lý do khi yêu cầu chỉnh sửa hoặc từ chối" /> : <p className="text-sm text-ink-muted">Hồ sơ hiện không có bước thẩm định cần xử lý.</p>}
+                <div className="review-page__actions">
+                  {review.canStart ? <Button disabled={review.pending !== null} onClick={() => void review.beginReview()}>Bắt đầu thẩm định</Button> : null}
+                  {review.canRequestRevision ? <Button className="btn-revision" variant="secondary" disabled={review.pending !== null} onClick={() => void submit('revision')}>Yêu cầu chỉnh sửa</Button> : null}
+                  {!hasBackendApproval && mayPresentFinalApproval ? <Button className="btn-approve" variant="primary" disabled={review.pending !== null} onClick={() => void submit('approve')}>Phê duyệt đề cương</Button> : null}
+                  {!hasBackendApproval && review.canReject ? <Button className="btn-reject" variant="danger" disabled={review.pending !== null} onClick={() => void submit('reject')}>Từ chối đề cương</Button> : null}
+                </div>
+                {hasBackendApproval && <ActionVerdict actions={review.workflow!.actions} actionCode="approve_project" status="ready" okLabel="Điều kiện phê duyệt hợp lệ" blockedLabel="Chưa thể phê duyệt đề cương">
+                  <ActionVerdict.Decision primary={{ label: 'Phê duyệt đề cương', onClick: () => void submit('approve'), disabled: review.pending !== null || !mayPresentFinalApproval }}
+                    secondary={review.canReject ? { label: 'Từ chối đề cương', onClick: () => void submit('reject'), disabled: review.pending !== null } : undefined} />
+                </ActionVerdict>}
+                {isInterdisciplinary && review.canApprove && participatingSummary !== 'ALL_APPROVED' ? <p className="mt-2 text-sm text-ink-muted">Chỉ có thể phê duyệt cuối khi tất cả bộ môn tham gia đã đồng ý với phiên bản hiện tại.</p> : null}
+              </>
+            )}
             {review.pending ? <p role="status" className="text-sm text-ink-muted">Đang xử lý {pendingActionLabel[review.pending] ?? displayLabel(review.pending)}…</p> : null}
             {message ? <p role="status" className="rounded-lg border border-hairline bg-canvas p-3 text-sm font-medium text-ink">{message}</p> : null}
           </section>

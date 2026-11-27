@@ -21,9 +21,18 @@ export interface MilestoneReorderItem {
   concurrencyToken?: string
 }
 
+export interface ProjectExecutionWindowDto {
+  projectPeriodId: number
+  code: string
+  name: string
+  startDate: string
+  endDate: string
+}
+
 export const getMilestone = (id: number, signal?: AbortSignal) => httpGet<MilestoneDto>(`/milestones/${id}`, signal)
 export const getProjectMilestones = (projectId: number, signal?: AbortSignal) => httpGet<MilestoneDto[]>(`/milestones/project/${projectId}`, signal)
 export const getProjectMilestoneProgress = (projectId: number, signal?: AbortSignal) => httpGet<MilestoneProgressDto[]>(`/milestones/project/${projectId}/progress`, signal)
+export const getProjectExecutionWindow = (projectId: number, signal?: AbortSignal) => httpGet<ProjectExecutionWindowDto | null>(`/milestones/project/${projectId}/execution-window`, signal)
 export const createMilestone = (payload: CreateMilestonePayload) => httpPost<MilestoneDto, CreateMilestonePayload>('/milestones', payload)
 export const updateMilestone = (id: number, payload: UpdateMilestonePayload) => httpPut<MilestoneDto, UpdateMilestonePayload>(`/milestones/${id}`, payload)
 export const deleteMilestone = async (id: number, concurrencyToken?: string) => { await httpDelete(`/milestones/${id}${concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''}`) }

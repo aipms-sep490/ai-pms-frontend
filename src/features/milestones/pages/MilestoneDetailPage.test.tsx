@@ -49,4 +49,21 @@ describe('MilestoneDetailPage', () => {
     api.getProjectMilestones.mockResolvedValue([]); renderPage(false,'/project/milestones')
     await screen.findByText('Nhóm chưa có mốc đồ án'); expect(api.createMilestone).not.toHaveBeenCalled()
   })
+  it('displays execution window bounds and blocks out-of-window milestone dates before submission', async () => {
+    const apiWithWindow = api as Record<string, ReturnType<typeof vi.fn>>
+    apiWithWindow.getProjectExecutionWindow = vi.fn().mockResolvedValue({
+      projectPeriodId: 10, code: 'DST-EXEC-20261024', name: 'Đợt thực hiện', startDate: '2026-10-23', endDate: '2026-11-30',
+    })
+    renderPage(true, '/project/milestones')
+    await screen.findByText('1 mốc đồ án')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo mốc' }))
+    expect(await screen.findByText(/23\/10\/2026 – 30\/11\/2026/)).toBeTruthy()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên mốc' }), { target: { value: 'Mốc sai ngày' } })
+    fireEvent.change(screen.getByLabelText('Bắt đầu dự kiến'), { target: { value: '2025-02-10' } })
+    fireEvent.change(screen.getByLabelText('Hạn hoàn thành'), { target: { value: '2025-02-28' } })
+    fireEvent.submit(screen.getByRole('textbox', { name: 'Tên mốc' }).closest('form')!)
+    expect(await screen.findByText(/Ngày bắt đầu mốc phải nằm trong khung đợt thực hiện \(23\/10\/2026 – 30\/11\/2026\)/)).toBeTruthy()
+    expect(api.createMilestone).not.toHaveBeenCalled()
+    delete apiWithWindow.getProjectExecutionWindow
+  })
 })

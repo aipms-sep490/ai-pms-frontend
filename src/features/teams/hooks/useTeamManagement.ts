@@ -27,14 +27,44 @@ const emptyPage = <T,>(page = 1, pageSize = 12): PagedResult<T> => ({
   items: [], page, pageSize, totalCount: 0, totalPages: 0,
 })
 
+const TEAM_CONFLICT_MESSAGES: Record<string, string> = {
+  MEMBER_MAJOR_NOT_ALLOWED: 'Chuyên ngành của bạn không nằm trong danh sách chuyên ngành đã chọn. Nhóm bắt buộc phải bao gồm chuyên ngành của bạn.',
+  INTERDISCIPLINARY_MAJORS_REQUIRED: 'Nhóm Liên ngành cần chọn tối thiểu 2 chuyên ngành khác nhau (bao gồm chuyên ngành của bạn).',
+  PRIMARY_MAJOR_REQUIRED: 'Nhóm Đơn ngành cần chọn đúng 1 chuyên ngành chính phù hợp với chuyên ngành của bạn.',
+  PROJECT_MODE_NOT_ALLOWED_BY_PERIOD: 'Đợt đăng ký hiện tại không hỗ trợ chế độ phạm vi đồ án bạn vừa chọn.',
+  REGISTRATION_WINDOW_CLOSED: 'Đợt đăng ký nhóm đã đóng. Không thể tạo hoặc thay đổi thành viên nhóm lúc này.',
+  STUDENT_ALREADY_IN_TEAM: 'Bạn đã thuộc một nhóm đang hoạt động trong học kỳ này.',
+  INVALID_ACADEMIC_SCOPE: 'Phạm vi chuyên ngành hoặc bộ môn chủ trì chưa hợp lệ. Hãy kiểm tra lại lựa chọn chuyên ngành.',
+  QUALIFICATION_REQUIRED: 'Hồ sơ đủ điều kiện làm đồ án của bạn chưa được xác minh cho học kỳ này.',
+  QUALIFICATION_NOT_VERIFIED: 'Hồ sơ đủ điều kiện làm đồ án của bạn chưa được xác minh.',
+  QUALIFICATION_EXPIRED: 'Xác nhận đủ điều kiện làm đồ án đã hết hạn.',
+  MEMBER_QUOTA_EXCEEDED: 'Số lượng thành viên của chuyên ngành này đã đạt giới hạn cho phép.',
+  TEAM_MAX_MEMBERS_EXCEEDED: 'Nhóm đã đạt số lượng thành viên tối đa theo quy định học kỳ.',
+}
+
+function resolveTeamProblemMessage(reason: unknown): string | null {
+  if (!(reason instanceof HttpError)) return null
+  const code = reason.problem?.code?.trim().toUpperCase()
+  if (code && Object.hasOwn(TEAM_CONFLICT_MESSAGES, code)) return TEAM_CONFLICT_MESSAGES[code]
+  const detail = reason.problem?.detail?.trim() ?? ''
+  for (const [key, message] of Object.entries(TEAM_CONFLICT_MESSAGES)) {
+    if (detail.includes(key)) return message
+  }
+  if (/already exists|duplicate|team code/i.test(detail)) {
+    return 'Mã nhóm đã tồn tại trong học kỳ này hoặc dữ liệu nhóm vừa thay đổi. Hãy đổi mã nhóm khác rồi thử lại.'
+  }
+  return null
+}
+
 function classifyError(reason: unknown): TeamManagementError {
   if (reason instanceof HttpError || (typeof reason === 'object' && reason !== null && 'status' in reason)) {
     const response = reason as { status: number }
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại để tiếp tục.' }
     if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền thực hiện thao tác này trong phạm vi nhóm hiện tại.' }
     if (response.status === 404) return { kind: 'not-found', message: 'Dữ liệu nhóm hoặc lời mời không còn tồn tại hay không còn hiển thị.' }
-    if (response.status === 409) return { kind: 'conflict', message: 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
-    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: 'Thao tác chưa phù hợp với điều kiện hoặc trạng thái hiện tại của nhóm.' }
+    const specific = resolveTeamProblemMessage(reason)
+    if (response.status === 409) return { kind: 'conflict', message: specific ?? 'Dữ liệu nhóm vừa thay đổi hoặc thao tác không còn hợp lệ. Đã tải lại trạng thái mới nhất.' }
+    if (response.status === 400 || response.status === 422) return { kind: 'validation', message: specific ?? 'Thao tác chưa phù hợp với điều kiện hoặc trạng thái hiện tại của nhóm.' }
   }
   return { kind: 'system', message: 'Không thể kết nối hệ thống để hoàn tất thao tác. Vui lòng thử lại.' }
 }

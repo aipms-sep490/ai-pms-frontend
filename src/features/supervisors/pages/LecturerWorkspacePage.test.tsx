@@ -98,4 +98,20 @@ describe('LecturerWorkspacePage', () => {
     expect(screen.getByText('1 quá hạn · 2 vướng mắc')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Tổng quan đồ án' })).toBeTruthy()
   })
+
+  it('clearly distinguishes GVHD chính vs Mentor chuyên ngành requests on cards and in confirmation modal', () => {
+    const primaryReq = { id: 10, projectId: 9, supervisorProfileId: 4, requestedBy: 2, status: 'PENDING', requestedAt: '2026-09-15', assignmentType: 'PRIMARY', majorId: null }
+    const mentorReq = { id: 11, projectId: 9, supervisorProfileId: 4, requestedBy: 2, status: 'PENDING', requestedAt: '2026-09-16', assignmentType: 'DISCIPLINE_MENTOR', majorId: 3 }
+    inbox.useSupervisorInbox.mockReturnValue(state({
+      requests: [primaryReq, mentorReq],
+      projects: { 9: { id: 9, title: 'Interdisciplinary Project', code: 'PRJ-9', status: 'DRAFT', teamId: 21, majors: [{ majorId: 3, majorName: 'Kỹ thuật phần mềm' }] } },
+    }))
+    render(<MemoryRouter><LecturerWorkspacePage /></MemoryRouter>)
+    expect(screen.getAllByText('GVHD chính').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Mentor chuyên ngành · Kỹ thuật phần mềm').length).toBeGreaterThan(0)
+    const acceptButtons = screen.getAllByRole('button', { name: 'Nhận hướng dẫn' })
+    fireEvent.click(acceptButtons[0])
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText('Nhận làm Mentor chuyên ngành (Kỹ thuật phần mềm)?')).toBeTruthy()
+  })
 })

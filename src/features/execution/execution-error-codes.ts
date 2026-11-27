@@ -48,6 +48,30 @@ const verifiedErrors: Record<string, WorkflowErrorFeedback> = {
     message: 'Mốc tiến độ đã chọn không thuộc đồ án này. Chọn mốc hợp lệ trước khi lưu.',
     retryable: false,
   },
+  MILESTONE_OUTSIDE_EXECUTION_WINDOW: {
+    message: 'Ngày bắt đầu và hạn hoàn thành của mốc phải nằm trong khung thời gian đợt thực hiện của đồ án.',
+    retryable: false,
+  },
+  TASK_OUTSIDE_EXECUTION_WINDOW: {
+    message: 'Thời gian bắt đầu và hạn của công việc phải nằm trong khung thời gian đợt thực hiện của đồ án.',
+    retryable: false,
+  },
+  TASK_OUTSIDE_MILESTONE: {
+    message: 'Thời gian công việc phải nằm trong khung ngày bắt đầu và hạn của mốc tiến độ chứa nó.',
+    retryable: false,
+  },
+  PARENT_DATE_CONFLICT: {
+    message: 'Khung thời gian mới xung đột với các công việc con hiện có trong mốc. Hãy điều chỉnh lại hạn công việc hoặc mở rộng khung ngày mốc.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_ORDER_VIOLATION: {
+    message: 'Thứ tự ngày của mốc vi phạm phụ thuộc với mốc tiền nhiệm hoặc kế tiếp.',
+    retryable: false,
+  },
+  MILESTONE_DEPENDENCY_CYCLE: {
+    message: 'Không thể tạo phụ thuộc vòng giữa các mốc tiến độ.',
+    retryable: false,
+  },
   DELIVERABLE_HAS_SUBMITTED_HISTORY: {
     message: 'Hạng mục đã có lịch sử nộp, không thể xóa.',
     retryable: false,

@@ -141,7 +141,9 @@ export function SupervisorSelectionPage() {
             <ul className="mt-3 divide-y divide-hairline">{requestPager.paginatedItems.map((request) => <li key={request.id} className="py-3 text-sm text-ink">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone={requestStatusTone(request.status)} label={displayLabel(request.status)} />
-                <span className="font-semibold">{slotLabel(request.assignmentType, request.majorId, majorName)}</span>
+                <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${request.assignmentType === 'DISCIPLINE_MENTOR' ? 'border-tag-se/25 bg-tag-se-bg text-tag-se' : 'border-primary/25 bg-primary-subtle text-primary'}`}>
+                  {slotLabel(request.assignmentType, request.majorId, majorName)}
+                </span>
                 <span>· {request.supervisorName?.trim() || selection.assignments.find(item => item.supervisorProfileId === request.supervisorProfileId)?.supervisorName || selection.candidates.find(item => item.id === request.supervisorProfileId)?.fullName || 'Chưa tải được tên giảng viên'}</span>
                 <span className="text-xs text-ink-muted">· gửi lúc {dateTimeLabel(request.requestedAt)}</span>
                 {request.status === 'PENDING' && request.expiresAt ? <span className="text-xs text-ink-muted">· hết hạn lúc {dateTimeLabel(request.expiresAt)}</span> : null}
@@ -188,6 +190,11 @@ export function SupervisorSelectionPage() {
                 {option.label}
               </button>)}
             </div> : <p className="text-sm font-semibold text-ink">{activeSlot?.label}</p>}
+            {slotOptions.length > 1 && (
+              <p className="mt-2 text-xs text-ink-muted">
+                Lưu ý: Mỗi giảng viên chỉ đảm nhận 1 vai trò trong cùng đồ án — không thể mời cùng một giảng viên làm cả GVHD chính và Mentor chuyên ngành.
+              </p>
+            )}
           </div>
 
           <FilterToolbar
