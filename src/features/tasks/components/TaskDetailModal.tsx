@@ -206,8 +206,8 @@ export function TaskDetailModal({
               task={task}
               canUpdateStatus={canUpdateStatus}
               busy={mutation.busy}
-              onAccept={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'DONE', reason: reason ?? null, concurrencyToken: task.concurrencyToken }), reload, 'Đã nghiệm thu công việc đạt yêu cầu.')}
-              onRequestChanges={(reason) => mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'IN_PROGRESS', reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }), reload, 'Đã chuyển trạng thái và yêu cầu chỉnh sửa.')}
+              onAccept={(reason) => task.concurrencyToken ? mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'DONE', reason: reason ?? null, concurrencyToken: task.concurrencyToken! }), reload, 'Đã nghiệm thu công việc đạt yêu cầu.') : Promise.resolve(false)}
+              onRequestChanges={(reason) => task.concurrencyToken ? mutation.run(() => services.task.updateTaskStatus(task.id, { newStatus: 'IN_PROGRESS', reason: reason.trim() || null, concurrencyToken: task.concurrencyToken! }), reload, 'Đã chuyển trạng thái và yêu cầu chỉnh sửa.') : Promise.resolve(false)}
             />
             {editing === 'content' && (
               <TaskContentEditor
@@ -215,7 +215,7 @@ export function TaskDetailModal({
                 timeline={timeline}
                 busy={mutation.busy}
                 onCancel={() => setEditing(null)}
-                onSubmit={payload => mutation.run(() => services.task.updateTask(task.id, { ...payload, concurrencyToken: task.concurrencyToken }), saved)}
+                onSubmit={payload => task.concurrencyToken ? mutation.run(() => services.task.updateTask(task.id, { ...payload, concurrencyToken: task.concurrencyToken! }), saved) : Promise.resolve(false)}
               />
             )}
 
@@ -286,7 +286,7 @@ export function TaskDetailModal({
                       candidates={candidates}
                       busy={mutation.busy}
                       onCancel={() => setEditing(null)}
-                      onSubmit={ids => mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken), saved)}
+                      onSubmit={ids => task.concurrencyToken ? mutation.run(() => services.task.setTaskAssignees(task.id, ids, task.concurrencyToken!), saved) : Promise.resolve(false)}
                     />
                   ) : (
                     <p className="text-sm text-ink">
@@ -336,7 +336,7 @@ export function TaskDetailModal({
                               type="button"
                               className="ex-text-button ex-danger-text text-xs text-status-error-text"
                               disabled={mutation.busy}
-                              onClick={() => void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken), reload)}
+                              onClick={() => { if (task.concurrencyToken) void mutation.run(() => services.task.removeTaskDependency(task.id, dependency.dependsOnTaskId, task.concurrencyToken!), reload) }}
                             >
                               Bỏ
                             </button>
@@ -352,7 +352,7 @@ export function TaskDetailModal({
                       tasks={allTasks.filter(item => item.id !== task.id && !task.dependencies.some(d => d.dependsOnTaskId === item.id))}
                       busy={mutation.busy}
                       onCancel={() => setEditing(null)}
-                      onSubmit={(dependsOnTaskId, dependencyType) => mutation.run(() => services.task.addTaskDependency({ taskId: task.id, dependsOnTaskId, dependencyType, concurrencyToken: task.concurrencyToken }), saved)}
+                      onSubmit={(dependsOnTaskId, dependencyType) => task.concurrencyToken ? mutation.run(() => services.task.addTaskDependency({ taskId: task.id, dependsOnTaskId, dependencyType, concurrencyToken: task.concurrencyToken! }), saved) : Promise.resolve(false)}
                     />
                   )}
                 </section>
@@ -367,11 +367,11 @@ export function TaskDetailModal({
                       key={task.status}
                       task={task}
                       busy={mutation.busy}
-                      onSubmit={(newStatus, reason) => mutation.run(
-                        () => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken }),
+                      onSubmit={(newStatus, reason) => task.concurrencyToken ? mutation.run(
+                        () => services.task.updateTaskStatus(task.id, { newStatus, reason: reason.trim() || null, concurrencyToken: task.concurrencyToken! }),
                         reload,
                         'Đã cập nhật trạng thái.'
-                      )}
+                      ) : Promise.resolve(false)}
                     />
                   ) : (
                     <p className="text-xs text-ink-muted">
@@ -396,14 +396,17 @@ export function TaskDetailModal({
                         description="Chỉ công việc chưa có phân công, liên kết hoặc lịch sử mới được xóa."
                         busy={mutation.busy}
                         onCancel={() => setDeleting(false)}
-                        onConfirm={() => void mutation.run(
-                          () => services.task.deleteTask(task.id, task.concurrencyToken),
-                          () => {
-                            onClose()
-                            onTaskUpdated?.()
-                          },
-                          'Đã xóa công việc.'
-                        )}
+                        onConfirm={() => {
+                          if (!task.concurrencyToken) return
+                          void mutation.run(
+                            () => services.task.deleteTask(task.id, task.concurrencyToken!),
+                            () => {
+                              onClose()
+                              onTaskUpdated?.()
+                            },
+                            'Đã xóa công việc.'
+                          )
+                        }}
                       />
                     )}
                   </div>

@@ -44,9 +44,15 @@ describe('AI advisory components', () => {
     expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
     expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 10, expect.any(AbortSignal))
   })
+  it('hides the legacy project ask form by default under W0-09 safety policy', async () => {
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    await screen.findByText('Trợ lý hỏi đáp theo đồ án đang tắt')
+    expect(screen.queryByLabelText('Câu hỏi')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gửi câu hỏi' })).toBeNull()
+  })
   it('clearly labels a project assistant fallback without inventing an insufficient-evidence state', async () => {
     api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Provider unavailable', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Fallback', insufficientEvidence: false, generationStatus: 'FALLBACK', generatedAt: '2026-10-03T08:00:00Z' })
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Tóm tắt giúp tôi' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
     await screen.findByText(/Phản hồi dự phòng: hệ thống chưa tạo được câu trả lời/)
@@ -79,7 +85,7 @@ describe('AI advisory components', () => {
 
   it('keeps the assistant advisory-only and surfaces a rate-limit failure', async () => {
     api.askProjectAssistant.mockRejectedValue(new HttpError('rate limited', 429))
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Việc nào cần ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
@@ -90,7 +96,7 @@ describe('AI advisory components', () => {
 
   it('renders assistant evidence without converting an API reference into a command', async () => {
     api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Ưu tiên task quá hạn.', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Dữ liệu có giới hạn.', insufficientEvidence: true, generatedAt: '2026-10-03T08:00:00Z' })
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))

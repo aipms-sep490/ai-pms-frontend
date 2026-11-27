@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { env } from '../../../app/config/env'
 import { BackLink } from '../../../components/ui/BackLink'
 import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
@@ -58,8 +57,8 @@ function moduleGroupFor(code: string): string {
 
 export function AdminRbacPage() {
   const admin = useAdminWorkspace()
-  // Read-only permission matrix unless explicitly enabled via env flag.
-  const canEdit = env.rbacWriteEnabled
+  // Permission matrix is strictly read-only per QD-10 (runtime auth uses 4 system roles + project assignment scope).
+  const canEdit = false
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null)
   const [filter, setFilter] = useState('')
   const [grantFilter, setGrantFilter] = useState<'all' | 'granted' | 'ungranted'>('all')
@@ -422,7 +421,8 @@ export function AdminRbacPage() {
                     </div>
                   ) : (
                     <p className="admin-gap" role="note">
-                      Ma trận quyền hiện đang ở chế độ chỉ đọc. Quyền thực tế trong từng đồ án được kiểm tra theo phân công và trạng thái hồ sơ.
+                      Ma trận quyền hiện đang ở chế độ chỉ đọc (tham khảo). Để cấp hoặc thu hồi 4 vai trò hệ thống (ADMIN, DEPARTMENT_STAFF, LECTURER, STUDENT), vui lòng thao tác tại{' '}
+                      <a href="/admin/users" className="font-semibold text-primary underline">Quản lý tài khoản</a>. Quyền thực tế trong từng đồ án được kiểm tra theo phân công và trạng thái hồ sơ.
                     </p>
                   )}
                 </form>

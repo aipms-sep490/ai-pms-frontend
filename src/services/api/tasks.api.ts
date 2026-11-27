@@ -53,12 +53,12 @@ export interface SaveTaskBoardPayload {
   sprintId?: number | null
   storyPoints?: number | null
   labels: string[]
-  concurrencyToken?: string
+  concurrencyToken: string
 }
 
-export interface UpdateTaskPayload extends Omit<CreateTaskPayload, 'assigneeUserIds' | 'disciplines'> { concurrencyToken?: string }
-export interface AddTaskDependencyPayload { taskId: number; dependsOnTaskId: number; dependencyType: string; concurrencyToken?: string }
-export interface UpdateTaskStatusPayload { newStatus: string; reason?: string | null; concurrencyToken?: string }
+export interface UpdateTaskPayload extends Omit<CreateTaskPayload, 'assigneeUserIds' | 'disciplines'> { concurrencyToken: string }
+export interface AddTaskDependencyPayload { taskId: number; dependsOnTaskId: number; dependencyType: string; concurrencyToken: string }
+export interface UpdateTaskStatusPayload { newStatus: string; reason?: string | null; concurrencyToken: string }
 
 function query(filters: TaskListFilters): string {
   const params = new URLSearchParams()
@@ -75,11 +75,11 @@ export const getProjectTasks = (projectId: number, filters: TaskListFilters = {}
 }
 export const createTask = (payload: CreateTaskPayload) => httpPost<TaskDto, CreateTaskPayload>('/tasks', payload)
 export const updateTask = (id: number, payload: UpdateTaskPayload) => httpPut<TaskDto, UpdateTaskPayload>(`/tasks/${id}`, payload)
-const tokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''
-export const deleteTask = async (id: number, concurrencyToken?: string) => { await httpDelete(`/tasks/${id}${tokenQuery(concurrencyToken)}`) }
-export const setTaskAssignees = (id: number, assigneeUserIds: number[], concurrencyToken?: string) => httpPost<TaskDto, number[]>(`/tasks/${id}/assignees${tokenQuery(concurrencyToken)}`, assigneeUserIds)
+const tokenQuery = (concurrencyToken: string) => `?${new URLSearchParams({ concurrencyToken })}`
+export const deleteTask = async (id: number, concurrencyToken: string) => { await httpDelete(`/tasks/${id}${tokenQuery(concurrencyToken)}`) }
+export const setTaskAssignees = (id: number, assigneeUserIds: number[], concurrencyToken: string) => httpPost<TaskDto, number[]>(`/tasks/${id}/assignees${tokenQuery(concurrencyToken)}`, assigneeUserIds)
 export const addTaskDependency = (payload: AddTaskDependencyPayload) => httpPost<TaskDto, AddTaskDependencyPayload>('/tasks/dependency', payload)
-export const removeTaskDependency = (id: number, dependsOnTaskId: number, concurrencyToken?: string) => httpDelete<TaskDto>(`/tasks/${id}/dependency/${dependsOnTaskId}${tokenQuery(concurrencyToken)}`)
+export const removeTaskDependency = (id: number, dependsOnTaskId: number, concurrencyToken: string) => httpDelete<TaskDto>(`/tasks/${id}/dependency/${dependsOnTaskId}${tokenQuery(concurrencyToken)}`)
 export const updateTaskStatus = (id: number, payload: UpdateTaskStatusPayload) => httpPut<TaskDto, UpdateTaskStatusPayload>(`/tasks/${id}/status`, payload)
 export const getTaskHistory = (id: number, signal?: AbortSignal) => httpGet<TaskStatusHistoryDto[]>(`/tasks/${id}/history`, signal)
 export const getOverdueBlockedTasks = (projectId: number) => httpGet<OverdueBlockedTasksDto>(`/tasks/project/${projectId}/overdue-blocked`)

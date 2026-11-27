@@ -521,14 +521,15 @@ function RoomGovernanceDrawer({
     }
   }
 
-  async function save(body: Parameters<typeof meetingsApi.updateMeetingNotes>[1]) {
-    if (saveLock.current || needsRefresh) return
+  async function save(body: Omit<Parameters<typeof meetingsApi.updateMeetingNotes>[1], 'concurrencyToken'>) {
+    const token = meeting.concurrencyToken
+    if (saveLock.current || needsRefresh || !token) return
     saveLock.current = true
     setBusy(true)
     setError('')
     setNotice('')
     try {
-      await meetingsApi.updateMeetingNotes(meeting.id, { ...body, concurrencyToken: meeting.concurrencyToken })
+      await meetingsApi.updateMeetingNotes(meeting.id, { ...body, concurrencyToken: token })
       onDraftConsumed()
       setNotice('Đã lưu biên bản và điểm danh.')
       await reload()

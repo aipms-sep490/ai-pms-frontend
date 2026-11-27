@@ -241,13 +241,16 @@ function TaskRow({ task, sprints, routeBase, busy, labelOptions, run }: {
   const openSprints = sprints.filter(s => s.status !== 'COMPLETED')
   const readOnly = busy || task.status === 'CANCELLED'
 
-  const saveBoard = (overrides: { sprintId?: number | null; storyPoints?: number | null; labels?: string[] }) =>
-    run(() => tasksApi.saveTaskBoard(task.id, {
+  const saveBoard = (overrides: { sprintId?: number | null; storyPoints?: number | null; labels?: string[] }) => {
+    const token = task.concurrencyToken
+    if (!token) return Promise.resolve(false)
+    return run(() => tasksApi.saveTaskBoard(task.id, {
       sprintId: 'sprintId' in overrides ? overrides.sprintId : task.sprintId,
       storyPoints: 'storyPoints' in overrides ? overrides.storyPoints : task.storyPoints,
       labels: overrides.labels ?? (task.labels ?? []),
-      concurrencyToken: task.concurrencyToken,
+      concurrencyToken: token,
     }), 'sprintId' in overrides ? 'Đã chuyển công việc.' : 'Đã cập nhật điểm và nhãn.')
+  }
 
   const savePlanning = () => void saveBoard({ storyPoints: points === '' ? null : Number(points), labels: parseLabels(labelsText) }).then(saved => { if (saved) setEditing(false) })
 

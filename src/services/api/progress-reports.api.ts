@@ -41,7 +41,7 @@ export interface ProgressReportPrefill {
 export const getProgressReportPrefill = (projectId: number, progressReportPeriodId?: number, signal?: AbortSignal) =>
   httpGet<ProgressReportPrefill>(`/projects/${projectId}/progress-reports/prefill${progressReportPeriodId ? `?progressReportPeriodId=${progressReportPeriodId}` : ''}`, signal)
 export const createProgressReport = (projectId: number, body: CreateReport) => httpPost<ProgressReport>(`/projects/${projectId}/progress-reports`, body)
-export const updateProgressReport = (id: number, body: ReportContent & { concurrencyToken?: string; progressReportPeriodId?: number | null }) => httpPut<ProgressReport>(`/progress-reports/${id}`, body)
-const reportTokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''
-export const submitProgressReport = (id: number, concurrencyToken?: string) => httpPost<ProgressReport>(`/progress-reports/${id}/submit${reportTokenQuery(concurrencyToken)}`)
-export const addProgressReportFeedback = (id: number, feedbackText: string, concurrencyToken?: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback${reportTokenQuery(concurrencyToken)}`, { feedbackText })
+export const updateProgressReport = (id: number, body: ReportContent & { concurrencyToken: string; progressReportPeriodId?: number | null }) => httpPut<ProgressReport>(`/progress-reports/${id}`, body)
+const reportTokenQuery = (concurrencyToken: string) => `?${new URLSearchParams({ concurrencyToken })}`
+export const submitProgressReport = (id: number, concurrencyToken: string) => httpPost<ProgressReport>(`/progress-reports/${id}/submit${reportTokenQuery(concurrencyToken)}`)
+export const addProgressReportFeedback = (id: number, feedbackText: string, concurrencyToken: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback${reportTokenQuery(concurrencyToken)}`, { feedbackText })

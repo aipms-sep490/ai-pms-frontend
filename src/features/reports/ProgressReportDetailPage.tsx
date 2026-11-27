@@ -210,9 +210,10 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   }
 
   async function submit() {
-    if (!report || !report.progressReportPeriodId || actor !== 'student' || !canManageStructure || report.status !== 'DRAFT' || dirty || missingSubmissionFields(report).length) return
+    const token = report?.concurrencyToken
+    if (!report || !token || !report.progressReportPeriodId || actor !== 'student' || !canManageStructure || report.status !== 'DRAFT' || dirty || missingSubmissionFields(report).length) return
     await mutate(async () => {
-      const updated = await api.submitProgressReport(id, report.concurrencyToken)
+      const updated = await api.submitProgressReport(id, token)
       if (!mounted.current) return
       setReport((current) => current && { ...current, ...updated })
       setConfirmSubmit(false)
@@ -222,9 +223,10 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
 
   async function sendFeedback(event: FormEvent) {
     event.preventDefault()
-    if (readOnly || actor !== 'supervisor' || !report || !['SUBMITTED', 'REVIEWED'].includes(report.status) || !feedback.trim()) return
+    const token = report?.concurrencyToken
+    if (readOnly || actor !== 'supervisor' || !report || !token || !['SUBMITTED', 'REVIEWED'].includes(report.status) || !feedback.trim()) return
     await mutate(async () => {
-      await api.addProgressReportFeedback(id, feedback.trim(), report.concurrencyToken)
+      await api.addProgressReportFeedback(id, feedback.trim(), token)
       if (!mounted.current) return
       setFeedback('')
       setSuccess('Đã gửi phản hồi cho nhóm.')

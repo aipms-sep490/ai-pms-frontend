@@ -89,7 +89,8 @@ export function MilestoneScheduleDrawer({
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault()
-    if (!canEdit || !detail) return
+    const token = detail?.concurrencyToken
+    if (!canEdit || !detail || !token) return
     if (startDate && dueDate && dueDate < startDate) {
       setError('Hạn hoàn thành phải bằng hoặc sau ngày bắt đầu.')
       return
@@ -105,7 +106,7 @@ export function MilestoneScheduleDrawer({
         dueDate: dueDate || null,
         sortOrder: detail.sortOrder,
         status,
-        concurrencyToken: detail.concurrencyToken,
+        concurrencyToken: token,
       })
       setDetail(updated)
       setNotice('Đã cập nhật lịch trình mốc đồ án.')

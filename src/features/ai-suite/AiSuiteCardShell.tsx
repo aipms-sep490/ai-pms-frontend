@@ -116,7 +116,7 @@ export function AiSuiteCardShell({
                 Nguồn: <strong>{meta.modelVersion ?? 'AI-PMS Copilot'}</strong>
                 {meta.createdByName ? ` · bởi ${meta.createdByName}` : ''}
                 {meta.generatedAt ? ` · ${formatVnTime(meta.generatedAt)}` : ''}
-                {meta.status === 'FALLBACK' ? ' · (Chế độ dự phòng)' : ''}
+                {(meta.status === 'FALLBACK' || meta.isSimulatedFallback) ? ' · (Chế độ dự phòng cục bộ — không gọi LLM)' : ''}
               </span>
               {markdownText && (
                 <button type="button" className="ais-btn" style={{ minHeight: '1.9rem', padding: '0.2rem 0.65rem' }} onClick={() => void handleCopy()}>

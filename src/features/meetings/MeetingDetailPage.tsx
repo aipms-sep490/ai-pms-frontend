@@ -211,11 +211,17 @@ function MeetingDetailView({ id }: { id: number }) {
       return
     }
     if (!meeting || !manage || !scheduled) return
+    const token = meeting.concurrencyToken
+    if (!token) {
+      setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi cập nhật.')
+      setNeedsRefresh(true)
+      return
+    }
     if (confirmation.type === 'remove')
-      await mutate(() => api.removeMeetingParticipant(id, confirmation.userId, meeting.concurrencyToken), 'Đã cập nhật danh sách người tham gia.')
+      await mutate(() => api.removeMeetingParticipant(id, confirmation.userId, token), 'Đã cập nhật danh sách người tham gia.')
     else if (confirmation.type === 'cancel')
-      await mutate(() => api.cancelMeeting(id, meeting.concurrencyToken), 'Đã hủy lịch họp. Lịch sử cuộc họp vẫn được giữ lại.')
-    else await mutate(() => api.completeMeeting(id, meeting.concurrencyToken), 'Đã đánh dấu cuộc họp hoàn tất.')
+      await mutate(() => api.cancelMeeting(id, token), 'Đã hủy lịch họp. Lịch sử cuộc họp vẫn được giữ lại.')
+    else await mutate(() => api.completeMeeting(id, token), 'Đã đánh dấu cuộc họp hoàn tất.')
   }
 
   async function respondRsvp(status: string) {
@@ -264,12 +270,13 @@ function MeetingDetailView({ id }: { id: number }) {
   function sendFeedback(event: FormEvent) {
     event.preventDefault()
     if (access.readOnly || access.actor !== 'supervisor' || !writableNotes || !feedback.trim()) return
-    if (!meeting?.concurrencyToken) {
+    const token = meeting?.concurrencyToken
+    if (!token) {
       setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi gửi nhận xét.')
       setNeedsRefresh(true)
       return
     }
-    void mutate(() => api.addMeetingFeedback(id, feedback.trim(), meeting.concurrencyToken), 'Đã gửi nhận xét cho nhóm.')
+    void mutate(() => api.addMeetingFeedback(id, feedback.trim(), token), 'Đã gửi nhận xét cho nhóm.')
   }
 
   const confirmTitle =
@@ -469,9 +476,15 @@ function MeetingDetailView({ id }: { id: number }) {
                         onCancel={closeEditor}
                         onSave={async (body) => {
                           if (!manage || !scheduled) return
+                          const token = meeting.concurrencyToken
+                          if (!token) {
+                            setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi lưu.')
+                            setNeedsRefresh(true)
+                            return
+                          }
                           const { participantUserIds: _participants, ...schedule } = body
                           await mutate(
-                            () => api.updateMeeting(id, { ...schedule, concurrencyToken: meeting.concurrencyToken }),
+                            () => api.updateMeeting(id, { ...schedule, concurrencyToken: token }),
                             'Đã lưu thay đổi lịch họp.',
                           )
                         }}
@@ -584,11 +597,18 @@ function MeetingDetailView({ id }: { id: number }) {
                         onDirty={() => setDirty(true)}
                         onCancel={closeEditor}
                         onSave={async (body) => {
-                          if (manage && notesEditable)
+                          if (manage && notesEditable) {
+                            const token = meeting.concurrencyToken
+                            if (!token) {
+                              setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi lưu biên bản.')
+                              setNeedsRefresh(true)
+                              return
+                            }
                             await mutate(
-                              () => api.updateMeetingNotes(id, { ...body, concurrencyToken: meeting.concurrencyToken }),
+                              () => api.updateMeetingNotes(id, { ...body, concurrencyToken: token }),
                               'Đã lưu biên bản và điểm danh.',
                             )
+                          }
                         }}
                       />
                     ) : (
@@ -890,8 +910,14 @@ function MeetingDetailView({ id }: { id: number }) {
                                 dirty
                               )
                                 return
+                              const token = meeting.concurrencyToken
+                              if (!token) {
+                                setError('Không có token phiên bản của cuộc họp. Hãy tải lại trước khi thêm người tham gia.')
+                                setNeedsRefresh(true)
+                                return
+                              }
                               void mutate(
-                                () => api.addMeetingParticipant(id, selected, meeting.concurrencyToken),
+                                () => api.addMeetingParticipant(id, selected, token),
                                 'Đã thêm người tham gia.',
                               )
                             }}

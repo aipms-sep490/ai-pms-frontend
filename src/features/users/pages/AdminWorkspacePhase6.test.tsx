@@ -84,16 +84,15 @@ describe('Admin workspace Phase 6', () => {
 
 
 describe('Admin form state', () => {
-  it('keeps permissions hidden by a filter when saving the selected role', async () => {
+  it('keeps permission matrix strictly read-only per QD-10 even when filtering permissions', () => {
     const replacePermissions = vi.fn().mockResolvedValue(undefined)
     workspace.useAdminWorkspace.mockReturnValue(ready({ replacePermissions, rbac: { state: 'ready', error: null, value: { roles: [{ ...role, permissions: [permission] }], permissions: [permission, { ...permission, id: 10, code: 'ACCOUNT_WRITE', name: 'Write accounts' }], matrix: { roles: [], permissions: [] } } } }))
     render(<MemoryRouter><AdminRbacPage /></MemoryRouter>)
     fireEvent.click(screen.getByRole('button', { name: /ADMIN/ }))
     fireEvent.change(screen.getByLabelText('Tìm quyền truy cập'), { target: { value: 'WRITE' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /ACCOUNT_WRITE/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu phân quyền' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Lưu quyền truy cập' }))
-    await waitFor(() => expect(replacePermissions).toHaveBeenCalledWith(1, [9, 10]))
+    expect(screen.queryByRole('button', { name: 'Lưu phân quyền' })).toBeNull()
+    expect((screen.getByRole('checkbox', { name: /ACCOUNT_WRITE/ }) as HTMLInputElement).closest('fieldset')?.disabled).toBe(true)
+    expect(replacePermissions).not.toHaveBeenCalled()
   })
   it('replaces the checkbox selection when switching roles', () => {
     workspace.useAdminWorkspace.mockReturnValue(ready({ rbac: { state: 'ready', error: null, value: { roles: [{ ...role, permissions: [permission] }, { ...role, id: 2, code: 'LECTURER', permissions: [] }], permissions: [permission], matrix: { roles: [], permissions: [] } } } }))

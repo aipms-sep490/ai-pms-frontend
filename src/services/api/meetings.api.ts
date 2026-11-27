@@ -12,14 +12,14 @@ export function getMeetings(projectId: number, filters: MeetingFilters = {}, sig
 }
 export const getMeeting = (id: number, signal?: AbortSignal) => httpGet<MeetingDetail>(`/meetings/${id}`, signal)
 export const createMeeting = (projectId: number, body: CreateMeeting) => httpPost<Meeting>(`/projects/${projectId}/meetings`, body)
-export const updateMeeting = (id: number, body: MeetingSchedule & { concurrencyToken?: string }) => httpPut<Meeting>(`/meetings/${id}`, body)
-const meetingTokenQuery = (concurrencyToken?: string) => concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''
-export const cancelMeeting = (id: number, concurrencyToken?: string) => httpPost<Meeting>(`/meetings/${id}/cancel${meetingTokenQuery(concurrencyToken)}`)
-export const completeMeeting = (id: number, concurrencyToken?: string) => httpPost<Meeting>(`/meetings/${id}/complete${meetingTokenQuery(concurrencyToken)}`)
-export const updateMeetingNotes = (id: number, body: MeetingNotes & { concurrencyToken?: string }) => httpPut<Meeting>(`/meetings/${id}/notes`, body)
-export const addMeetingParticipant = (id: number, userId: number, concurrencyToken?: string) => httpPost<MeetingParticipant>(`/meetings/${id}/participants${meetingTokenQuery(concurrencyToken)}`, { userId, attendanceStatus: 'INVITED' })
-export const removeMeetingParticipant = (id: number, userId: number, concurrencyToken?: string) => httpDelete(`/meetings/${id}/participants/${userId}${meetingTokenQuery(concurrencyToken)}`)
-export const addMeetingFeedback = (id: number, feedbackText: string, concurrencyToken?: string) => httpPost<MeetingFeedback>(`/meetings/${id}/feedback${meetingTokenQuery(concurrencyToken)}`, { feedbackText })
+export const updateMeeting = (id: number, body: MeetingSchedule & { concurrencyToken: string }) => httpPut<Meeting>(`/meetings/${id}`, body)
+const meetingTokenQuery = (concurrencyToken: string) => `?${new URLSearchParams({ concurrencyToken })}`
+export const cancelMeeting = (id: number, concurrencyToken: string) => httpPost<Meeting>(`/meetings/${id}/cancel${meetingTokenQuery(concurrencyToken)}`)
+export const completeMeeting = (id: number, concurrencyToken: string) => httpPost<Meeting>(`/meetings/${id}/complete${meetingTokenQuery(concurrencyToken)}`)
+export const updateMeetingNotes = (id: number, body: MeetingNotes & { concurrencyToken: string }) => httpPut<Meeting>(`/meetings/${id}/notes`, body)
+export const addMeetingParticipant = (id: number, userId: number, concurrencyToken: string) => httpPost<MeetingParticipant>(`/meetings/${id}/participants${meetingTokenQuery(concurrencyToken)}`, { userId, attendanceStatus: 'INVITED' })
+export const removeMeetingParticipant = (id: number, userId: number, concurrencyToken: string) => httpDelete(`/meetings/${id}/participants/${userId}${meetingTokenQuery(concurrencyToken)}`)
+export const addMeetingFeedback = (id: number, feedbackText: string, concurrencyToken: string) => httpPost<MeetingFeedback>(`/meetings/${id}/feedback${meetingTokenQuery(concurrencyToken)}`, { feedbackText })
 export const getMeetingDecisions = (id: number, signal?: AbortSignal) => httpGet<PagedResult<MeetingDecision>>(`/meetings/${id}/decisions?page=1&pageSize=100`, signal)
 export const getMeetingActionItems = (id: number, signal?: AbortSignal) => httpGet<PagedResult<MeetingActionItem>>(`/meetings/${id}/action-items?page=1&pageSize=100`, signal)
 export const createMeetingDecision = (id: number, content: string, concurrencyToken: string) => httpPost<MeetingDecision>(`/meetings/${id}/decisions`, { content, concurrencyToken })

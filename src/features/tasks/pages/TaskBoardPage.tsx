@@ -111,7 +111,8 @@ export function TaskBoardPage() {
     if (access.readOnly || !draggingTaskId || !data) return
     const currentTask = data.items.find(t => t.id === draggingTaskId)
     setDraggingTaskId(null)
-    if (!currentTask || currentTask.status === targetStatus) return
+    const token = currentTask?.concurrencyToken
+    if (!currentTask || !token || currentTask.status === targetStatus) return
 
     const allowed = taskTransitions[currentTask.status] ?? []
     if (!allowed.includes(targetStatus)) {
@@ -128,7 +129,7 @@ export function TaskBoardPage() {
       await services.task.updateTaskStatus(currentTask.id, {
         newStatus: targetStatus,
         reason: null,
-        concurrencyToken: currentTask.concurrencyToken,
+        concurrencyToken: token,
       })
       refresh()
       setDragNotice(`Đã chuyển "${currentTask.title}" sang "${taskStatusLabel(targetStatus)}".`)
