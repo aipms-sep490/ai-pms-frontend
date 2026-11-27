@@ -17,7 +17,15 @@ function classify(error: unknown): SupervisionError {
     if (response.status === 401) return { kind: 'authentication', message: 'Phiên đăng nhập đã hết hạn.' }
     if (response.status === 403) return { kind: 'forbidden', message: 'Bạn không có quyền hoặc phạm vi đồ án để thực hiện thao tác này.' }
     if (response.status === 404) return { kind: 'not-found', message: 'Đồ án, yêu cầu hoặc giảng viên hướng dẫn không còn khả dụng.' }
-    if (response.status === 409) return { kind: 'conflict', message: humanizeHttpError(error, 'Trạng thái phân công hướng dẫn vừa thay đổi. Dữ liệu mới đã được tải; hãy chọn lại thao tác.') }
+    if (response.status === 409) {
+      if (error instanceof HttpError && error.problem?.code === 'SUPERVISOR_ROLE_CONFLICT') {
+        return {
+          kind: 'conflict',
+          message: error.problem.detail?.trim() || 'Giảng viên này đã đảm nhận hoặc đang có lời mời ở một vai trò khác trong đồ án này.',
+        }
+      }
+      return { kind: 'conflict', message: humanizeHttpError(error, 'Trạng thái phân công hướng dẫn vừa thay đổi. Dữ liệu mới đã được tải; hãy chọn lại thao tác.') }
+    }
     if (response.status === 400 || response.status === 422) return { kind: 'validation', message: humanizeHttpError(error, 'Hệ thống từ chối yêu cầu theo quy tắc nghiệp vụ.') }
   }
   return { kind: 'system', message: humanizeHttpError(error, 'Không thể tải hoặc xử lý dữ liệu giảng viên hướng dẫn.') }

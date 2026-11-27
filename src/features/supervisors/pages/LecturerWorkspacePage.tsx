@@ -24,7 +24,29 @@ type ProjectStatusFilter = 'ALL' | 'ACTIVE' | 'FINALSUBMISSION' | 'COMPLETED' | 
 type ProjectRoleFilter = 'ALL' | 'PRIMARY' | 'MENTOR' | 'CO'
 type ProjectSort = 'default' | 'attention' | 'title'
 type RequestStatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'REJECTED'
+type RequestRoleFilter = 'ALL' | 'PRIMARY' | 'MENTOR'
 type RequestSort = 'pending-first' | 'newest' | 'oldest'
+
+function requestRoleMeta(
+  request: { assignmentType?: string | null; majorId?: number | null },
+  majorNames: Map<number, string>,
+) {
+  if (request.assignmentType === 'DISCIPLINE_MENTOR') {
+    const majorLabel = request.majorId != null ? majorNames.get(request.majorId) : undefined
+    return {
+      isMentor: true,
+      badgeLabel: majorLabel ? `Mentor chuyên ngành · ${majorLabel}` : 'Mentor chuyên ngành',
+      modalAcceptTitle: majorLabel ? `Nhận làm Mentor chuyên ngành (${majorLabel})?` : 'Nhận làm Mentor chuyên ngành?',
+      modalRejectTitle: majorLabel ? `Từ chối lời mời Mentor chuyên ngành (${majorLabel})?` : 'Từ chối lời mời Mentor chuyên ngành?',
+    }
+  }
+  return {
+    isMentor: false,
+    badgeLabel: 'GVHD chính',
+    modalAcceptTitle: 'Nhận làm GVHD chính?',
+    modalRejectTitle: 'Từ chối lời mời GVHD chính?',
+  }
+}
 
 type PendingDecision =
   | { kind: 'supervision'; requestId: number; decision: 'accept' | 'reject'; title: string; subtitle: string }
@@ -64,6 +86,7 @@ export function LecturerWorkspacePage() {
 
   const [requestSearch, setRequestSearch] = useState('')
   const [requestStatus, setRequestStatus] = useState<RequestStatusFilter>('ALL')
+  const [requestRole, setRequestRole] = useState<RequestRoleFilter>('ALL')
   const [requestSort, setRequestSort] = useState<RequestSort>('pending-first')
 
   const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null)
@@ -136,13 +159,19 @@ export function LecturerWorkspacePage() {
           if (requestStatus === 'ACCEPTED' && req.status !== 'ACCEPTED' && req.status !== 'APPROVED') return false
           if (requestStatus !== 'ACCEPTED' && req.status !== requestStatus) return false
         }
+        const isMentor = req.assignmentType === 'DISCIPLINE_MENTOR'
+        if (requestRole === 'PRIMARY' && isMentor) return false
+        if (requestRole === 'MENTOR' && !isMentor) return false
         if (!q) return true
         const project = inbox.projects?.[req.projectId]
         const team = project ? inbox.teams?.[project.teamId] : null
+        const majorNames = new Map((project?.majors ?? []).map((major) => [major.majorId, major.majorName]))
+        const roleLabel = requestRoleMeta(req, majorNames).badgeLabel.toLowerCase()
         return (project?.title ?? '').toLowerCase().includes(q)
           || (project?.code ?? '').toLowerCase().includes(q)
           || (team?.name ?? '').toLowerCase().includes(q)
           || (req.requestMessage ?? '').toLowerCase().includes(q)
+          || roleLabel.includes(q)
       })
       .sort((a, b) => {
         if (requestSort === 'pending-first') {
@@ -153,7 +182,7 @@ export function LecturerWorkspacePage() {
         const tb = Date.parse(b.requestedAt ?? '') || 0
         return requestSort === 'oldest' ? ta - tb : tb - ta
       })
-  }, [inbox.projects, inbox.requests, inbox.teams, requestSearch, requestSort, requestStatus])
+  }, [inbox.projects, inbox.requests, inbox.teams, requestRole, requestSearch, requestSort, requestStatus])
 
   const projectPager = useClientPagination(filteredProjects, 10)
   const requestPager = useClientPagination(filteredRequests, 10)
@@ -173,13 +202,15 @@ export function LecturerWorkspacePage() {
     const request = inbox.requests.find((item) => item.id === requestId)
     if (!request) return
     const project = inbox.projects?.[request.projectId]
+    const majorNames = new Map((project?.majors ?? []).map((major) => [major.majorId, major.majorName]))
+    const role = requestRoleMeta(request, majorNames)
     setDecisionNote('')
     setPendingDecision({
       kind: 'supervision',
       requestId,
       decision,
-      title: decision === 'accept' ? 'Nhận hướng dẫn đồ án?' : 'Từ chối yêu cầu hướng dẫn?',
-      subtitle: project?.title ?? 'Xác nhận quyết định đối với yêu cầu hướng dẫn này.',
+      title: decision === 'accept' ? role.modalAcceptTitle : role.modalRejectTitle,
+      subtitle: `${role.badgeLabel}${project?.title ? ` — ${project.title}` : ''}`,
     })
   }
 
@@ -221,6 +252,7 @@ export function LecturerWorkspacePage() {
   const requestActiveChips = [
     ...(requestSearch.trim() ? [{ id: 'search', label: 'Từ khóa', value: requestSearch.trim() }] : []),
     ...(requestStatus !== 'ALL' ? [{ id: 'status', label: 'Trạng thái', value: displayLabel(requestStatus) }] : []),
+    ...(requestRole !== 'ALL' ? [{ id: 'role', label: 'Vai trò mời', value: requestRole === 'PRIMARY' ? 'GVHD chính' : 'Mentor chuyên ngành' }] : []),
   ]
 
   if (inbox.error?.kind === 'authentication') return <p className="p-6"><Link to="/login">Đăng nhập lại để tiếp tục.</Link></p>
@@ -422,6 +454,16 @@ export function LecturerWorkspacePage() {
                 { value: 'ACCEPTED', label: 'Đã chấp nhận', count: requestCounts.ACCEPTED },
                 { value: 'REJECTED', label: 'Đã từ chối', count: requestCounts.REJECTED },
               ]}
+              controls={
+                <label className="ft-select-wrap">
+                  <span className="sr-only">Vai trò lời mời</span>
+                  <select aria-label="Vai trò lời mời" value={requestRole} onChange={(e) => setRequestRole(e.target.value as RequestRoleFilter)} className="ft-select">
+                    <option value="ALL">Mọi vai trò</option>
+                    <option value="PRIMARY">GVHD chính</option>
+                    <option value="MENTOR">Mentor chuyên ngành</option>
+                  </select>
+                </label>
+              }
               sort={{
                 value: requestSort,
                 onChange: (value) => setRequestSort(value as RequestSort),
@@ -432,8 +474,8 @@ export function LecturerWorkspacePage() {
                 ],
               }}
               activeChips={requestActiveChips}
-              onRemoveChip={(id) => { if (id === 'search') setRequestSearch(''); if (id === 'status') setRequestStatus('ALL') }}
-              onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}
+              onRemoveChip={(id) => { if (id === 'search') setRequestSearch(''); if (id === 'status') setRequestStatus('ALL'); if (id === 'role') setRequestRole('ALL') }}
+              onClearAll={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestRole('ALL'); setRequestSort('pending-first') }}
               hasActiveFilters={requestActiveChips.length > 0 || requestSort !== 'pending-first'}
               resultSummary={requestActiveChips.length > 0 ? `Hiển thị ${filteredRequests.length} / ${inbox.requests.length} yêu cầu` : undefined}
               pagination={requestPager.showPagination ? { page: requestPager.page, pages: requestPager.pages, total: requestPager.total, pageSize: requestPager.pageSize, onPage: requestPager.setPage } : undefined}
@@ -446,7 +488,7 @@ export function LecturerWorkspacePage() {
             <WorkspaceEmptyState
               title="Không tìm thấy yêu cầu phù hợp"
               message="Thử bỏ bộ lọc để xem toàn bộ yêu cầu hướng dẫn."
-              action={<Button variant="secondary" onClick={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestSort('pending-first') }}>Xóa bộ lọc</Button>}
+              action={<Button variant="secondary" onClick={() => { setRequestSearch(''); setRequestStatus('ALL'); setRequestRole('ALL'); setRequestSort('pending-first') }}>Xóa bộ lọc</Button>}
             />
           ) : null}
 
@@ -454,13 +496,23 @@ export function LecturerWorkspacePage() {
             const project = inbox.projects?.[request.projectId]
             const team = project ? inbox.teams?.[project.teamId] : null
             const majorNames = new Map((project?.majors ?? []).map((major) => [major.majorId, major.majorName]))
+            const role = requestRoleMeta(request, majorNames)
             const isPending = request.status === 'PENDING'
             return <li key={request.id} className="lecturer-request text-sm">
               <details open={isPending} className="group">
                 <summary className="lecturer-request-summary">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                       <span className="material-symbols-outlined text-primary text-base" aria-hidden="true">mail</span>
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold ${
+                          role.isMentor
+                            ? 'border-tag-se/25 bg-tag-se-bg text-tag-se'
+                            : 'border-primary/25 bg-primary-subtle text-primary'
+                        }`}
+                      >
+                        {role.badgeLabel}
+                      </span>
                       <strong className="text-ink">{project?.title ?? 'Đồ án gửi lời mời'}{project?.code ? ` · ${project.code}` : ''}</strong>
                     </div>
                     <StatusBadge
@@ -469,7 +521,9 @@ export function LecturerWorkspacePage() {
                     />
                   </div>
                 </summary>
-                <p className="mt-3 text-xs text-ink-muted">Ngày gửi: {formatVnDate(request.requestedAt)}</p>
+                <p className="mt-3 text-xs text-ink-muted">
+                  Vai trò được mời: <strong className="text-ink-soft">{role.badgeLabel}</strong> · Ngày gửi: {formatVnDate(request.requestedAt)}
+                </p>
                 {team ? (
                   <div className="mt-3 lecturer-team rounded-r-md bg-canvas/60 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">

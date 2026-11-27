@@ -16,12 +16,27 @@ export const taskTransitions: Record<string, BackendTaskStatus[]> = {
   BLOCKED: ['IN_PROGRESS', 'TODO', 'CANCELLED'], IN_REVIEW: ['IN_PROGRESS', 'DONE', 'CANCELLED'],
   DONE: ['IN_PROGRESS', 'CANCELLED'], CANCELLED: ['TODO'],
 }
+const DETAIL_PRIORITY_CODES = new Set([
+  'MILESTONE_OUTSIDE_EXECUTION_WINDOW',
+  'TASK_OUTSIDE_EXECUTION_WINDOW',
+  'TASK_OUTSIDE_MILESTONE',
+  'PARENT_DATE_CONFLICT',
+  'MILESTONE_DEPENDENCY_ORDER_VIOLATION',
+])
+
+const VIETNAMESE_CHAR_RE = /[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]/i
+
 export function executionError(reason: unknown, action = 'tải dữ liệu'): string {
   if (reason instanceof HttpError) {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (reason.status === 403) return 'Bạn chưa có quyền thực hiện thao tác này.'
     if (reason.status === 404) return 'Không tìm thấy thông tin này. Có thể dữ liệu đã được xóa.'
-    const known = workflowErrorFromCode(reason.problem?.code)
+    const code = reason.problem?.code
+    const detail = reason.problem?.detail?.trim()
+    if (code && DETAIL_PRIORITY_CODES.has(code) && detail && VIETNAMESE_CHAR_RE.test(detail) && reason.status < 500) {
+      return detail
+    }
+    const known = workflowErrorFromCode(code)
     if (known && reason.status < 500) return known.message
     if (reason.status === 409) return 'Thông tin đã thay đổi hoặc thao tác không còn phù hợp. Cập nhật dữ liệu rồi thử lại.'
     if (reason.status === 400 || reason.status === 422) return 'Thông tin chưa hợp lệ. Kiểm tra các trường đã nhập rồi thử lại.'

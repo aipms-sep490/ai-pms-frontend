@@ -8,6 +8,7 @@ import { ExecutionPage, ExConfirm, ExIcon, ExProgress, ExState } from '../../exe
 import { executionError, milestoneLabels } from '../../execution/execution-utils'
 import { useExecutionMutation } from '../../execution/useExecutionMutation'
 import { services } from '../../../services/service-gateway'
+import type { ProjectExecutionWindowDto } from '../../../services/api/milestones.api'
 import type { MilestoneDto, MilestoneProgressDto } from '../../../types/backend'
 import { dateLabel } from '../../projects/utils/collaboration-workspace'
 import { useMilestoneExecutionCapabilities } from '../../execution/hooks/useMilestoneExecutionCapabilities'
@@ -44,6 +45,7 @@ export function MilestoneDetailPage() {
   const canReorder = canUseProjectExecutionAction(access, 'reorder_milestones')
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [progress, setProgress] = useState<MilestoneProgressDto[]>([])
+  const [executionWindow, setExecutionWindow] = useState<ProjectExecutionWindowDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [progressError, setProgressError] = useState('')
@@ -93,6 +95,15 @@ export function MilestoneDetailPage() {
     }).finally(() => {
       if (!controller.signal.aborted) setProgressLoading(false)
     })
+    if (typeof services.milestone.getProjectExecutionWindow === 'function') {
+      services.milestone.getProjectExecutionWindow(project.id, controller.signal).then(window => {
+        if (!controller.signal.aborted) setExecutionWindow(window ?? null)
+      }).catch(() => {
+        if (!controller.signal.aborted) setExecutionWindow(null)
+      })
+    } else {
+      setExecutionWindow(null)
+    }
     return () => controller.abort()
   }, [project.id, revision])
 
@@ -231,6 +242,7 @@ export function MilestoneDetailPage() {
           {mutation.error && <p className="ex-notice ex-notice-error" role="alert">{mutation.error}</p>}
           <MilestoneForm
             key="create"
+            executionWindow={executionWindow}
             busy={mutation.busy}
             onCancel={() => setCreating(false)}
             onSubmit={payload => mutation.run(
@@ -255,6 +267,7 @@ export function MilestoneDetailPage() {
           <MilestoneForm
             key={`${selected.id}:${selected.updatedAt}`}
             milestone={selected}
+            executionWindow={executionWindow}
             busy={mutation.busy}
             onCancel={() => setEditing(false)}
             onSubmit={payload => save({ ...payload, sortOrder: selected.sortOrder })}
@@ -493,13 +506,23 @@ export function MilestoneDetailPage() {
   )
 }
 
-function MilestoneForm({ milestone, busy, onCancel, onSubmit }: {
+function formatIsoDateVn(isoDate: string): string {
+  const parts = isoDate.slice(0, 10).split('-')
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : isoDate
+}
+
+function MilestoneForm({ milestone, executionWindow, busy, onCancel, onSubmit }: {
   milestone?: MilestoneDto
+  executionWindow?: ProjectExecutionWindowDto | null
   busy: boolean
   onCancel: () => void
   onSubmit: (payload: Omit<import('../../../services/api/milestones.api').UpdateMilestonePayload, 'sortOrder' | 'concurrencyToken'>) => Promise<boolean>
 }) {
   const [validation, setValidation] = useState('')
+  const winStart = executionWindow?.startDate?.slice(0, 10)
+  const winEnd = executionWindow?.endDate?.slice(0, 10)
+  const winRangeLabel = winStart && winEnd ? `${formatIsoDateVn(winStart)} – ${formatIsoDateVn(winEnd)}` : null
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -509,6 +532,16 @@ function MilestoneForm({ milestone, busy, onCancel, onSubmit }: {
     if (!title || (startDate && dueDate && dueDate < startDate)) {
       setValidation('Nhập tên mốc và chọn hạn bằng hoặc sau ngày bắt đầu.')
       return
+    }
+    if (winStart && winEnd) {
+      if (startDate && (startDate < winStart || startDate > winEnd)) {
+        setValidation(`Ngày bắt đầu mốc phải nằm trong khung đợt thực hiện (${winRangeLabel}).`)
+        return
+      }
+      if (dueDate && (dueDate < winStart || dueDate > winEnd)) {
+        setValidation(`Hạn hoàn thành của mốc phải nằm trong khung đợt thực hiện (${winRangeLabel}).`)
+        return
+      }
     }
     setValidation('')
     void onSubmit({
@@ -522,6 +555,12 @@ function MilestoneForm({ milestone, busy, onCancel, onSubmit }: {
   return (
     <form className="ex-form !p-0" onSubmit={submit}>
       <fieldset disabled={busy}>
+        {winRangeLabel && (
+          <p className="mb-3 rounded-lg border border-hairline bg-canvas px-3 py-2 text-xs leading-relaxed text-ink-soft">
+            <strong className="text-ink">Khung đợt thực hiện{executionWindow?.name ? ` (${executionWindow.name})` : ''}:</strong>{' '}
+            <span className="font-semibold text-primary">{winRangeLabel}</span>. Ngày bắt đầu và hạn hoàn thành của mốc cần nằm trong khoảng thời gian này.
+          </p>
+        )}
         <div className="ex-fields">
           <label className="ex-full">
             Tên mốc
@@ -533,11 +572,11 @@ function MilestoneForm({ milestone, busy, onCancel, onSubmit }: {
           </label>
           <label>
             Bắt đầu dự kiến
-            <input name="startDate" type="date" defaultValue={milestone?.startDate ?? ''} />
+            <input name="startDate" type="date" min={winStart} max={winEnd} defaultValue={milestone?.startDate ?? ''} />
           </label>
           <label>
             Hạn hoàn thành
-            <input name="dueDate" type="date" defaultValue={milestone?.dueDate ?? ''} />
+            <input name="dueDate" type="date" min={winStart} max={winEnd} defaultValue={milestone?.dueDate ?? ''} />
           </label>
           {milestone && (
             <label className="ex-full">

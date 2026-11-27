@@ -187,4 +187,35 @@ describe('ProjectReviewPage', () => {
     expect(screen.getByLabelText('So sánh thay đổi')).toBeTruthy()
     expect(screen.getByText('Lần nộp #1')).toBeTruthy()
   })
+
+  it('hides the blocked approval verdict and shows a clean completion summary once the project is ACTIVE', () => {
+    hook.useProjectReview.mockReturnValue(reviewState({
+      project: { code: 'PRJ-3F', title: 'Đồ án đã duyệt', teamName: 'Nhóm 28', status: 'ACTIVE' },
+      workflow: {
+        status: 'ACTIVE',
+        actions: [
+          { code: 'approve_project', allowed: false, reasons: ['LEAD_DEPARTMENT_REVIEWER_REQUIRED', 'INVALID_PROJECT_STATE'] },
+        ],
+      },
+    }))
+    detailPage()
+    expect(screen.getByText('Đề cương đã hoàn tất thẩm định')).toBeTruthy()
+    expect(screen.queryByText('Chưa thể phê duyệt đề cương')).toBeNull()
+    expect(screen.queryByText('INVALID_PROJECT_STATE')).toBeNull()
+    expect(screen.queryByText('LEAD_DEPARTMENT_REVIEWER_REQUIRED')).toBeNull()
+  })
+
+  it('translates raw backend workflow reason codes to Vietnamese while the project is still under review', () => {
+    hook.useProjectReview.mockReturnValue(reviewState({
+      workflow: {
+        status: 'UNDER_REVIEW',
+        actions: [
+          { code: 'approve_project', allowed: false, reasons: ['LEAD_DEPARTMENT_REVIEWER_REQUIRED'] },
+        ],
+      },
+    }))
+    detailPage()
+    expect(screen.getByText(/Chỉ cán bộ bộ môn chủ trì mới có quyền phê duyệt cuối cùng/)).toBeTruthy()
+    expect(screen.queryByText('LEAD_DEPARTMENT_REVIEWER_REQUIRED')).toBeNull()
+  })
 })

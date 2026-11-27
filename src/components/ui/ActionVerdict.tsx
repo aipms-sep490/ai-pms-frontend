@@ -1,6 +1,7 @@
 import { createContext, useContext, useId, type ReactNode } from 'react'
 import type { WorkflowActionDto } from '../../types/backend'
 import { WorkflowActionGate, type WorkflowActionGateState } from './WorkflowActionGate'
+import { humanizeWorkflowReason } from './workflow-action-gate'
 import { badgeToneClass, type BadgeTone } from './status-badge-tone'
 
 type VerdictContextValue = { state: WorkflowActionGateState; explanationId: string }
@@ -40,7 +41,7 @@ function ActionVerdictPanel({ actions, actionCode, status, okLabel = 'Điều ki
                 </div>
                 {state === 'denied' && (
                   reasons.length > 0
-                    ? <ul className="mt-2 list-disc space-y-1 pl-8">{reasons.map((reason, index) => <li key={`${reason}-${index}`}>{reason}</li>)}</ul>
+                    ? <ul className="mt-2 list-disc space-y-1 pl-8">{reasons.map((reason, index) => <li key={`${reason}-${index}`}>{humanizeWorkflowReason(reason)}</li>)}</ul>
                     : <p className="mt-2 pl-8">Hệ thống chặn thao tác này nhưng không nêu lý do. Tải lại quyền thao tác hoặc liên hệ quản trị.</p>
                 )}
               </div>
