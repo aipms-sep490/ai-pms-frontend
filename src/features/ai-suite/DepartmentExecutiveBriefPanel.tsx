@@ -11,11 +11,9 @@ import { AiSuiteCardShell } from './AiSuiteCardShell'
 export function DepartmentExecutiveBriefPanel({
   departmentId,
   semesterId,
-  routePrefix = '/department',
 }: {
   departmentId?: number
   semesterId?: number
-  routePrefix?: '/department' | '/admin'
 }) {
   const [data, setData] = useState<DepartmentExecutiveBriefDto | null>(null)
   const [loading, setLoading] = useState(false)
@@ -54,7 +52,7 @@ export function DepartmentExecutiveBriefPanel({
   const markdown = data
     ? [
         `# ${data.headline}`,
-        `Phạm vi: **${data.scopeName}** · Đang thực hiện: ${data.totalActiveProjects} · Rủi ro cao: ${data.atRiskProjectCount} · Nhóm im lặng ≥14 ngày: ${data.silentTeamCount} · Phúc khảo chờ xử lý: ${data.pendingAppealsCount}`,
+        `Phạm vi: **${data.scopeName}** · Đang thực hiện: ${data.totalActiveProjects} · Rủi ro cao: ${data.atRiskProjectCount} · Nhóm im lặng ≥10 ngày: ${data.silentTeamCount} · Phúc khảo chờ xử lý: ${data.pendingAppealsCount}`,
         '',
         data.executiveSummary,
         '',
@@ -71,7 +69,7 @@ export function DepartmentExecutiveBriefPanel({
       icon="summarize"
       title="AI Bản tin Điều hành Tuần cho Ban Chủ nhiệm Khoa (Executive Brief)"
       badge="AI Điều hành Khoa"
-      subtitle="Tổng hợp tự động toàn bộ đồ án đang chạy, nhóm nguy cơ trễ/im lặng ≥14 ngày, tải hướng dẫn giảng viên và đơn phúc khảo chờ xử lý."
+      subtitle="Tổng hợp tự động toàn bộ đồ án đang chạy, nhóm nguy cơ trễ/im lặng ≥10 ngày, tải hướng dẫn giảng viên và đơn phúc khảo chờ xử lý."
       meta={data?.meta}
       markdownText={markdown}
       error={error}
@@ -101,7 +99,7 @@ export function DepartmentExecutiveBriefPanel({
               <div className="ais-kpi-value text-status-error-text">{data.atRiskProjectCount}</div>
             </div>
             <div className="ais-kpi-tile">
-              <div className="ais-kpi-label">Nhóm im lặng ≥14 ngày</div>
+              <div className="ais-kpi-label">Nhóm im lặng ≥10 ngày</div>
               <div className="ais-kpi-value text-status-warning-text">{data.silentTeamCount}</div>
             </div>
             <div className="ais-kpi-tile">
@@ -138,7 +136,7 @@ export function DepartmentExecutiveBriefPanel({
                     <div className="pt-1">
                       <Link
                         className="font-semibold text-primary underline"
-                        to={routePrefix === '/admin' ? `/admin/projects/${p.projectId}/result` : `/department/projects/${p.projectId}/governance`}
+                        to={`/department/projects/${p.projectId}/governance`}
                       >
                         Mở hồ sơ đồ án →
                       </Link>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { env } from '../../app/config/env'
 import {
   analyzeContributionFairness,
   formatAiSuiteError,
@@ -12,12 +13,9 @@ const SIGNAL_META: Record<string, { label: string; cls: string }> = {
   BALANCED: { label: 'Cân bằng tốt', cls: 'ais-pill ais-pill--success' },
   OVERLOADED_BURNOUT: { label: 'Nguy cơ quá tải / Burnout', cls: 'ais-pill ais-pill--warning' },
   LOW_ENGAGEMENT_RISK: { label: 'Tương tác thấp / Free-rider risk', cls: 'ais-pill ais-pill--danger' },
-  PEER_MISMATCH: { label: 'Lệch đánh giá chéo', cls: 'ais-pill ais-pill--warning' },
 }
 
-const HIGH_RISK_AI_ENABLED = import.meta.env.VITE_ENABLE_HIGH_RISK_AI === 'true'
-
-export function ContributionFairnessPanel({ projectId, enabled = HIGH_RISK_AI_ENABLED }: { projectId: number; enabled?: boolean }) {
+export function ContributionFairnessPanel({ projectId, enabled = env.highRiskAiEnabled }: { projectId: number; enabled?: boolean }) {
   const [data, setData] = useState<ContributionFairnessDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingLatest, setLoadingLatest] = useState(false)
@@ -136,10 +134,7 @@ export function ContributionFairnessPanel({ projectId, enabled = HIGH_RISK_AI_EN
                     <span>Trễ hạn: <strong className={m.tasksOverdue > 0 ? 'text-status-error-text' : 'text-ink'}>{m.tasksOverdue}</strong></span>
                     <span>· Trao đổi: <strong>{m.commentCount}</strong></span>
                     <span>· Dự họp: <strong>{m.meetingsAttended}</strong></span>
-                    {m.averageWeeklyScore != null && <span>· Điểm tuần TB: <strong>{m.averageWeeklyScore}</strong></span>}
-                    {data.includesPrivateSignals && m.averagePeerRating != null && (
-                      <span className="text-primary">· Peer Rating: <strong>{m.averagePeerRating.toFixed(1)}/5</strong></span>
-                    )}
+                    {m.averageWeeklyScore != null && <span>· Điểm tuần tham khảo (0%): <strong>{m.averageWeeklyScore}</strong></span>}
                   </div>
 
                   <p className="text-xs leading-relaxed text-ink-soft">{m.assessment}</p>

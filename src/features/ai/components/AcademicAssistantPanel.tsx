@@ -33,7 +33,7 @@ type QuickCard = { icon: string; title: string; detail: string; query: string; m
 
 function buildQuickCards(projectId: number | undefined, userRoles: readonly string[] | undefined): QuickCard[] {
   const roles = (userRoles ?? []).map(r => r.toUpperCase())
-  const isStaff = roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')
+  const isStaff = roles.includes('DEPARTMENT_STAFF')
   const isLecturer = roles.includes('LECTURER') && !isStaff
 
   if (projectId) {

@@ -7,7 +7,19 @@ import { HttpError } from '../../services/http/http-client'
 const mocks = vi.hoisted(() => ({
   detail: vi.fn(), messages: vi.fn(), members: vi.fn(), send: vi.fn(), read: vi.fn(), aiSummary: vi.fn(), aiAssist: vi.fn(),
   revision: 0, changedConversations: null as Set<string> | null, refresh: vi.fn(), on: vi.fn(), off: vi.fn(), invoke: vi.fn(),
+  chatAiEnabled: true,
 }))
+vi.mock('../../app/config/env', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../app/config/env')>()
+  return {
+    env: new Proxy(actual.env, {
+      get(target, prop, receiver) {
+        if (prop === 'chatAiEnabled') return mocks.chatAiEnabled
+        return Reflect.get(target, prop, receiver)
+      },
+    }),
+  }
+})
 vi.mock('./chat-api', async importOriginal => ({ ...(await importOriginal<object>()), chatApi: mocks }))
 vi.mock('./ChatProvider', () => ({ useChat: () => ({ connection: mocks, state: 'connected', revision: mocks.revision, changedConversations:mocks.changedConversations, refresh: mocks.refresh }) }))
 const message = { id: '1', conversationId: '9', sequence: '1', senderId: '2', senderName: 'Người hướng dẫn', clientMessageId: 'first', body: '<script>alert(1)</script>', createdAt: '2026-10-07T01:00:00Z', recalledAt: null, editedAt: null, reply: null, concurrencyToken: 'token', canEdit: true, canRecall: true }
@@ -16,6 +28,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   mocks.revision = 0
   mocks.changedConversations = null
+  mocks.chatAiEnabled = true
   vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} })
   mocks.detail.mockResolvedValue(room)
   mocks.messages.mockResolvedValue({ items: [message], nextCursor: null, hasMore: false })
@@ -119,6 +132,15 @@ describe('chat business and failure boundaries', () => {
     expect(screen.getByRole('button', { name: 'Sửa tin nhắn' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Thu hồi tin nhắn' })).toBeTruthy()
   })
+  it('hides chat AI controls when chatAiEnabled is disabled', async () => {
+    mocks.chatAiEnabled = false
+    mount()
+    await screen.findByText(message.body)
+    expect(screen.queryByRole('button', { name: 'Hỏi AI' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gợi ý trả lời' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Hỏi đoạn chat' })).toBeNull()
+  })
+
   it('asks AI for a summary and renders decisions and action items', async () => {
     mount()
     await screen.findByText(message.body)

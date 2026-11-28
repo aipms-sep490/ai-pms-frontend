@@ -87,7 +87,7 @@ export function AssistantReviewGateSetupCard({
   }
 
   function addGate() {
-    if (gates.length >= 10) return
+    if (gates.length >= 3) return
     const nextIdx = gates.length + 1
     setGates(prev => [
       ...prev,
@@ -100,8 +100,8 @@ export function AssistantReviewGateSetupCard({
         startDate: null,
         endDate: null,
         required: true,
-        blockNextGate: false,
-        blocksDefense: false,
+        blockNextGate: nextIdx < 3,
+        blocksDefense: nextIdx === 3,
         reviewerPolicy: 'COUNCIL',
         reviewScope: mode === 'INTERDISCIPLINARY' ? 'HYBRID' : 'COMMON',
         requirements: [
@@ -114,6 +114,7 @@ export function AssistantReviewGateSetupCard({
             majorName: null,
             verification: 'HUMAN',
             required: true,
+            targetCardinality: 'TEAM',
           },
         ],
       },
@@ -152,6 +153,7 @@ export function AssistantReviewGateSetupCard({
                   majorName: null,
                   verification: 'HUMAN',
                   required: true,
+                  targetCardinality: 'TEAM',
                 },
               ],
             },
@@ -298,13 +300,13 @@ export function AssistantReviewGateSetupCard({
 
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Danh sách cổng ({gates.length})</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">Danh sách cổng ({gates.length}/3 — cố định G1–G3)</h4>
           {!applied && (
             <button
               type="button"
-              className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-subtle"
+              className="inline-flex min-h-9 items-center rounded-lg border border-hairline bg-card px-3 text-xs font-semibold text-primary hover:border-primary hover:bg-primary-subtle disabled:cursor-not-allowed disabled:opacity-50"
               onClick={addGate}
-              disabled={busy || gates.length >= 10}
+              disabled={busy || gates.length >= 3}
             >
               + Thêm cổng
             </button>
@@ -443,7 +445,7 @@ export function AssistantReviewGateSetupCard({
                       )}
                     </div>
                     {gate.requirements.map((req, rIdx) => (
-                      <div key={`${req.code}-${rIdx}`} className="grid gap-2 rounded-lg border border-hairline bg-canvas p-2.5 sm:grid-cols-[1fr_130px_130px_auto]">
+                      <div key={`${req.code}-${rIdx}`} className="grid gap-2 rounded-lg border border-hairline bg-canvas p-2.5 sm:grid-cols-[1fr_120px_130px_130px_auto]">
                         <input
                           aria-label={`Tên yêu cầu ${rIdx + 1} cổng ${gate.code}`}
                           className="min-h-9 rounded-lg border border-hairline bg-card px-2.5 text-xs text-ink"
@@ -468,10 +470,22 @@ export function AssistantReviewGateSetupCard({
                           className="min-h-9 rounded-lg border border-hairline bg-card px-2 text-xs text-ink"
                           value={req.scope}
                           disabled={busy || Boolean(applied)}
-                          onChange={e => updateRequirement(gIdx, rIdx, { scope: e.target.value, majorName: e.target.value === 'COMMON' ? null : req.majorName })}
+                          onChange={e => updateRequirement(gIdx, rIdx, { scope: e.target.value, majorName: e.target.value === 'MAJOR_SPECIFIC' ? req.majorName : null })}
                         >
                           <option value="COMMON">Dùng chung</option>
                           <option value="MAJOR_SPECIFIC">Theo ngành</option>
+                          <option value="INTEGRATION">Tích hợp liên ngành</option>
+                        </select>
+                        <select
+                          aria-label={`Đối tượng nộp ${req.code}`}
+                          className="min-h-9 rounded-lg border border-hairline bg-card px-2 text-xs text-ink"
+                          value={req.targetCardinality ?? 'TEAM'}
+                          disabled={busy || Boolean(applied)}
+                          onChange={e => updateRequirement(gIdx, rIdx, { targetCardinality: e.target.value })}
+                        >
+                          <option value="TEAM">Cả nhóm (TEAM)</option>
+                          <option value="EACH_STUDENT">Từng SV (EACH_STUDENT)</option>
+                          <option value="PROJECT">Đồ án (PROJECT)</option>
                         </select>
                         {!applied && gate.requirements.length > 1 && (
                           <button

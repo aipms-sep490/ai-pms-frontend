@@ -30,7 +30,7 @@ export function AssistantDock() {
   const workflowBase = routeBase ?? pathname.match(/^\/department\/projects\/\d+/)?.[0] ?? pathname.match(/^\/mentor\/projects\/\d+\/majors\/\d+/)?.[0]
   const isStudentLeader = Boolean(routeBase === '/project' && journey?.team?.members.some(member => member.userId === session.user.id && member.isLeader))
   const canApplyProjectSetup = Boolean(projectId && (isStudentLeader || pathname.startsWith('/supervisor/projects/')))
-  const canApplyRubricSetup = roles.includes('DEPARTMENT_STAFF') || roles.includes('ADMIN')
+  const canApplyRubricSetup = roles.includes('DEPARTMENT_STAFF')
   return createPortal(
     <SessionAssistantDock
       key={session.user.id}
@@ -323,7 +323,9 @@ function AssistantDockContent({
 }) {
   const [view, setView] = useState<'chat' | 'risk' | 'workflow'>('chat')
   const [riskOpened, setRiskOpened] = useState(false)
-  const hasRisk = env.aiProgressRiskEnabled && !!projectId
+  const normalizedRoles = (userRoles ?? []).map(role => role.toUpperCase())
+  const isStudentOnly = normalizedRoles.includes('STUDENT') && !normalizedRoles.includes('LECTURER') && !normalizedRoles.includes('DEPARTMENT_STAFF')
+  const hasRisk = env.aiProgressRiskEnabled && !!projectId && !isStudentOnly
   const showRisk = hasRisk && view === 'risk'
   const showWorkflow = !!projectId && view === 'workflow'
   useEffect(() => { setView('chat') }, [reset])

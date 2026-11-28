@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { env } from '../../app/config/env'
 import {
   assistAppealReview,
   checkScoreCalibration,
@@ -19,12 +20,10 @@ const CONF_META: Record<string, { label: string; cls: string }> = {
   LOW: { label: 'Cần xác minh', cls: 'ais-pill ais-pill--danger' },
 }
 
-const HIGH_RISK_AI_ENABLED = import.meta.env.VITE_ENABLE_HIGH_RISK_AI === 'true'
-
 export function RubricGradingCopilotPanel({
   assignmentId,
   disabled = false,
-  enabled = HIGH_RISK_AI_ENABLED,
+  enabled = env.highRiskAiEnabled,
   onApplyCriterionComment,
   onApplyAllComments,
 }: {
@@ -57,23 +56,23 @@ export function RubricGradingCopilotPanel({
   return (
     <AiSuiteCardShell
       icon="grading"
-      title="AI Trợ lý Chấm Rubric theo Minh chứng"
-      badge="AI Gợi ý chấm điểm"
-      subtitle="Đối chiếu hồ sơ nộp, tiến độ và biên bản họp với từng tiêu chí Rubric. AI chỉ gợi ý khoảng điểm & nhận xét nháp — giảng viên tự nhập và chốt điểm chính thức."
+      title="AI Trợ lý Rà soát Minh chứng theo Rubric (Chống neo điểm)"
+      badge="AI Tổng hợp minh chứng"
+      subtitle="Đối chiếu hồ sơ nộp, tiến độ và biên bản họp với từng tiêu chí Rubric. Chế độ Anti-Anchoring: AI chỉ tổng hợp bằng chứng và nhận xét định tính — không gợi ý điểm số."
       meta={data?.meta}
       error={error}
       notice={notice}
       actions={
         <button type="button" className="ais-btn ais-btn--primary" disabled={disabled || loading} onClick={() => void handleRun()}>
           <span className="material-symbols-outlined text-[16px]" aria-hidden="true">auto_awesome</span>
-          {loading ? 'Đang đối chiếu minh chứng…' : data ? 'Phân tích lại' : 'AI Gợi ý theo Rubric'}
+          {loading ? 'Đang đối chiếu minh chứng…' : data ? 'Phân tích lại' : 'AI Rà soát minh chứng'}
         </button>
       }
     >
       {data && (
         <div className="space-y-3 text-xs">
           <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-2.5 text-status-warning-text font-medium">
-            {data.disclaimer || 'Lưu ý học thuật: AI chỉ cung cấp nhận xét tham khảo; giảng viên hoàn toàn chủ động quyết định điểm chính thức.'}
+            {data.disclaimer || 'Chế độ Chống neo điểm (Anti-Anchoring): AI chỉ tổng hợp bằng chứng và nhận xét định tính — không gợi ý điểm số. Giám khảo độc lập quyết định điểm chính thức.'}
           </div>
           <p className="leading-relaxed text-ink-soft">{data.overallSummary}</p>
 
@@ -88,7 +87,7 @@ export function RubricGradingCopilotPanel({
               }}
             >
               <span className="material-symbols-outlined text-[16px]" aria-hidden="true">playlist_add_check</span>
-              Điền tất cả nhận xét nháp (giữ nguyên điểm để giảng viên tự nhập)
+              Điền tất cả nhận xét nháp (giám khảo tự nhập điểm)
             </button>
           )}
 
@@ -100,12 +99,7 @@ export function RubricGradingCopilotPanel({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <strong className="text-ink">{c.criterionName}</strong>
-                      <span className="ais-pill ais-pill--ai">Mức gợi ý: {c.suggestedLevel}</span>
-                      {c.suggestedScoreMin != null && c.suggestedScoreMax != null && (
-                        <span className="ais-pill ais-pill--neutral">
-                          Tham khảo: {c.suggestedScoreMin}–{c.suggestedScoreMax}/{c.maxScore ?? 10}
-                        </span>
-                      )}
+                      <span className="ais-pill ais-pill--ai">{c.suggestedLevel || 'Cần giám khảo tự đánh giá'}</span>
                       <span className={conf.cls}>{conf.label}</span>
                     </div>
                     {onApplyCriterionComment && (
@@ -154,10 +148,12 @@ const CALIB_STATUS: Record<string, { label: string; cls: string }> = {
   HIGH_VARIANCE: { label: 'Cảnh báo lệch điểm lớn giữa giám khảo', cls: 'ais-pill ais-pill--danger' },
 }
 
-export function ScoreCalibrationPanel({ projectId }: { projectId: number }) {
+export function ScoreCalibrationPanel({ projectId, enabled = env.highRiskAiEnabled }: { projectId: number; enabled?: boolean }) {
   const [data, setData] = useState<ScoreCalibrationDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  if (!enabled) return null
 
   const handleCheck = async () => {
     setLoading(true)
@@ -227,14 +223,12 @@ export function ScoreCalibrationPanel({ projectId }: { projectId: number }) {
 }
 
 const MERIT_META: Record<string, { label: string; cls: string }> = {
-  LIKELY_MERIT: { label: 'Có cơ sở cần xem xét điều chỉnh', cls: 'ais-pill ais-pill--warning' },
-  NEEDS_MANUAL_CHECK: { label: 'Cần đối chiếu trực tiếp hồ sơ gốc', cls: 'ais-pill ais-pill--ai' },
-  WEAK_BASIS: { label: 'Cơ sở khiếu nại yếu', cls: 'ais-pill ais-pill--neutral' },
+  NEEDS_MANUAL_CHECK: { label: 'Cần đối chiếu trực tiếp hồ sơ gốc (Chống neo điểm)', cls: 'ais-pill ais-pill--ai' },
 }
 
 export function AppealAssistPanel({
   appealId,
-  enabled = HIGH_RISK_AI_ENABLED,
+  enabled = env.highRiskAiEnabled,
   onUseDraftResponse,
 }: {
   appealId: number

@@ -218,7 +218,6 @@ export function DepartmentWorkspacePage() {
         <DepartmentExecutiveBriefPanel
           departmentId={academic.academic?.departments?.[0]?.id}
           semesterId={semesterId}
-          routePrefix="/department"
         />
       )}
 

@@ -98,6 +98,8 @@ export const suggestEvaluationScheme = (projectId: number) =>
 
 export function formatAiSuiteError(error: unknown, fallback = 'Chưa thể chạy phân tích AI lúc này. Vui lòng thử lại.'): string {
   if (error instanceof HttpError) {
+    if (error.problem?.code === 'AI_FEATURE_DISABLED') return 'Tính năng AI này hiện đang tắt theo cấu hình hệ thống.'
+    if (error.problem?.code === 'AI_DAILY_QUOTA_EXCEEDED' || error.status === 429) return 'Bạn đã đạt giới hạn lượt sử dụng AI trong ngày. Vui lòng thử lại sau.'
     if (error.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (error.status === 403) return error.problem?.detail || 'Bạn không có quyền sử dụng công cụ AI trong phạm vi này.'
     if (error.status === 404) return error.problem?.detail || 'Không tìm thấy dữ liệu đồ án hoặc mục tiêu cần phân tích.'

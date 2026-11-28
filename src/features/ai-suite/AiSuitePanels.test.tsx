@@ -266,7 +266,7 @@ describe('AI Copilot Suite — All 8 Modules', () => {
     expect(hiddenCopilot.innerHTML).toBe('')
 
     render(<RubricGradingCopilotPanel assignmentId={83} enabled onApplyCriterionComment={onApplyComment} onApplyAllComments={onApplyAll} />)
-    fireEvent.click(screen.getByRole('button', { name: /AI Gợi ý theo Rubric/i }))
+    fireEvent.click(screen.getByRole('button', { name: /AI Rà soát minh chứng/i }))
     expect(await screen.findByText(/Kiến trúc phân lớp rõ ràng/i)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Điền nhận xét này/i }))
     expect(onApplyComment).toHaveBeenCalledWith(82, 'Kiến trúc phân lớp rõ ràng.')
@@ -281,7 +281,11 @@ describe('AI Copilot Suite — All 8 Modules', () => {
       meta,
     })
 
-    render(<ScoreCalibrationPanel projectId={20} />)
+    // TK-W0-09: Hidden by default unless explicitly enabled
+    const { container: hiddenCalibration } = render(<ScoreCalibrationPanel projectId={20} />)
+    expect(hiddenCalibration.innerHTML).toBe('')
+
+    render(<ScoreCalibrationPanel projectId={20} enabled />)
     fireEvent.click(screen.getByRole('button', { name: /AI Kiểm tra độ lệch điểm/i }))
     expect(await screen.findByText(/Lệch tổng điểm 3.5/i)).toBeTruthy()
 
@@ -455,7 +459,7 @@ describe('AI Copilot Suite — All 8 Modules', () => {
 
     render(
       <MemoryRouter>
-        <DepartmentExecutiveBriefPanel departmentId={1} routePrefix="/department" />
+        <DepartmentExecutiveBriefPanel departmentId={1} />
       </MemoryRouter>,
     )
     fireEvent.click(screen.getByRole('button', { name: /AI Tổng hợp bản tin tuần/i }))

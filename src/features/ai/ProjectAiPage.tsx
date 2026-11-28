@@ -88,8 +88,12 @@ function ProjectAiView({ showLegacyAsk }: { showLegacyAsk: boolean }) {
         </div>
       ) : undefined}
     >
-      <ProjectProgressAnalysisPanel projectId={project.id} onSaved={() => setHistoryRevision(revision => revision + 1)} />
-      <ProjectAiDigestCard projectId={project.id} />
+      {actor !== 'student' && (
+        <>
+          <ProjectProgressAnalysisPanel projectId={project.id} onSaved={() => setHistoryRevision(revision => revision + 1)} />
+          <ProjectAiDigestCard projectId={project.id} />
+        </>
+      )}
 
       {env.academicAiAssistantEnabled ? (
         <section className="assistant-embedded-card rounded-xl border border-hairline bg-card shadow-xs overflow-hidden">

@@ -48,6 +48,8 @@ export interface KnowledgeFailure {
 export function knowledgeFailure(reason: unknown, action = 'load'): KnowledgeFailure {
   if (reason instanceof HttpError) {
     if (reason.problem?.code === 'AI_KNOWLEDGE_DISABLED') return { message: 'Trợ lý AI học vụ đang tắt. Liên hệ quản trị viên để kiểm tra cấu hình.', retryable: false }
+    if (reason.problem?.code === 'AI_FEATURE_DISABLED') return { message: 'Tính năng AI này hiện đang tắt theo cấu hình hệ thống.', retryable: false }
+    if (reason.problem?.code === 'AI_DAILY_QUOTA_EXCEEDED' || reason.status === 429) return { message: 'Bạn đã đạt giới hạn lượt sử dụng AI trong ngày. Vui lòng thử lại vào ngày mai.', retryable: false }
     if (reason.status === 401) return { message: 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.', retryable: false }
     if (reason.status === 403) return { message: 'Bạn không có quyền quản lý tài liệu này hoặc tài liệu nằm ngoài phạm vi bộ môn của bạn.', retryable: false }
     if (reason.status === 404) return { message: 'Không tìm thấy tài liệu hoặc phiên bản. Tải lại danh sách để kiểm tra dữ liệu hiện tại.', retryable: false }

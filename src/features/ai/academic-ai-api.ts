@@ -178,10 +178,11 @@ export interface AssistantReviewGateRequirementDraft {
   title: string
   description?: string | null
   type: 'FILE' | 'EXTERNAL_LINK' | 'TEXT' | 'ARTIFACT' | string
-  scope: 'COMMON' | 'MAJOR_SPECIFIC' | string
+  scope: 'COMMON' | 'MAJOR_SPECIFIC' | 'INTEGRATION' | string
   majorName?: string | null
   verification: 'HUMAN' | 'AUTO' | string
   required: boolean
+  targetCardinality?: 'PROJECT' | 'TEAM' | 'EACH_STUDENT' | string | null
 }
 
 export interface AssistantReviewGateDraft {

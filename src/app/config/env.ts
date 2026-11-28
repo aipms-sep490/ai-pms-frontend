@@ -9,7 +9,7 @@ const aiAdvisoryEnabled = import.meta.env.VITE_ENABLE_AI_ADVISORY?.trim().toLowe
  * Video capabilities must come from the future video-session endpoint.
  */
 const videoMeetingEnabled = import.meta.env.VITE_ENABLE_VIDEO_MEETING?.trim().toLowerCase() === 'true'
-/** Checkpoint / Review Gate (G1–G6) rollout. Enable only after the matching
+/** Checkpoint / Review Gate (G1–G3) rollout. Enable only after the matching
  * backend endpoints (BE-12) are deployed; the screen reads gate status only. */
 const gatesEnabled = import.meta.env.VITE_ENABLE_GATES?.trim().toLowerCase() === 'true'
 /** Working Agreement (BE-16) rollout. Post-MVP by default; enable only after the
@@ -34,7 +34,7 @@ const supervisorRecommendationEnabled = import.meta.env.VITE_ENABLE_SUPERVISOR_R
 /** Defense schedule / committee screen (BE-14). Enable only after the
  * defense-session endpoints ship; the screen is read-only for students. */
 const defenseScheduleEnabled = import.meta.env.VITE_ENABLE_DEFENSE?.trim().toLowerCase() === 'true'
-/** Room planning requires the separately deployed room catalog and Gate 3/4
+/** Room planning requires the separately deployed room catalog and Gate 3 / Defense
  * scheduling APIs. Keep off until those endpoints and DB migrations ship. */
 const roomPlannerEnabled = import.meta.env.VITE_ENABLE_ROOM_PLANNER?.trim().toLowerCase() === 'true'
 /** COLD report templates/checklist/draft/upload/submit (BE-N01). Shared by the
@@ -60,6 +60,14 @@ const rbacWriteEnabled = import.meta.env.VITE_ENABLE_RBAC_WRITE?.trim().toLowerC
 /** Meeting series/recurrence, RSVP and notes-lock (BE-06/N06/N07). Enable only
  * after the /meeting-series and /meetings/{id}/collaboration endpoints ship. */
 const meetingCollaborationEnabled = import.meta.env.VITE_ENABLE_MEETING_COLLABORATION?.trim().toLowerCase() === 'true'
+/** High-risk advisory AI panels (Rubric Copilot, Score Calibration, Appeal Assist, Contribution Fairness). */
+const highRiskAiEnabled = import.meta.env.VITE_ENABLE_HIGH_RISK_AI?.trim().toLowerCase() === 'true'
+/** AI Suite features (Defense Mock, Pre-flight Checker, Department Brief, etc.). */
+const aiSuiteEnabled = import.meta.env.VITE_ENABLE_AI_SUITE?.trim().toLowerCase() === 'true'
+/** In-thread Chat AI assistant ("Hỏi AI" / Summarize / Assist). */
+const chatAiEnabled = import.meta.env.VITE_ENABLE_CHAT_AI?.trim().toLowerCase() === 'true'
+/** Meeting Video AI Copilot (Live transcript, summary, coach). */
+const meetingAiEnabled = import.meta.env.VITE_ENABLE_MEETING_AI?.trim().toLowerCase() === 'true'
 
 export const env = {
   apiBaseUrl: apiBaseUrl.replace(/\/$/, ''),
@@ -69,6 +77,10 @@ export const env = {
   workflowPreviewEnabled: dataMode === 'mock' && import.meta.env.VITE_ENABLE_WORKFLOW_PREVIEW?.trim().toLowerCase() === 'true',
   /** AI is an opt-in advisory capability and must never be required for core PMS work. */
   aiAdvisoryEnabled,
+  highRiskAiEnabled,
+  aiSuiteEnabled,
+  chatAiEnabled,
+  meetingAiEnabled,
   videoMeetingEnabled,
   gatesEnabled,
   workingAgreementEnabled,

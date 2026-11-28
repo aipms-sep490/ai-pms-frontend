@@ -39,7 +39,6 @@ const ROLE_LABELS: Record<string, string> = {
   CHAIR: 'Chủ tịch Hội đồng',
   REVIEWER: 'Phản biện',
   SECRETARY: 'Thư ký',
-  INDUSTRY: 'Chuyên gia doanh nghiệp',
 }
 
 const DIFF_TONE: Record<string, string> = {

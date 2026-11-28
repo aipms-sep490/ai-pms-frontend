@@ -355,7 +355,9 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
   const readers = (message: ChatMessage) => members.filter(person => person.userId !== userId && person.lastReadSequence && BigInt(person.lastReadSequence) >= BigInt(message.sequence))
   return <section className="chat-main" aria-label="Nội dung trò chuyện" hidden={!active}>
     <header className="chat-header"><BackLink fallback="/messages" className="chat-thread-back"><span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>Quay lại</BackLink><div><h2 title={room?.title}>{room?.title || 'Cuộc trò chuyện'}{isMuted && <span className="chat-muted-badge ml-1 inline-flex align-middle text-ink-muted" aria-label="Đã tắt thông báo"><span className="material-symbols-outlined text-[16px]" aria-hidden="true">notifications_off</span></span>}</h2><p>{!ready ? 'Đang xác minh quyền và kết nối' : canSend ? room?.kind === 'DIRECT' ? 'Trao đổi riêng' : room?.kind === 'TEAM' ? `Nhóm sinh viên · ${members.length} thành viên` : `Nhóm đồ án · ${members.length} thành viên` : 'Chỉ đọc · không thể gửi, sửa hoặc thu hồi'}</p><p className="chat-mobile-connection" role="status">{chatConnectionLabel(state)}</p></div>
-      <button type="button" className={`chat-ai-summary-button${aiStudioOpen && !aiBusy ? ' is-open' : ''}`} disabled={!ready || aiBusy} onClick={() => aiStudioOpen ? closeAiStudio() : void summarizeChat()} title={aiStudioOpen ? 'Đóng bảng phân tích AI' : 'Tóm tắt, hỏi đáp đoạn chat và trích việc cần làm'}><span className="material-symbols-outlined" aria-hidden="true">{aiStudioOpen && !aiBusy ? 'close' : 'auto_awesome'}</span>{aiBusy ? 'Đang phân tích…' : aiStudioOpen ? 'Đóng AI' : 'Hỏi AI'}</button>
+      {env.chatAiEnabled && (
+        <button type="button" className={`chat-ai-summary-button${aiStudioOpen && !aiBusy ? ' is-open' : ''}`} disabled={!ready || aiBusy} onClick={() => aiStudioOpen ? closeAiStudio() : void summarizeChat()} title={aiStudioOpen ? 'Đóng bảng phân tích AI' : 'Tóm tắt, hỏi đáp đoạn chat và trích việc cần làm'}><span className="material-symbols-outlined" aria-hidden="true">{aiStudioOpen && !aiBusy ? 'close' : 'auto_awesome'}</span>{aiBusy ? 'Đang phân tích…' : aiStudioOpen ? 'Đóng AI' : 'Hỏi AI'}</button>
+      )}
     </header>
     <details className="chat-info">
       <summary>
@@ -534,7 +536,7 @@ export function ChatThread({ id, userId, active = true }: { id: string; userId: 
       onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false) }}
       onDrop={e => { e.preventDefault(); setDragging(false); if (canAttach && !edit && e.dataTransfer.files.length) void addFiles(e.dataTransfer.files) }}
     >
-      {canSend && !edit && <div className="chat-ai-quickbar" aria-label="Hỗ trợ AI nhanh khi soạn tin">
+      {env.chatAiEnabled && canSend && !edit && <div className="chat-ai-quickbar" aria-label="Hỗ trợ AI nhanh khi soạn tin">
         <button type="button" disabled={aiBusy || !messages.length} onClick={() => void runChatAssist('SUGGEST_REPLIES')}><span className="material-symbols-outlined" aria-hidden="true">bolt</span>Gợi ý trả lời</button>
         {draft.trim().length >= 5 && <button type="button" disabled={aiBusy} onClick={() => void runChatAssist('POLISH_DRAFT')}><span className="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>Viết lịch sự</button>}
         <button type="button" disabled={aiBusy || !messages.length} onClick={() => { setQuickReplies([]); setAiPanelOpen(true); setAiTab('ASK') }}><span className="material-symbols-outlined" aria-hidden="true">manage_search</span>Hỏi đoạn chat</button>
