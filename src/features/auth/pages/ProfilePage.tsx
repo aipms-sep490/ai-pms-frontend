@@ -91,7 +91,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const fullName = String(form.get('fullName') ?? '').trim()
+    const fullName = isPureStudent ? session.user.fullName : String(form.get('fullName') ?? '').trim()
     if (!fullName) {
       setFormError('Họ và tên không được để trống.')
       setFieldErrors({ fullName: 'Họ và tên không được để trống.' })
@@ -114,7 +114,7 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
       ? (String(phoneRaw ?? '').trim() || null)
       : undefined
 
-    const title = dirty.title
+    const title = !isPureStudent && dirty.title
       ? (String(titleRaw ?? '').trim() || null)
       : undefined
 
@@ -250,7 +250,21 @@ function AuthenticatedProfile({ session, status, error, refreshProfile, updatePr
             <form className="auth-form border-t border-hairline pt-5" onSubmit={submit} noValidate>
               <div className="profile-form-heading"><h3>Chỉnh sửa thông tin cá nhân</h3><p>Các thay đổi chỉ được lưu sau khi máy chủ xác nhận.</p></div>
               <label htmlFor="profile-name">Họ và tên</label>
-              <input id="profile-name" name="fullName" defaultValue={session.user.fullName} required aria-invalid={Boolean(fieldErrors.fullName)} aria-describedby={fieldErrors.fullName ? 'profile-name-error' : undefined} onChange={() => { setFieldErrors(current => ({ ...current, fullName: undefined })); setFormError(null) }} />
+              <input
+                id="profile-name"
+                name="fullName"
+                defaultValue={session.user.fullName}
+                readOnly={isPureStudent}
+                required
+                aria-invalid={Boolean(fieldErrors.fullName)}
+                aria-describedby={fieldErrors.fullName ? 'profile-name-error' : isPureStudent ? 'profile-name-locked-hint' : undefined}
+                onChange={() => { setFieldErrors(current => ({ ...current, fullName: undefined })); setFormError(null) }}
+              />
+              {isPureStudent && (
+                <p id="profile-name-locked-hint" className="text-xs text-ink-muted">
+                  Họ và tên sinh viên được khóa theo hồ sơ đào tạo. Liên hệ Quản trị viên nếu cần đính chính.
+                </p>
+              )}
               {fieldErrors.fullName && <p id="profile-name-error" className="profile-field-error">{fieldErrors.fullName}</p>}
 
               <label htmlFor="profile-phone">Số điện thoại</label>

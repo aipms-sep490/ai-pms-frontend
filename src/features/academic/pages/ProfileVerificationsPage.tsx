@@ -23,6 +23,8 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
   const [search, setSearch] = useState('')
   const [deptFilter, setDeptFilter] = useState('ALL')
   const [majorFilter, setMajorFilter] = useState('ALL')
+  const [classFilter, setClassFilter] = useState('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [sortBy, setSortBy] = useState<'default' | 'name_asc' | 'code_asc'>('default')
   const [resolved, setResolved] = useState<{ key: string; data: Awaited<ReturnType<typeof api.getAcademicProfiles>> | null; error: string } | null>(null)
   const [busy, setBusy] = useState(false), [actionError, setActionError] = useState(''), [notice, setNotice] = useState('')
@@ -65,16 +67,61 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
   )
   const visibleItems = useMemo(() => {
     const q = search.trim().toLowerCase()
+    const cls = classFilter.trim().toLowerCase()
     const filtered = (data?.items ?? []).filter(item => {
       if (deptFilter !== 'ALL' && item.departmentName !== deptFilter) return false
       if (majorFilter !== 'ALL' && item.majorName !== majorFilter) return false
-      if (q && !`${item.fullName} ${item.studentCode ?? ''} ${item.email ?? ''} ${item.departmentName ?? ''} ${item.majorName ?? ''}`.toLowerCase().includes(q)) return false
+      if (cls && !(item.classCode ?? '').toLowerCase().includes(cls)) return false
+      if (q && !`${item.fullName} ${item.studentCode ?? ''} ${item.email ?? ''} ${item.departmentName ?? ''} ${item.majorName ?? ''} ${item.classCode ?? ''}`.toLowerCase().includes(q)) return false
       return true
     })
     if (sortBy === 'name_asc') return [...filtered].sort((a, b) => a.fullName.localeCompare(b.fullName, 'vi'))
     if (sortBy === 'code_asc') return [...filtered].sort((a, b) => (a.studentCode ?? '').localeCompare(b.studentCode ?? '', 'vi'))
     return filtered
-  }, [data, search, deptFilter, majorFilter, sortBy])
+  }, [data, search, deptFilter, majorFilter, classFilter, sortBy])
+
+  const selectablePendingIds = useMemo(
+    () => visibleItems.filter(item => item.status !== 'VERIFIED' && item.departmentId && item.majorId).map(item => item.userId),
+    [visibleItems],
+  )
+  const effectiveSelectedIds = useMemo(
+    () => selectedIds.filter(id => selectablePendingIds.includes(id)),
+    [selectedIds, selectablePendingIds],
+  )
+
+  function toggleSelect(userId: number) {
+    setSelectedIds(current => current.includes(userId) ? current.filter(id => id !== userId) : [...current, userId])
+  }
+
+  function toggleSelectAll() {
+    if (effectiveSelectedIds.length === selectablePendingIds.length) setSelectedIds([])
+    else setSelectedIds(selectablePendingIds)
+  }
+
+  async function handleBulkVerify() {
+    const trimmedClass = classFilter.trim().toUpperCase()
+    const useSelected = effectiveSelectedIds.length > 0
+    if (!useSelected && !trimmedClass) return
+    const confirmed = await requestConfirmation({
+      title: useSelected ? `Xác minh hàng loạt ${effectiveSelectedIds.length} hồ sơ?` : `Xác minh hàng loạt lớp ${trimmedClass}?`,
+      description: useSelected
+        ? `Hệ thống sẽ xác minh ${effectiveSelectedIds.length} hồ sơ sinh viên đã chọn thuộc phạm vi Khoa của bạn.`
+        : `Hệ thống sẽ xác minh toàn bộ sinh viên đang chờ duyệt thuộc lớp ${trimmedClass} trong Khoa của bạn (tối đa 500 sinh viên/lô).`,
+      confirmLabel: 'Xác minh hàng loạt',
+    })
+    if (confirmed === null || busy) return
+    setBusy(true); setActionError(''); setNotice('')
+    try {
+      const result = await api.bulkVerifyAcademicProfiles(useSelected ? { userIds: effectiveSelectedIds } : { classCode: trimmedClass })
+      setSelectedIds([])
+      await load()
+      setNotice(`Đã xác minh hàng loạt ${result.verifiedCount} hồ sơ${result.skippedCount > 0 ? ` (bỏ qua ${result.skippedCount} hồ sơ đã xác minh hoặc chưa đủ thông tin)` : ''}.`)
+    } catch (reason) {
+      setActionError(errorText(reason))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function review(item: api.AcademicProfile, approve: boolean) {
     const decision = await requestConfirmation({ title: approve ? `Xác minh hồ sơ ${item.fullName}?` : `Yêu cầu ${item.fullName} bổ sung hồ sơ?`, description: approve ? 'Xác nhận bộ môn, chuyên ngành, lớp và chuyên ngành hẹp đã được kiểm tra.' : 'Ghi rõ nội dung cần bổ sung để người dùng có thể cập nhật hồ sơ.', confirmLabel: approve ? 'Xác minh' : 'Gửi yêu cầu', danger: !approve, ...(!approve ? { reasonLabel: 'Nội dung cần bổ sung' } : {}) })
@@ -146,6 +193,28 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
               </select>
             </label>
           )}
+          <label className="ft-select-wrap">
+            <span className="sr-only">Lọc theo lớp</span>
+            <input
+              type="text"
+              className="ft-select"
+              aria-label="Lọc theo lớp"
+              placeholder="Lớp (VD: SE1801)"
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
+            />
+          </label>
+          {(effectiveSelectedIds.length > 0 || classFilter.trim().length > 0) && (
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() => void handleBulkVerify()}
+            >
+              {effectiveSelectedIds.length > 0
+                ? `Xác minh hàng loạt (${effectiveSelectedIds.length})`
+                : `Xác minh cả lớp ${classFilter.trim().toUpperCase()}`}
+            </Button>
+          )}
         </>
       }
       sort={{
@@ -169,7 +238,24 @@ export function ProfileVerificationsPage({ embedded = false }: { embedded?: bool
       pagination={totalPages > 1 ? { page, pages: totalPages, total: data?.totalCount ?? 0, pageSize, busy: loading || busy, onPage: setPage } : undefined}
     />
     <section className="ex-panel">
-      {loading ? <ListLoading label="Đang tải danh sách hồ sơ…" /> : !visibleItems.length ? <p className="ex-padding ex-muted">Chưa có hồ sơ phù hợp.</p> : <ul>{visibleItems.map(item => <li key={item.userId} className="grid gap-4 border-b border-hairline p-5 last:border-b-0 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"><Avatar name={item.fullName} size="md" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong className="text-ink">{item.fullName}</strong><StatusBadge tone={profileStatusTone(item.status)} label={academicProfileStatus(item.status)} /></div><p className="ex-muted break-words">{item.studentCode || item.email}</p><p className="mt-1.5 text-sm text-ink-soft">{item.departmentName || 'Chưa có bộ môn'} · {item.majorName || 'Chưa có chuyên ngành'}</p>{(item.classCode || item.specializationName || item.curriculumCode) && <p className="mt-1 text-xs text-ink-muted">{[item.classCode ? `Lớp ${item.classCode}` : null, item.specializationName ? `CN hẹp: ${item.specializationName}` : null, item.curriculumCode ? `Khung ${item.curriculumCode}` : null].filter(Boolean).join(' · ')}</p>}{item.rejectionReason && <p className="mt-2 text-sm text-status-warning-text">Cần bổ sung: {item.rejectionReason}</p>}</div><div className="flex flex-wrap items-center gap-2">{embedded && <Link className="text-sm font-medium text-primary hover:underline" to={`/department/students/${item.userId}`}>Chi tiết</Link>}{item.status !== 'VERIFIED' && <Button disabled={busy || !item.departmentId || !item.majorId} onClick={() => void review(item, true)}>Xác minh</Button>}<Button variant="secondary" disabled={busy} onClick={() => void review(item, false)}>Yêu cầu bổ sung</Button></div></li>)}</ul>}
+      {!loading && selectablePendingIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline bg-canvas/60 px-5 py-2.5 text-xs text-ink-soft">
+          <label className="flex items-center gap-2 font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={effectiveSelectedIds.length === selectablePendingIds.length && selectablePendingIds.length > 0}
+              onChange={toggleSelectAll}
+              disabled={busy}
+            />
+            <span>Chọn tất cả hồ sơ đủ điều kiện trên trang ({selectablePendingIds.length})</span>
+          </label>
+          {effectiveSelectedIds.length > 0 && <span>Đã chọn {effectiveSelectedIds.length} sinh viên</span>}
+        </div>
+      )}
+      {loading ? <ListLoading label="Đang tải danh sách hồ sơ…" /> : !visibleItems.length ? <p className="ex-padding ex-muted">Chưa có hồ sơ phù hợp.</p> : <ul>{visibleItems.map(item => {
+        const canSelect = item.status !== 'VERIFIED' && Boolean(item.departmentId && item.majorId)
+        return <li key={item.userId} className="grid gap-4 border-b border-hairline p-5 last:border-b-0 md:grid-cols-[auto_auto_minmax(0,1fr)_auto] md:items-center"><input type="checkbox" aria-label={`Chọn ${item.fullName}`} checked={effectiveSelectedIds.includes(item.userId)} disabled={!canSelect || busy} onChange={() => toggleSelect(item.userId)} /><Avatar name={item.fullName} size="md" /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong className="text-ink">{item.fullName}</strong><StatusBadge tone={profileStatusTone(item.status)} label={academicProfileStatus(item.status)} /></div><p className="ex-muted break-words">{item.studentCode || item.email}</p><p className="mt-1.5 text-sm text-ink-soft">{item.departmentName || 'Chưa có bộ môn'} · {item.majorName || 'Chưa có chuyên ngành'}</p>{(item.classCode || item.specializationName || item.curriculumCode) && <p className="mt-1 text-xs text-ink-muted">{[item.classCode ? `Lớp ${item.classCode}` : null, item.specializationName ? `CN hẹp: ${item.specializationName}` : null, item.curriculumCode ? `Khung ${item.curriculumCode}` : null].filter(Boolean).join(' · ')}</p>}{item.rejectionReason && <p className="mt-2 text-sm text-status-warning-text">Cần bổ sung: {item.rejectionReason}</p>}</div><div className="flex flex-wrap items-center gap-2">{embedded && <Link className="text-sm font-medium text-primary hover:underline" to={`/department/students/${item.userId}`}>Chi tiết</Link>}{item.status !== 'VERIFIED' && <Button disabled={busy || !item.departmentId || !item.majorId} onClick={() => void review(item, true)}>Xác minh</Button>}<Button variant="secondary" disabled={busy} onClick={() => void review(item, false)}>Yêu cầu bổ sung</Button></div></li>
+      })}</ul>}
       {(totalPages > 1 || (data?.totalCount ?? 0) > pageSize) && (
         <div className="border-t border-hairline p-4">
           <Pagination

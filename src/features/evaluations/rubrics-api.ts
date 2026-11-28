@@ -13,16 +13,29 @@ export interface RubricCriterion {
 }
 export interface RubricCriterionLevel { levelOrder: number; label: string; descriptor: string; scoreFrom: number | null; scoreTo: number | null }
 export type RubricScope = 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL'
+export interface RubricApprovalItem {
+  id: number
+  departmentId: number | null
+  scopeRole: 'LEAD' | 'PARTICIPATING' | string | null
+  submittedBy: number
+  submittedAt: string
+  decidedBy: number | null
+  decidedAt: string | null
+  decision: string | null
+  reason: string | null
+  isSingleStaffSelfApproval: boolean
+}
 export interface RubricScopeFields {
   projectMode?: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY' | null
   evaluationStage?: 'ON_GOING' | 'COLD' | 'DEFENSE' | null
   evaluationScope?: RubricScope | null
   majorId?: number | null
+  participatingDepartmentId?: number | null
   effectiveFrom?: string | null
   effectiveTo?: string | null
 }
 export interface Rubric {
-  id: number; departmentId: number | null; academicSemesterId: number | null; code: string; name: string
+  id: number; departmentId: number | null; participatingDepartmentId?: number | null; academicSemesterId: number | null; code: string; name: string
   description: string | null; status: string; version: number; concurrencyToken: string; canEdit: boolean
   criteria: RubricCriterion[]
   /** Server configuration is required before FE can claim a draft is submittable. */
@@ -32,6 +45,8 @@ export interface Rubric {
   approvalReference?: string | null
   canApprove?: boolean
   canReject?: boolean
+  requiresApprovalReferenceForSelfApproval?: boolean
+  approvals?: RubricApprovalItem[]
   previousVersion?: Rubric | null
   projectMode?: RubricScopeFields['projectMode']; evaluationStage?: RubricScopeFields['evaluationStage']
   evaluationScope?: RubricScopeFields['evaluationScope']; majorId?: number | null

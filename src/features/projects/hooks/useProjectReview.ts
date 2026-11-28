@@ -13,6 +13,7 @@ import {
   getReviewHistory,
   getReviewQueue,
   getReviewSnapshots,
+  leadOverrideApproveProject,
   replaceProjectMajorRequirements,
   startReview,
   type ProjectMajorRequirementInput,
@@ -25,7 +26,7 @@ import {
   type ReviewQueuePage,
 } from '../api/project-review-api'
 
-export type ReviewOperation = 'start' | 'revision' | 'approve' | 'reject' | 'department-approve' | 'department-reject' | 'requirements'
+export type ReviewOperation = 'start' | 'revision' | 'approve' | 'reject' | 'lead-override' | 'department-approve' | 'department-revision' | 'department-reject' | 'requirements'
 export type ReviewErrorKind = 'unauthorized' | 'forbidden' | 'not-found' | 'conflict' | 'validation' | 'system'
 
 export interface ReviewError {
@@ -146,15 +147,28 @@ export function useProjectReview(id?: number) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail, execute, id, session])
 
-  const decideParticipatingDepartment = useCallback(async (decision: 'APPROVED' | 'REJECTED', reason?: string) => {
+  const decideParticipatingDepartment = useCallback(async (decision: 'APPROVED' | 'REVISION_REQUIRED' | 'REJECTED', reason?: string) => {
     const resource = requireReviewResource()
     const snapshotId = resource.detail.latestSubmission?.id
     if (!snapshotId) throw new Error('Submission snapshot unavailable')
-    const operation: ReviewOperation = decision === 'APPROVED' ? 'department-approve' : 'department-reject'
+    const operation: ReviewOperation = decision === 'APPROVED'
+      ? 'department-approve'
+      : decision === 'REVISION_REQUIRED'
+        ? 'department-revision'
+        : 'department-reject'
     return execute(operation, () => decideDepartment(resource.id, {
       snapshotId,
       concurrencyToken: resource.detail.concurrencyToken,
       decision,
+      reason,
+    }, resource.accessToken))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail, execute, id, session])
+
+  const leadOverrideApprove = useCallback(async (reason: string) => {
+    const resource = requireReviewResource()
+    return execute('lead-override', () => leadOverrideApproveProject(resource.id, {
+      concurrencyToken: resource.detail.concurrencyToken,
       reason,
     }, resource.accessToken))
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,6 +205,7 @@ export function useProjectReview(id?: number) {
     beginReview,
     decide,
     decideParticipatingDepartment,
+    leadOverrideApprove,
     replaceRequirements,
     canStart: allowed('start_review'),
     canRequestRevision: allowed('request_revision'),

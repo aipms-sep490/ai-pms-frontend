@@ -309,9 +309,9 @@ describe('ProfilePage', () => {
     authSession.session = {
       user: {
         id: 42,
-        email: 'student@example.edu.vn',
+        email: 'lecturer@example.edu.vn',
         fullName: 'Nguyễn Văn A',
-        roles: ['STUDENT'],
+        roles: ['LECTURER'],
       },
     }
     authSession.status = 'authenticated'
@@ -326,6 +326,33 @@ describe('ProfilePage', () => {
 
     expect(authSession.updateProfile).toHaveBeenCalledWith({
       fullName: 'Nguyễn Văn B',
+    })
+  })
+
+  it('locks fullName read-only for pure student accounts and preserves server fullName on phone save (TK-W1-03)', async () => {
+    authSession.session = {
+      user: {
+        id: 42,
+        email: 'student@example.edu.vn',
+        fullName: 'Nguyễn Văn A',
+        roles: ['STUDENT'],
+      },
+    }
+    authSession.status = 'authenticated'
+
+    render(<ProfilePage />, { wrapper: MemoryRouter })
+    fireEvent.click(await screen.findByRole('button', { name: 'Chỉnh sửa hồ sơ' }))
+
+    const nameInput = screen.getByLabelText('Họ và tên') as HTMLInputElement
+    expect(nameInput.readOnly).toBe(true)
+
+    const phoneInput = screen.getByLabelText('Số điện thoại')
+    fireEvent.change(phoneInput, { target: { value: '0912345678' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu hồ sơ' }))
+
+    expect(authSession.updateProfile).toHaveBeenCalledWith({
+      fullName: 'Nguyễn Văn A',
+      phone: '0912345678',
     })
   })
 
@@ -395,7 +422,7 @@ describe('ProfilePage', () => {
         id: 42,
         email: 'staff@example.edu.vn',
         fullName: 'Valid Name',
-        roles: ['STUDENT'],
+        roles: ['LECTURER'],
       },
     }
     authSession.status = 'authenticated'

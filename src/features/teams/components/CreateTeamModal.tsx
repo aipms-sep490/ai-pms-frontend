@@ -1,18 +1,29 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Modal } from '../../../components/ui/Modal'
+import { getSemesterTrackPresets, type AcademicTrackCode, type SemesterTrackPresetDto } from '../../academic/api/academic-blueprints-api'
 
 interface CreateTeamModalProps {
   isOpen: boolean
+  semesterId?: number | null
   semesterName: string
+  maxTeamSize?: number | null
   onClose: () => void
   majors?: Array<{ id: number; name: string; departmentId?: number | null }>
   defaultMajorId?: number | null
-  onSubmit: (data: { code: string; name: string; description?: string; academicScope?: { projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; primaryMajorId: number | null; leadDepartmentId: number; requirements: Array<{ majorId: number; minMembers: number; maxMembers: number; responsibility: string }> } }) => Promise<void>
+  onSubmit: (data: { code: string; name: string; description?: string; academicScope?: { projectMode: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY'; primaryMajorId: number | null; leadDepartmentId: number; trackCode?: AcademicTrackCode | null; requirements: Array<{ majorId: number; minMembers: number; maxMembers: number; responsibility: string }> } }) => Promise<void>
+}
+
+const trackLabels: Record<AcademicTrackCode, string> = {
+  IT_ONLY: 'Đơn ngành CNTT (IT_ONLY)',
+  MKT_ONLY: 'Đơn ngành Marketing (MKT_ONLY)',
+  IT_MKT: 'Liên ngành IT × Marketing (IT_MKT)',
 }
 
 export function CreateTeamModal({
   isOpen,
+  semesterId = null,
   semesterName,
+  maxTeamSize = null,
   onClose,
   onSubmit,
   majors = [],
@@ -25,14 +36,44 @@ export function CreateTeamModal({
   const [error, setError] = useState<string | null>(null)
   const [projectMode, setProjectMode] = useState<'SINGLE_MAJOR' | 'INTERDISCIPLINARY'>('SINGLE_MAJOR')
   const [selectedMajorIds, setSelectedMajorIds] = useState<number[] | null>(null)
+  const [presets, setPresets] = useState<SemesterTrackPresetDto[]>([])
+  const [selectedTrackCode, setSelectedTrackCode] = useState<AcademicTrackCode | ''>('')
+
+  useEffect(() => {
+    if (!isOpen || !semesterId) return
+    let active = true
+    getSemesterTrackPresets(semesterId)
+      .then((items) => {
+        if (active) setPresets(items ?? [])
+      })
+      .catch(() => {
+        if (active) setPresets([])
+      })
+    return () => { active = false }
+  }, [isOpen, semesterId])
 
   if (!isOpen) return null
 
   const effectiveSelectedMajorIds = selectedMajorIds ?? (defaultMajorId ? [defaultMajorId] : [])
   const ownMajor = defaultMajorId ? majors.find((major) => major.id === defaultMajorId) : undefined
   const ownMajorName = ownMajor?.name
+  const activePreset = presets.find((p) => p.trackCode === selectedTrackCode) ?? null
+  const effectiveMaxMembers = Math.max(1, activePreset?.maxTeamSize ?? maxTeamSize ?? 5)
+
+  const handleSelectTrack = (trackCode: AcademicTrackCode | '') => {
+    setSelectedTrackCode(trackCode)
+    setError(null)
+    const preset = presets.find((p) => p.trackCode === trackCode)
+    if (!preset) return
+    setProjectMode(preset.projectMode)
+    const presetMajorIds = preset.defaultMajorRequirements.map((r) => r.majorId)
+    if (presetMajorIds.length > 0) {
+      setSelectedMajorIds(presetMajorIds)
+    }
+  }
 
   const handleModeChange = (next: 'SINGLE_MAJOR' | 'INTERDISCIPLINARY') => {
+    setSelectedTrackCode('')
     setProjectMode(next)
     setError(null)
     if (next === 'SINGLE_MAJOR') {
@@ -81,7 +122,8 @@ export function CreateTeamModal({
         }
       }
 
-      const leadDepartmentId = (defaultMajorId && selected.includes(defaultMajorId) ? ownMajor?.departmentId : null)
+      const leadDepartmentId = activePreset?.leadDepartmentId
+        ?? (defaultMajorId && selected.includes(defaultMajorId) ? ownMajor?.departmentId : null)
         ?? majors.find((major) => selected.includes(major.id))?.departmentId
       if (!leadDepartmentId) {
         setError('Chuyên ngành đã chọn chưa gắn bộ môn chủ trì hợp lệ. Vui lòng chọn lại hoặc liên hệ bộ môn.')
@@ -91,6 +133,15 @@ export function CreateTeamModal({
       const orderedMajors = defaultMajorId && selected.includes(defaultMajorId)
         ? [defaultMajorId, ...selected.filter((id) => id !== defaultMajorId)]
         : selected
+      const requirements = orderedMajors.map((majorId, index) => {
+        const presetReq = activePreset?.defaultMajorRequirements.find((r) => r.majorId === majorId)
+        return {
+          majorId,
+          minMembers: presetReq?.minMembers ?? 1,
+          maxMembers: presetReq?.maxMembers ?? effectiveMaxMembers,
+          responsibility: presetReq?.responsibility ?? (index === 0 ? 'Chủ trì' : 'Phối hợp'),
+        }
+      })
 
       setError(null)
       setIsLoading(true)
@@ -103,7 +154,8 @@ export function CreateTeamModal({
             projectMode,
             primaryMajorId: projectMode === 'SINGLE_MAJOR' ? orderedMajors[0] : null,
             leadDepartmentId,
-            requirements: orderedMajors.map((majorId, index) => ({ majorId, minMembers: 1, maxMembers: 5, responsibility: index === 0 ? 'Chủ trì' : 'Phối hợp' })),
+            ...(selectedTrackCode ? { trackCode: selectedTrackCode } : {}),
+            requirements,
           },
         })
         onClose()
@@ -155,47 +207,75 @@ export function CreateTeamModal({
             </p>
           </div>
 
-          {majors.length > 0 && <div>
-            <label className="block text-xs font-medium text-ink-soft mb-1.5">Phạm vi đồ án *</label>
-            <select value={projectMode} onChange={(event) => handleModeChange(event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY')} className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" disabled={isLoading}>
-              <option value="SINGLE_MAJOR">Đơn ngành</option>
-              <option value="INTERDISCIPLINARY">Liên ngành</option>
-            </select>
-            <p className="mt-1.5 text-xs text-ink-muted">
-              {projectMode === 'SINGLE_MAJOR'
-                ? (ownMajorName ? `Nhóm Đơn ngành phải thuộc chuyên ngành của bạn (${ownMajorName}).` : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn.')
-                : (ownMajorName ? `Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn (${ownMajorName}).` : 'Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn.')}
-            </p>
-            <div className="mt-2 grid gap-1 text-sm">
-              {majors.map((major) => {
-                const isOwn = defaultMajorId != null && major.id === defaultMajorId
-                return (
-                  <label key={major.id} className="flex min-h-9 items-center gap-2">
-                    <input
-                      type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'}
-                      name="create-team-major"
-                      checked={effectiveSelectedMajorIds.includes(major.id)}
-                      onChange={() => {
-                        setError(null)
-                        setSelectedMajorIds((current) => {
-                          const base = current ?? effectiveSelectedMajorIds
-                          return projectMode === 'SINGLE_MAJOR'
-                            ? [major.id]
-                            : base.includes(major.id) ? base.filter((id) => id !== major.id) : [...base, major.id]
-                        })
-                      }}
-                      disabled={isLoading}
-                      className="accent-primary"
-                    />
-                    <span>{major.name}</span>
-                    {isOwn && (
-                      <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">
-                        Ngành của bạn
-                      </span>
-                    )}
-                  </label>
-                )
-              })}
+          {majors.length > 0 && <div className="space-y-3">
+            {presets.length > 0 && (
+              <div>
+                <label htmlFor="create-team-track" className="block text-xs font-medium text-ink-soft mb-1.5">
+                  Lộ trình / Track học kỳ (gợi ý tự động)
+                </label>
+                <select
+                  id="create-team-track"
+                  value={selectedTrackCode}
+                  onChange={(event) => handleSelectTrack(event.target.value as AcademicTrackCode | '')}
+                  className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                  disabled={isLoading}
+                >
+                  <option value="">Tự cấu hình ngành</option>
+                  {presets.map((preset) => (
+                    <option key={preset.trackCode} value={preset.trackCode}>
+                      {trackLabels[preset.trackCode] ?? preset.trackCode} ({preset.minTeamSize}–{preset.maxTeamSize} SV)
+                    </option>
+                  ))}
+                </select>
+                {activePreset && (
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Định mức: {activePreset.minTeamSize}–{activePreset.maxTeamSize} thành viên · tối thiểu {activePreset.minDistinctMajors} chuyên ngành.
+                  </p>
+                )}
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-medium text-ink-soft mb-1.5">Phạm vi đồ án *</label>
+              <select value={projectMode} onChange={(event) => handleModeChange(event.target.value as 'SINGLE_MAJOR' | 'INTERDISCIPLINARY')} className="min-h-11 w-full rounded-md border border-line-strong bg-card px-3.5 py-2.5 text-sm font-normal text-ink focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20" disabled={isLoading}>
+                <option value="SINGLE_MAJOR">Đơn ngành</option>
+                <option value="INTERDISCIPLINARY">Liên ngành</option>
+              </select>
+              <p className="mt-1.5 text-xs text-ink-muted">
+                {projectMode === 'SINGLE_MAJOR'
+                  ? (ownMajorName ? `Nhóm Đơn ngành phải thuộc chuyên ngành của bạn (${ownMajorName}).` : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn.')
+                  : (ownMajorName ? `Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn (${ownMajorName}).` : 'Chọn tối thiểu 2 chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn.')}
+              </p>
+              <div className="mt-2 grid gap-1 text-sm">
+                {majors.map((major) => {
+                  const isOwn = defaultMajorId != null && major.id === defaultMajorId
+                  return (
+                    <label key={major.id} className="flex min-h-9 items-center gap-2">
+                      <input
+                        type={projectMode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'}
+                        name="create-team-major"
+                        checked={effectiveSelectedMajorIds.includes(major.id)}
+                        onChange={() => {
+                          setError(null)
+                          setSelectedMajorIds((current) => {
+                            const base = current ?? effectiveSelectedMajorIds
+                            return projectMode === 'SINGLE_MAJOR'
+                              ? [major.id]
+                              : base.includes(major.id) ? base.filter((id) => id !== major.id) : [...base, major.id]
+                          })
+                        }}
+                        disabled={isLoading}
+                        className="accent-primary"
+                      />
+                      <span>{major.name}</span>
+                      {isOwn && (
+                        <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">
+                          Ngành của bạn
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
             </div>
           </div>}
 

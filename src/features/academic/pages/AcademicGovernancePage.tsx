@@ -192,7 +192,13 @@ export function AcademicGovernancePage() {
       hasActiveFilters={hasActiveFilters}
       resultSummary={`${filteredSemesters.length} học kỳ · ${filteredPeriods.length} giai đoạn`}
     />
-    {!governance.canManage && <p role="status" className="governance-note text-sm"><strong>Chế độ chỉ xem:</strong> Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</p>}
+    {!governance.canManage && (
+      <p role="status" className="governance-note text-sm">
+        {governance.canUpdatePeriodDates
+          ? <><strong>Phạm vi Giáo vụ Khoa:</strong> Khung học kỳ do Quản trị viên khởi tạo. Giáo vụ Khoa có thể điều chỉnh ngày các giai đoạn đồ án, cấu hình chính sách và cổng kiểm duyệt thuộc tổ chức của mình.</>
+          : <><strong>Chế độ chỉ xem:</strong> Cấu trúc học kỳ và kỳ đồ án do quản trị viên cấu hình. Bộ môn có thể xem và mở chính sách của kỳ thuộc phạm vi được cấp.</>}
+      </p>
+    )}
     {operationError && !editor ? <div className="governance-error col-span-full" role="alert">{operationError.message}{operationError.action && <Button onClick={governance.retry}>Tải lại dữ liệu</Button>}</div> : null}
     {operationSuccess ? <p className="governance-message" role="status">{operationSuccess}</p> : null}
     <section aria-labelledby="governance-semesters-title">
@@ -229,7 +235,11 @@ export function AcademicGovernancePage() {
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình cổng kiểm duyệt<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           {env.defenseScheduleEnabled && env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Phòng & lịch bảo vệ<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
-          {governance.canManage && !['CLOSED', 'ARCHIVED'].includes(period.status) && <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>Chỉnh sửa cấu trúc</Button>}
+          {(governance.canUpdatePeriodDates ?? governance.canManage) && !['CLOSED', 'ARCHIVED'].includes(period.status) && (
+            <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>
+              {governance.canManage ? 'Chỉnh sửa cấu trúc' : 'Điều chỉnh ngày đợt'}
+            </Button>
+          )}
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
 
       </article>)}</div>

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAssignments } from '../../../services/api/supervisors.api'
-import type { SupervisorAssignmentDto } from '../../../types/backend'
+import { directAssignSupervisor, getAssignments, getDirectSupervisorCandidates } from '../../../services/api/supervisors.api'
+import type { SupervisorAssignmentDto, SupervisorCandidateDto } from '../../../types/backend'
 import * as api from '../api/assignment-management-api'
 import { Button } from '../../../components/ui/Button'
+import { Modal } from '../../../components/ui/Modal'
 import { Pagination } from '../../../components/ui/Pagination'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
@@ -15,6 +16,7 @@ import { assignmentReasonLabel } from './assignment-reason-label'
 const allowed = (item: SupervisorAssignmentDto, code: string) => item.allowedActions?.some(action => action.code === code && action.allowed) === true
 export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' }: { projectId: number; canManage?: boolean; canEnd?: boolean; projectStatus?: string }) {
   const [assignments, setAssignments] = useState<SupervisorAssignmentDto[]>([]), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('')
+  const [directOpen, setDirectOpen] = useState(false)
   const version = useRef(0), lock = useRef(false), { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const load = useCallback(async () => {
     const current = ++version.current; setLoading(true); setError(''); setAssignments([])
@@ -51,17 +53,112 @@ export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' 
     } finally { lock.current = false; setBusy(false) }
   }
   const assignmentPager = useClientPagination(assignments, 10)
+  const canDirectAssignStatus = ['DRAFT', 'REVISION_REQUIRED', 'APPROVED', 'SUPERVISOR_PENDING', 'ACTIVE'].includes(projectStatus)
   return <section className="workspace-surface space-y-4 p-4 sm:p-6" aria-labelledby="assignment-management-title">{confirmationDialog}
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="assignment-management-title" className="font-semibold">Phân công hướng dẫn</h2><Button size="sm" variant="secondary" icon="refresh" aria-label="Tải lại" disabled={busy || loading} onClick={() => void load()} /></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="assignment-management-title" className="font-semibold">Phân công hướng dẫn</h2><div className="flex items-center gap-2">{canDirectAssignStatus && <Button size="sm" variant="secondary" disabled={busy || loading} onClick={() => setDirectOpen(true)}>Gán trực tiếp GVHD / Mentor</Button>}<Button size="sm" variant="secondary" icon="refresh" aria-label="Tải lại" disabled={busy || loading} onClick={() => void load()} /></div></div>
     <p className="text-sm text-ink-muted">Quyền thay và kết thúc được hệ thống xác định cho từng phân công, theo khoa chủ trì hoặc khoa phụ trách ngành. Ứng viên được kiểm tra lại khi lưu.</p>
     {loading && <p role="status">Đang tải phân công…</p>}{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{notice && <div role="status" className="flex items-center gap-2 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card px-3 py-2 text-sm text-ink"><span className="material-symbols-outlined text-[16px] text-status-success-text" aria-hidden="true">check_circle</span><span>{notice}</span></div>}
     <ul className="divide-y divide-hairline">{assignmentPager.paginatedItems.map(item => <li key={item.id} className="space-y-3 py-4"><div className="flex flex-wrap justify-between gap-2"><strong className="break-words text-sm">{item.supervisorName}</strong><span className="text-xs text-ink-muted">{item.endedAt ? 'Đã kết thúc' : item.isPrimary ? 'Hướng dẫn chính' : 'Hướng dẫn chuyên ngành'}</span></div>
       {item.endReason && <p className="break-words text-sm">Lý do kết thúc: {item.endReason}</p>}{item.replacesAssignmentId && <p className="text-sm">{item.replacesSupervisorName ? `Thay thế cho ${item.replacesSupervisorName}` : 'Thay thế phân công trước đó'}</p>}
       {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'REPLACE') && <ReplacementPicker assignmentId={item.id} busy={busy} onReplace={id => void update(item, id)} />}
-      {!item.endedAt && projectStatus === 'ACTIVE' && allowed(item, 'END') && <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => void update(item)}>Kết thúc phân công</Button>}
-      {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-ink-muted">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem.' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
+      {!item.endedAt && projectStatus === 'ACTIVE' && !item.isPrimary && allowed(item, 'END') && <Button className="min-h-11" variant="secondary" disabled={busy} onClick={() => void update(item)}>Kết thúc phân công</Button>}
+      {!item.endedAt && (!allowed(item, 'REPLACE') || !allowed(item, 'END') || item.isPrimary || projectStatus !== 'ACTIVE') && <p className="break-words text-sm text-ink-muted">{projectStatus !== 'ACTIVE' ? 'Đồ án không ở trạng thái đang thực hiện; phân công chỉ được xem hoặc gán trực tiếp (QD-08).' : item.reasons?.map(assignmentReasonLabel).join(' · ') || 'Hệ thống chưa cấp quyền cho một hoặc nhiều thao tác trên phân công này.'}</p>}
     </li>)}</ul>{assignmentPager.showPagination && <Pagination page={assignmentPager.page} pages={assignmentPager.pages} total={assignmentPager.total} pageSize={assignmentPager.pageSize} onPage={assignmentPager.setPage} onPageSizeChange={assignmentPager.setPageSize} />}{!loading && !error && !assignments.length && <p className="text-sm text-ink-muted">Chưa có phân công hướng dẫn.</p>}
+    {directOpen && <DirectAssignModal projectId={projectId} onClose={() => setDirectOpen(false)} onAssigned={() => { setDirectOpen(false); setNotice('Đã gán trực tiếp giảng viên hướng dẫn thành công.'); void load() }} />}
   </section>
+}
+
+function DirectAssignModal({ projectId, onClose, onAssigned }: { projectId: number; onClose: () => void; onAssigned: () => void }) {
+  const [assignmentType, setAssignmentType] = useState<'PRIMARY' | 'DISCIPLINE_MENTOR'>('PRIMARY')
+  const [majorId, setMajorId] = useState('')
+  const [search, setSearch] = useState('')
+  const [candidates, setCandidates] = useState<SupervisorCandidateDto[]>([])
+  const [selectedProfileId, setSelectedProfileId] = useState('')
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    const parsedMajor = assignmentType === 'DISCIPLINE_MENTOR' ? Number(majorId) : undefined
+    if (assignmentType === 'DISCIPLINE_MENTOR' && (!parsedMajor || parsedMajor <= 0)) {
+      setCandidates([])
+      return
+    }
+    setLoading(true)
+    setError('')
+    getDirectSupervisorCandidates(projectId, { assignmentType, majorId: parsedMajor, search: search.trim() || undefined, page: 1, pageSize: 30 })
+      .then(res => { if (active) setCandidates(res.items ?? []) })
+      .catch(err => { if (active) setError(departmentError(err).message) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [projectId, assignmentType, majorId, search])
+
+  const submit = async () => {
+    const profileId = Number(selectedProfileId)
+    if (!profileId || !reason.trim()) {
+      setError('Vui lòng chọn giảng viên và nhập lý do gán trực tiếp.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      await directAssignSupervisor(projectId, {
+        supervisorProfileId: profileId,
+        assignmentType,
+        majorId: assignmentType === 'DISCIPLINE_MENTOR' ? Number(majorId) : null,
+        reason: reason.trim(),
+      })
+      onAssigned()
+    } catch (err) {
+      setError(err instanceof HttpError ? (err.problem?.detail || err.message) : 'Không thể gán trực tiếp giảng viên.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open title="Gán trực tiếp GVHD / Mentor (QD-08)" busy={busy} onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{error}</p>}
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold text-ink">Vai trò hướng dẫn</span>
+          <select value={assignmentType} disabled={busy} onChange={e => { setAssignmentType(e.target.value as 'PRIMARY' | 'DISCIPLINE_MENTOR'); setSelectedProfileId('') }} className="min-h-10 w-full rounded-lg border border-hairline bg-canvas px-3">
+            <option value="PRIMARY">GVHD Chính (PRIMARY)</option>
+            <option value="DISCIPLINE_MENTOR">GV Hướng dẫn chuyên ngành (DISCIPLINE_MENTOR)</option>
+          </select>
+        </label>
+        {assignmentType === 'DISCIPLINE_MENTOR' && (
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-ink">Mã ID Chuyên ngành *</span>
+            <input type="number" min={1} value={majorId} disabled={busy} onChange={e => setMajorId(e.target.value)} className="min-h-10 w-full rounded-lg border border-hairline bg-canvas px-3" />
+          </label>
+        )}
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold text-ink">Tìm giảng viên</span>
+          <input value={search} disabled={busy} onChange={e => setSearch(e.target.value)} placeholder="Nhập tên giảng viên..." className="min-h-10 w-full rounded-lg border border-hairline bg-canvas px-3" />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold text-ink">Chọn ứng viên đủ điều kiện (đã lọc D17 COI &amp; sức chứa) *</span>
+          <select value={selectedProfileId} disabled={busy || loading} onChange={e => setSelectedProfileId(e.target.value)} className="min-h-10 w-full rounded-lg border border-hairline bg-canvas px-3">
+            <option value="">{loading ? 'Đang tải ứng viên…' : '-- Chọn giảng viên --'}</option>
+            {candidates.map(c => (
+              <option key={c.id} value={c.id}>{c.fullName} · {c.departmentName} (còn {c.remainingSlots} suất)</option>
+            ))}
+          </select>
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold text-ink">Lý do gán trực tiếp *</span>
+          <textarea rows={2} value={reason} disabled={busy} onChange={e => setReason(e.target.value)} placeholder="VD: Phân bổ cân đối giảng viên hướng dẫn đầu kỳ theo quyết định bộ môn" className="w-full rounded-lg border border-hairline bg-canvas p-2.5" />
+        </label>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>Hủy</Button>
+          <Button type="button" disabled={busy || !selectedProfileId || !reason.trim()} onClick={() => void submit()}>Xác nhận gán trực tiếp</Button>
+        </div>
+      </div>
+    </Modal>
+  )
 }
 
 function ReplacementPicker({ assignmentId, busy, onReplace }: { assignmentId: number; busy: boolean; onReplace: (id: number) => void }) {

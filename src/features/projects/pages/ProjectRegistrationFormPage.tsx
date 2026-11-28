@@ -32,9 +32,31 @@ export function ProjectRegistrationFormPage() {
   const validationSummaryRef = useRef<HTMLDivElement>(null)
   const [similarity, setSimilarity] = useState<{ title: string; result: TopicSimilarityResultDto } | null>(null)
   const [similarityLoading, setSimilarityLoading] = useState(false)
+  const [deselectingTopic, setDeselectingTopic] = useState(false)
+  const [deselectError, setDeselectError] = useState<string | null>(null)
+  const isPublishedTopic = registrationProject?.proposalSource === 'PUBLISHED_TOPIC'
+  const isInterdisciplinaryScope = registration.academicScope?.projectMode === 'INTERDISCIPLINARY'
+  const hasMarketingScope = Boolean(
+    isInterdisciplinaryScope
+    || registrationProject?.majors?.some((m) => m.majorCode.toUpperCase().includes('MKT') || m.majorName.toLowerCase().includes('marketing')),
+  )
   // A result only applies to the title it was computed for — once the title changes again,
   // it's stale and hidden without needing a separate effect to clear it out.
   const currentSimilarity = similarity?.title === registration.form.title.trim() ? similarity.result : null
+
+  const handleDeselectTopic = async () => {
+    if (!registrationProject || !editable || !isPublishedTopic) return
+    setDeselectError(null)
+    setDeselectingTopic(true)
+    try {
+      await services.project.deselectTopic(registrationProject.id, registrationProject.concurrencyToken)
+      await journey.refreshAll()
+    } catch (reason) {
+      setDeselectError(reason instanceof Error ? reason.message : 'Không thể hủy chọn đề tài lúc này.')
+    } finally {
+      setDeselectingTopic(false)
+    }
+  }
 
   const baselineForm = useMemo(() => toProjectForm(registrationProject), [registrationProject])
   const isDirty = useMemo(
@@ -130,8 +152,31 @@ export function ProjectRegistrationFormPage() {
       {!hasProject && !registration.canCreate && <FailureState message="Chưa thể tạo bản nháp. Nhóm cần đủ điều kiện đăng ký và bạn cần là trưởng nhóm." onRetry={() => void journey.refreshAll()} />}
       {registeringNewAfterRejection && <section className="rounded-xl border border-status-error-border bg-status-error-bg p-4 text-xs text-status-error-text"><strong>Đăng ký đề tài mới sau khi đề tài trước bị từ chối.</strong><p className="mt-1">Biểu mẫu này tạo một bản nháp hoàn toàn mới; đề cương cũ vẫn được giữ trong lịch sử.</p></section>}
       {revision && registration.latestRevision && <RevisionAlert reason={registration.latestRevision.reason} reviewerName={registration.latestRevision.changedByName || 'Hệ thống'} timestamp={registration.latestRevision.changedAt} />}
-      {registrationProject ? <ProjectProvenance project={registrationProject} /> : null}
+      {registrationProject ? (
+        <ProjectProvenance
+          project={registrationProject}
+          canDeselect={editable && isPublishedTopic}
+          deselecting={deselectingTopic}
+          deselectError={deselectError}
+          onDeselect={() => void handleDeselectTopic()}
+        />
+      ) : null}
       <RegistrationAcademicScope scope={registration.academicScope} organizationId={journey.semester?.organizationId} />
+      {(isInterdisciplinaryScope || hasMarketingScope) && (
+        <section className="rounded-xl border border-hairline border-l-4 border-l-primary bg-card p-4 text-xs text-ink-soft shadow-xs space-y-1.5">
+          <p className="font-bold uppercase tracking-wider text-primary">Lưu ý quy chuẩn học vụ (POL-04 &amp; POL-05)</p>
+          {isInterdisciplinaryScope && (
+            <p>
+              <strong>Tích hợp liên ngành (POL-05 / INT-*):</strong> Nhóm liên ngành IT × MKT cần mô tả rõ hạng mục tích hợp giữa sản phẩm kỹ thuật và chiến dịch/phân tích Marketing (ví dụ <code>INT-1</code> Tracking/Analytics, <code>INT-2</code> Conversion Funnel) trong mục <em>Sản phẩm kỳ vọng</em>.
+            </p>
+          )}
+          {hasMarketingScope && (
+            <p>
+              <strong>Giới hạn ghi nhận dữ liệu (POL-04 / Attribution Limits):</strong> Không yêu cầu cam kết doanh số tài chính thực tế; hãy nêu rõ phạm vi dữ liệu đo lường (khảo sát, A/B test, traffic thử nghiệm) trong <em>Mục tiêu đề tài</em>.
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.9fr)] lg:items-start">
         <form onSubmit={submit} className="flex flex-col gap-6 rounded-xl border border-hairline bg-card p-5 shadow-xs sm:p-6">
@@ -143,7 +188,7 @@ export function ProjectRegistrationFormPage() {
             {isDirty && <span className="text-xs font-medium text-status-warning-text">Nhớ lưu bản nháp trước khi nộp hoặc rời trang</span>}
           </div>
           {registration.error?.kind === 'validation' && <ValidationSummary summaryRef={validationSummaryRef} fields={registration.error.fields} message={registration.error.message} />}
-          <TextField id="project-title" label="Tên đề tài" value={registration.form.title} required disabled={!editable} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
+          <TextField id="project-title" label="Tên đề tài" hint={isPublishedTopic ? 'Tên đề tài đã công bố được khóa theo danh mục Khoa. Hủy chọn đề tài nếu muốn tự đề xuất tên khác.' : undefined} value={registration.form.title} required disabled={!editable || isPublishedTopic} error={registration.error?.fields?.title} onChange={(value) => registration.setField('title', value)} />
           <TextArea id="project-description" label="Mô tả ngắn" value={registration.form.description} disabled={!editable} onChange={(value) => registration.setField('description', value)} />
           <TextArea id="project-problem" label="Bối cảnh và vấn đề cần giải quyết" value={registration.form.problemStatement} disabled={!editable} onChange={(value) => registration.setField('problemStatement', value)} />
           <TextArea id="project-objectives" label="Mục tiêu đề tài" value={registration.form.objectives} disabled={!editable} onChange={(value) => registration.setField('objectives', value)} />
@@ -201,13 +246,37 @@ export function ProjectRegistrationFormPage() {
   )
 }
 
-function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof useStudentJourney>['project']> }) {
+function ProjectProvenance({
+  project,
+  canDeselect,
+  deselecting,
+  deselectError,
+  onDeselect,
+}: {
+  project: NonNullable<ReturnType<typeof useStudentJourney>['project']>
+  canDeselect: boolean
+  deselecting: boolean
+  deselectError: string | null
+  onDeselect: () => void
+}) {
   const source = project.proposalSource ?? 'STUDENT_PROPOSAL'
   return (
     <section className="rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-5 text-sm text-ink shadow-xs">
-      <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
-        <p className="text-xs font-bold uppercase tracking-wider text-status-success-text">Nguồn đề tài</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
+          <p className="text-xs font-bold uppercase tracking-wider text-status-success-text">Nguồn đề tài</p>
+        </div>
+        {canDeselect && (
+          <button
+            type="button"
+            disabled={deselecting}
+            onClick={onDeselect}
+            className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-status-error-border bg-card px-3 py-1.5 text-xs font-semibold text-status-error-text hover:bg-status-error-bg disabled:opacity-50"
+          >
+            {deselecting ? 'Đang hủy chọn…' : 'Hủy chọn đề tài'}
+          </button>
+        )}
       </div>
       {source === 'PUBLISHED_TOPIC' ? (
         <p className="mt-2 text-xs text-ink-soft">
@@ -219,6 +288,7 @@ function ProjectProvenance({ project }: { project: NonNullable<ReturnType<typeof
         </p>
       )}
       <p className="mt-1.5 text-xs text-ink-muted">Nội dung đề cương được nhóm rà soát và cập nhật riêng trong biểu mẫu này.</p>
+      {deselectError && <p role="alert" className="mt-2 text-xs font-medium text-status-error-text">{deselectError}</p>}
     </section>
   )
 }

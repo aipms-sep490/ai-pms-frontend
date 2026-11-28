@@ -10,6 +10,7 @@ import { useAuthSession } from '../../features/auth/context/useAuthSession'
 import { getNotifications, getUnreadCount, markAllNotificationsRead, markNotificationRead, type NotificationItem } from '../../features/notifications/notifications-api'
 import { emitNotificationsChanged, useNotificationLive } from '../../features/notifications/NotificationLiveContext'
 import { NotificationRow, NotificationEmpty, NotificationLoading } from '../../features/notifications/NotificationRow'
+import { getActivePrimaryAssignment } from '../../features/projects/utils/project-resolution.utils'
 import { QuickNavigation } from '../../components/ui/QuickNavigation'
 import { TourLauncher } from '../../features/onboarding/TourLauncher'
 
@@ -157,6 +158,7 @@ export function TopHeader({
   const teamLabel = role === 'student'
     ? journey?.team?.code || journey?.team?.name || (unavailableStudent ? 'Ngữ cảnh chưa tải được' : 'Chưa có nhóm')
     : session?.user.fullName || 'Tài khoản'
+  const hasPrimarySupervisor = Boolean(getActivePrimaryAssignment(journey?.assignments ?? []))
   const stateLabel = {
     NO_TEAM: 'Chưa có nhóm',
     TEAM_FORMING: 'Đang kiện toàn',
@@ -164,7 +166,7 @@ export function TopHeader({
     PROJECT_PENDING: 'Đang thẩm định',
     REVISION_REQUIRED: 'Cần chỉnh sửa',
     PROJECT_REJECTED: 'Không được chấp thuận',
-    SUPERVISOR_PENDING: 'Đang ghép GVHD',
+    SUPERVISOR_PENDING: hasPrimarySupervisor ? 'Chờ ký Cam kết nhóm' : 'Chờ chốt GVHD',
     ACTIVE: 'Đang thực hiện',
     FINAL_SUBMISSION: 'Đang bàn giao',
     COMPLETED: 'Đã hoàn thành',

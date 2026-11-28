@@ -87,12 +87,14 @@ export interface TeamLeaderChangeRequestDto {
   requestedBy: number
   currentLeaderUserId: number
   newLeaderUserId: number
-  mentorProfileId: number
-  mentorUserId: number
-  mentorName: string
+  mentorProfileId?: number | null
+  mentorUserId?: number | null
+  mentorName?: string | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | string
   requestMessage?: string | null
   responseMessage?: string | null
   requestedAt: string
   respondedAt?: string | null
+  decidedByUserId?: number | null
+  decisionSource?: 'MENTOR' | 'DEPARTMENT_STAFF' | 'DEPARTMENT_FORCE' | string | null
 }

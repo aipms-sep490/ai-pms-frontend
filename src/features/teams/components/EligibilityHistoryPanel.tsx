@@ -3,11 +3,10 @@ import { useRef, useState } from 'react'
 import * as api from '../team-eligibility-api'
 import { HttpError } from '../../../services/http/http-client'
 import { Button } from '../../../components/ui/Button'
-import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 
-export function EligibilityHistoryPanel({ teamId, canCheck, canLock, onChanged }: { teamId: number; canCheck: boolean; canLock: boolean; onChanged: () => void }) {
+export function EligibilityHistoryPanel({ teamId, canCheck, onChanged }: { teamId: number; canCheck: boolean; onChanged: () => void }) {
   const [latest, setLatest] = useState<api.EligibilityCheck | null>(null), [history, setHistory] = useState<api.EligibilityCheck[]>([]), [busy, setBusy] = useState(false), [loaded, setLoaded] = useState(false), [error, setError] = useState('')
-  const lock = useRef(false), { requestConfirmation, confirmationDialog } = useActionConfirmation()
+  const lock = useRef(false)
   async function load() {
     if (lock.current) return
     lock.current = true; setBusy(true); setError('')
@@ -15,13 +14,12 @@ export function EligibilityHistoryPanel({ teamId, canCheck, canLock, onChanged }
     catch { setError('Chưa tải được lịch sử kiểm tra điều kiện. Hãy thử lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  async function run(shouldLock: boolean) {
+  async function runCheck() {
     if (lock.current) return
-    if (shouldLock && await requestConfirmation({ title: 'Chốt danh sách nhóm?', description: 'Danh sách thành viên và phạm vi chuyên ngành sẽ được khóa. Hệ thống kiểm tra lại điều kiện trước khi chốt.', confirmLabel: 'Chốt nhóm' }) === null) return
     lock.current = true; setBusy(true); setError('')
-    try { if (shouldLock) await api.lockEligibility(teamId); else setLatest(await api.checkEligibility(teamId)); onChanged(); setHistory(await api.getEligibilityHistory(teamId)); setLoaded(true) }
-    catch (reason) { setError(reason instanceof HttpError && reason.status === 409 ? 'Điều kiện nhóm vừa thay đổi. Kiểm tra lại trước khi chốt nhóm.' : 'Chưa thực hiện được thao tác. Kiểm tra quyền và điều kiện nhóm rồi thử lại.') }
+    try { setLatest(await api.checkEligibility(teamId)); onChanged(); setHistory(await api.getEligibilityHistory(teamId)); setLoaded(true) }
+    catch (reason) { setError(reason instanceof HttpError && reason.status === 409 ? 'Điều kiện nhóm vừa thay đổi hoặc đã hết hạn đăng ký (N1).' : 'Chưa thực hiện được thao tác. Kiểm tra quyền và điều kiện nhóm rồi thử lại.') }
     finally { lock.current = false; setBusy(false) }
   }
-  return <details className="rounded-xl border border-hairline bg-card p-5" onToggle={event => { if (event.currentTarget.open && !loaded && !busy) void load() }}><summary className="cursor-pointer text-sm font-semibold text-ink">Lịch sử kiểm tra điều kiện nhóm</summary>{confirmationDialog}<div className="mt-4 space-y-4">{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{busy && <p role="status" className="text-sm text-ink-muted">Đang xử lý…</p>}<div className="flex flex-wrap gap-3"><Button variant="secondary" className="min-h-11" disabled={busy} onClick={() => void load()}>Tải lại</Button>{canCheck && <Button className="min-h-11" disabled={busy} onClick={() => void run(false)}>Kiểm tra điều kiện</Button>}{canLock && <Button className="min-h-11" disabled={busy || latest?.result !== 'PASS'} onClick={() => void run(true)}>Chốt nhóm</Button>}</div>{latest && <p className="text-sm text-ink-soft">Lần gần nhất: <strong className="text-ink">{latest.result === 'PASS' ? 'Đủ điều kiện' : 'Chưa đủ điều kiện'}</strong> · {dateTimeLabel(latest.checkedAt)} {latest.freshness === 'STALE' && '· Cần kiểm tra lại'}</p>}<ul className="divide-y divide-hairline text-sm">{history.map(item => <li key={item.checkId} className="space-y-2 py-3"><strong className="text-ink">{item.result === 'PASS' ? 'Đủ điều kiện' : 'Chưa đủ điều kiện'}</strong><p className="text-ink-muted">{dateTimeLabel(item.checkedAt)} · Chính sách {item.policyVersion}</p><ul className="list-disc space-y-1 pl-5 text-ink-soft">{item.issues.map(issue => <li key={issue.id}>{issue.message}</li>)}</ul></li>)}</ul>{loaded && !history.length && <p className="text-sm text-ink-muted">Chưa có lần kiểm tra nào được lưu.</p>}</div></details>
+  return <details className="rounded-xl border border-hairline bg-card p-5" onToggle={event => { if (event.currentTarget.open && !loaded && !busy) void load() }}><summary className="cursor-pointer text-sm font-semibold text-ink">Lịch sử kiểm tra điều kiện nhóm</summary><div className="mt-4 space-y-4">{error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}{busy && <p role="status" className="text-sm text-ink-muted">Đang xử lý…</p>}<div className="flex flex-wrap gap-3"><Button variant="secondary" className="min-h-11" disabled={busy} onClick={() => void load()}>Tải lại</Button>{canCheck && <Button className="min-h-11" disabled={busy} onClick={() => void runCheck()}>Kiểm tra điều kiện</Button>}</div>{latest && <p className="text-sm text-ink-soft">Lần gần nhất: <strong className="text-ink">{latest.result === 'PASS' ? 'Đủ điều kiện' : 'Chưa đủ điều kiện'}</strong> · {dateTimeLabel(latest.checkedAt)} {latest.freshness === 'WINDOW_CLOSED' ? '· Hết hạn đăng ký (N1) — chỉ đọc' : latest.freshness === 'STALE' ? '· Cần kiểm tra lại' : ''}</p>}<ul className="divide-y divide-hairline text-sm">{history.map(item => <li key={item.checkId} className="space-y-2 py-3"><strong className="text-ink">{item.result === 'PASS' ? 'Đủ điều kiện' : 'Chưa đủ điều kiện'}</strong><p className="text-ink-muted">{dateTimeLabel(item.checkedAt)} · Chính sách {item.policyVersion}</p><ul className="list-disc space-y-1 pl-5 text-ink-soft">{item.issues.map(issue => <li key={issue.id}>{issue.message}</li>)}</ul></li>)}</ul>{loaded && !history.length && <p className="text-sm text-ink-muted">Chưa có lần kiểm tra nào được lưu.</p>}</div></details>
 }

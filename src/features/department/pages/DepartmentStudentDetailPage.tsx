@@ -313,15 +313,24 @@ export function DepartmentStudentDetailPage() {
               <p className="text-sm text-status-warning-text">Ghi chú yêu cầu bổ sung gần nhất: {detail.academicProfileRejectionReason}</p>
             )}
 
-            <div className="flex flex-wrap gap-2 border-t border-hairline pt-3">
+            <div className="flex flex-wrap items-center gap-2 border-t border-hairline pt-3">
               {summary.academicProfileStatus !== 'VERIFIED' && (
                 <Button variant="secondary" disabled={saving || !summary.departmentId || !summary.majorId} onClick={() => void handleVerify(true)}>
                   Xác minh hồ sơ học vụ
                 </Button>
               )}
-              <Button variant="outline" disabled={saving} onClick={() => void handleVerify(false)}>
-                Yêu cầu sinh viên bổ sung
-              </Button>
+              <span title={summary.projectStatus === 'ACTIVE' || summary.projectStatus === 'FINAL_SUBMISSION' ? 'Không thể yêu cầu bổ sung (Reject) hồ sơ sinh viên đang tham gia đồ án ACTIVE / FINAL_SUBMISSION.' : undefined}>
+                <Button
+                  variant="outline"
+                  disabled={saving || summary.projectStatus === 'ACTIVE' || summary.projectStatus === 'FINAL_SUBMISSION'}
+                  onClick={() => void handleVerify(false)}
+                >
+                  Yêu cầu sinh viên bổ sung
+                </Button>
+              </span>
+              {(summary.projectStatus === 'ACTIVE' || summary.projectStatus === 'FINAL_SUBMISSION') && (
+                <span className="text-xs text-ink-muted">Đã khóa từ chối vì sinh viên đang làm đồ án ({projectStatusLabel(summary.projectStatus)}).</span>
+              )}
             </div>
           </section>
 

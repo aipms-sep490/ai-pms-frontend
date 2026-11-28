@@ -7,7 +7,15 @@ import type { StudentQualificationDto } from '../../../types/backend'
 
 const inputClass = 'mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:bg-canvas disabled:text-ink-muted'
 
-export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { onSubmitted: (value: StudentQualificationDto) => void; onBusyChange?: (busy: boolean) => void }) {
+export function QualificationCertificateForm({
+  onSubmitted,
+  onBusyChange,
+  qualificationType = 'CAPSTONE_READINESS',
+}: {
+  onSubmitted: (value: StudentQualificationDto) => void
+  onBusyChange?: (busy: boolean) => void
+  qualificationType?: string
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [fileName, setFileName] = useState('Chưa chọn tệp')
@@ -32,6 +40,7 @@ export function QualificationCertificateForm({ onSubmitted, onBusyChange }: { on
       const problem = validateUploadFile(file, policy ?? await getUploadPolicy('STUDENT_QUALIFICATION').catch(() => null))
       if (problem) return fail(problem)
       const value = await services.qualification.uploadCertificate({ file,
+        qualificationType,
         certificateNumber: String(data.get('certificateNumber') ?? '').trim() || undefined,
         issuedAt: issued ? new Date(`${issued}T00:00:00+07:00`).toISOString() : undefined,
         expiresAt: expires ? new Date(`${expires}T00:00:00+07:00`).toISOString() : undefined,

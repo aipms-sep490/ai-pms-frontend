@@ -21,6 +21,19 @@ export const acceptWorkingAgreement = (projectId: number, agreementId: number, c
     { agreementId, concurrencyToken },
   )
 
+export interface ForceActivateProjectResponse {
+  projectId: number
+  status: string
+  workingAgreementBypassed: boolean
+  reason: string
+}
+
+export const forceActivateProject = (projectId: number, reason: string) =>
+  httpPost<ForceActivateProjectResponse, { reason: string }>(
+    `/projects/${projectId}/working-agreement/force-activate`,
+    { reason },
+  )
+
 /**
  * `content_json` is backend-owned free-form JSON. Parse it defensively into
  * display sections: accept `{ sections: [...] }`, a bare array, or plain text,

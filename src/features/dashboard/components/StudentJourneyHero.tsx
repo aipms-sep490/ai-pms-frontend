@@ -102,8 +102,23 @@ export function StudentJourneyHero() {
           ctaIcon: 'visibility',
         }
       case 'SUPERVISOR_PENDING':
+        if (activeSupervisor) {
+          return {
+            badge: 'Giai đoạn 5: Chờ ký Cam kết nhóm',
+            badgeClass: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
+            title: 'Đề cương & GVHD đã xác nhận! Hãy hoàn tất Cam kết nhóm',
+            desc: `GVHD ${activeSupervisor.supervisorName} đã xác nhận hướng dẫn nhóm ${teamDisplayName}. Tất cả thành viên cần ký Cam kết nhóm để đồ án tự động kích hoạt sang Đang thực hiện.`,
+            icon: 'handshake',
+            iconBg: 'bg-warning-strong text-white',
+            ctaText: 'Mở Cam kết nhóm',
+            ctaRoute: '/project/agreement',
+            ctaIcon: 'edit_note',
+            secondaryText: 'Xem GVHD & Mentor',
+            secondaryRoute: '/project/supervisor',
+          }
+        }
         return {
-          badge: 'Giai đoạn 5: Ghép cặp GVHD',
+          badge: 'Giai đoạn 5: Chờ chốt GVHD / Mentor',
           badgeClass: 'bg-status-success-bg text-status-success-text border-status-success-border',
           title: 'Đề cương đã được duyệt! Hãy chọn Giảng viên Hướng dẫn',
           desc: `Đề tài của nhóm ${teamDisplayName} đã thông qua vòng thẩm định của Bộ môn. Bước tiếp theo là gửi yêu cầu tới giảng viên có chuyên môn phù hợp.`,

@@ -5,6 +5,7 @@ export interface AuthUser {
   roles: readonly string[]
   title?: string | null
   phone?: string | null
+  mustChangePassword?: boolean
 }
 
 export interface LoginCredentials {

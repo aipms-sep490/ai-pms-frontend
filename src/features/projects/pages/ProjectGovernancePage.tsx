@@ -8,6 +8,9 @@ import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspaceTabs } from '../../../components/ui/WorkspaceTabs'
 import type { BadgeTone } from '../../../components/ui/status-badge-tone'
 import { AssignmentManagementPanel } from '../../supervisors/components/AssignmentManagementPanel'
+import { GateDeadlineChangePanel } from '../../review-gates/components/GateDeadlineChangePanel'
+import { TeamLeaderGovernancePanel } from '../../teams/components/TeamLeaderGovernancePanel'
+import { forceActivateProject } from '../../working-agreement/working-agreement-api'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
@@ -67,6 +70,8 @@ export function ProjectGovernancePage() {
   const [editingCycle, setEditingCycle] = useState<api.ReportingCycle | null>(null)
   const [actionModalOpen, setActionModalOpen] = useState(false)
   const [editingAction, setEditingAction] = useState<api.ProjectActionItem | null>(null)
+  const [forceActivateOpen, setForceActivateOpen] = useState(false)
+  const [forceActivateReason, setForceActivateReason] = useState('')
 
   const [data, setData] = useState<Awaited<ReturnType<typeof loadData>> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -243,6 +248,19 @@ export function ProjectGovernancePage() {
             ]}
           />
           <DepartmentGovernanceOverview governance={data.governance} />
+          {canManage && data.governance.projectStatus === 'SUPERVISOR_PENDING' && (
+            <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text">
+              <div className="space-y-1">
+                <p className="font-bold">Đồ án đang chờ kích hoạt (SUPERVISOR_PENDING)</p>
+                <p className="text-xs">
+                  Nếu nhóm đã chốt đủ GVHD chính và Mentor theo ngành nhưng còn thành viên chưa ký Cam kết nhóm, Khoa chủ trì có thể thực hiện kích hoạt ngoại lệ (Force-Activate) kèm lý do kiểm toán.
+                </p>
+              </div>
+              <Button variant="secondary" disabled={busy} onClick={() => setForceActivateOpen(true)}>
+                Kích hoạt ngoại lệ (Force-Activate)
+              </Button>
+            </section>
+          )}
           {!canManage && (
             <p className="rounded-lg border border-status-warning-border bg-status-warning-bg p-4 text-sm text-status-warning-text" role="status">
               {api.governanceReadOnlyReason(data.governance, data.project.academicScope?.leadDepartmentId)}
@@ -482,6 +500,19 @@ export function ProjectGovernancePage() {
             </div>
           </section>
 
+          <TeamLeaderGovernancePanel
+            projectId={projectId}
+            teamId={data.project.teamId}
+            projectStatus={data.governance.projectStatus}
+            canManage={canManage}
+            onChanged={() => void load()}
+          />
+          <GateDeadlineChangePanel
+            projectId={projectId}
+            canRequest={false}
+            canReview={canManage}
+            onChanged={() => void load()}
+          />
           <AssignmentManagementPanel projectId={projectId} projectStatus={data.governance.projectStatus} />
         </div>
       )}
@@ -570,6 +601,48 @@ export function ProjectGovernancePage() {
             <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
               <Button type="button" variant="secondary" disabled={busy} onClick={() => { setActionModalOpen(false); setEditingAction(null) }}>Hủy</Button>
               <Button type="submit" disabled={busy || (!editingAction && !sources.length)}>{editingAction ? 'Lưu thay đổi' : 'Thêm công việc'}</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {forceActivateOpen && (
+        <Modal
+          open
+          title="Kích hoạt ngoại lệ đồ án (Force-Activate)"
+          description="Chuyển đồ án từ SUPERVISOR_PENDING sang ACTIVE mà không chờ đủ chữ ký Cam kết nhóm. Yêu cầu đồ án đã chốt GVHD chính và Mentor đầy đủ; hành động sẽ được ghi audit và thông báo cho nhóm cùng giảng viên."
+          busy={busy}
+          onClose={() => setForceActivateOpen(false)}
+        >
+          <form
+            className="api-form grid gap-3"
+            onSubmit={event => {
+              event.preventDefault()
+              const trimmed = forceActivateReason.trim()
+              if (trimmed.length < 15) {
+                setError('Lý do kích hoạt ngoại lệ phải có ít nhất 15 ký tự.')
+                return
+              }
+              void run(async () => {
+                await forceActivateProject(projectId, trimmed)
+                setForceActivateReason('')
+                setForceActivateOpen(false)
+              }, 'Đã kích hoạt ngoại lệ đồ án sang trạng thái ACTIVE.')
+            }}
+          >
+            <label>
+              Lý do kích hoạt ngoại lệ (tối thiểu 15 ký tự) *
+              <textarea
+                rows={3}
+                required
+                minLength={15}
+                value={forceActivateReason}
+                onChange={e => setForceActivateReason(e.target.value)}
+                placeholder="Ví dụ: Thành viên bảo lưu/nghỉ ốm, Khoa xác nhận cho nhóm triển khai đúng tiến độ học kỳ..."
+              />
+            </label>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
+              <Button type="button" variant="secondary" disabled={busy} onClick={() => setForceActivateOpen(false)}>Hủy</Button>
+              <Button type="submit" disabled={busy || forceActivateReason.trim().length < 15}>Xác nhận kích hoạt</Button>
             </div>
           </form>
         </Modal>

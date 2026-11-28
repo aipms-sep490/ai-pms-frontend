@@ -256,6 +256,7 @@ export async function getAssignments(
   const page = params?.page ?? 1
   const pageSize = params?.pageSize ?? 20
   const searchParams = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (params?.status) searchParams.append('status', params.status)
 
   if (env.isMockMode) {
     const items = mockAssignmentsStore.filter((a) => a.projectId === projectId)
@@ -270,6 +271,45 @@ export async function getAssignments(
 
   return await httpGet<PagedResult<SupervisorAssignmentDto>>(
     `/projects/${projectId}/supervisor-assignments?${searchParams.toString()}`,
+  )
+}
+
+export async function getDirectSupervisorCandidates(
+  projectId: number,
+  params?: {
+    assignmentType?: 'PRIMARY' | 'DISCIPLINE_MENTOR'
+    majorId?: number
+    search?: string
+    page?: number
+    pageSize?: number
+  },
+): Promise<PagedResult<SupervisorCandidateDto>> {
+  const page = params?.page ?? 1
+  const pageSize = params?.pageSize ?? 20
+  const searchParams = new URLSearchParams({
+    assignmentType: params?.assignmentType ?? 'PRIMARY',
+    page: String(page),
+    pageSize: String(pageSize),
+  })
+  if (params?.majorId != null) searchParams.append('majorId', String(params.majorId))
+  if (params?.search) searchParams.append('search', params.search)
+  return httpGet<PagedResult<SupervisorCandidateDto>>(
+    `/projects/${projectId}/supervisor-assignments/direct-candidates?${searchParams.toString()}`,
+  )
+}
+
+export async function directAssignSupervisor(
+  projectId: number,
+  payload: {
+    supervisorProfileId: number
+    assignmentType: 'PRIMARY' | 'DISCIPLINE_MENTOR'
+    majorId?: number | null
+    reason: string
+  },
+): Promise<SupervisorAssignmentDto> {
+  return httpPost<SupervisorAssignmentDto, typeof payload>(
+    `/projects/${projectId}/supervisor-assignments/direct`,
+    payload,
   )
 }
 

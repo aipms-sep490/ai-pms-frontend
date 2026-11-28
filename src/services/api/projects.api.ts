@@ -1,5 +1,6 @@
 import { env } from '../../app/config/env'
 import {
+  httpDelete,
   httpGet,
   httpPost,
   httpPut,
@@ -242,6 +243,56 @@ export async function selectTopic(id: number, payload: SelectProjectTopicPayload
     return mockProjectStore
   }
   return await httpPut<ProjectDto, SelectProjectTopicPayload>(`/projects/${id}/topic`, payload)
+}
+
+export async function createProjectFromTopic(topicId: number): Promise<ProjectDto> {
+  if (env.isMockMode) {
+    const now = new Date().toISOString()
+    mockProjectStore = {
+      id: 50,
+      teamId: 28,
+      teamName: 'SE28',
+      code: 'CP_FA26_SE28',
+      title: `Published topic #${topicId}`,
+      description: 'Khởi tạo từ đề tài đã công bố.',
+      objectives: null,
+      problemStatement: null,
+      expectedOutput: null,
+      status: 'Draft',
+      proposalSource: 'PUBLISHED_TOPIC',
+      topicId,
+      selectedTopic: { id: topicId, code: `TOP-${topicId}`, title: `Published topic #${topicId}` },
+      registeredAt: now,
+      submittedAt: null,
+      approvedAt: null,
+      createdBy: 1,
+      createdByName: 'Phạm Ngọc Hoàng Anh',
+      createdAt: now,
+      updatedAt: now,
+      concurrencyToken: `token_v${Date.now()}`,
+      majors: [{ id: 1, majorId: 101, majorCode: 'SE', majorName: 'Kỹ thuật Phần mềm' }],
+      tags: [],
+    }
+    return mockProjectStore
+  }
+  return await httpPost<ProjectDto, Record<string, never>>(`/projects/from-topic/${topicId}`, {})
+}
+
+export async function deselectTopic(id: number, concurrencyToken: string): Promise<ProjectDto> {
+  if (env.isMockMode) {
+    if (!mockProjectStore || mockProjectStore.id !== id) throw new Error(`Đồ án #${id} not found.`)
+    mockProjectStore = {
+      ...mockProjectStore,
+      topicId: null,
+      proposalSource: 'STUDENT_PROPOSAL',
+      selectedTopic: null,
+      concurrencyToken: `token_v${Date.now()}`,
+    }
+    return mockProjectStore
+  }
+  return await httpDelete<ProjectDto>(
+    `/projects/${id}/topic?concurrencyToken=${encodeURIComponent(concurrencyToken)}`,
+  )
 }
 
 export async function submitProject(id: number, concurrencyToken: string): Promise<ProjectDto> {

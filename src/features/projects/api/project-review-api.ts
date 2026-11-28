@@ -5,8 +5,36 @@ export interface ReviewQueuePage<T> { items: T[]; page: number; pageSize: number
 export interface ReviewProjectSummary { id: number; teamId: number; teamName: string; code: string; title: string; status: string; createdAt: string; submittedAt: string | null; majors: { majorCode: string; majorName: string }[] }
 export interface ReviewHistory { oldStatus: string | null; newStatus: string; changedByName: string; reason: string | null; changedAt: string }
 export interface ReviewScope { projectMode: string; primaryMajorId: number | null; leadDepartmentId: number; requirements: MajorRequirementDto[] }
-export interface DepartmentDecision { departmentId: number; decision: 'PENDING' | 'APPROVED' | 'REJECTED' | string; decidedBy: number | null; decidedByName?: string | null; decidedAt: string | null; reason: string | null }
-export interface ReviewDetail { concurrencyToken: string; academicScope: ReviewScope | null; latestSubmission: null | { id: number; projectPeriodId: number; submittedBy: number; submittedAt: string; evidence: { scope: ReviewScope; policy: { minMembers: number; maxMembers: number; minDistinctMajors: number; version: string }; organizationId: number; windowStartAt: string; windowEndAt: string; members: { userId: number; fullName: string; majorId: number; isLeader: boolean }[]; departmentIds: number[] }; decisions: DepartmentDecision[] } }
+export interface DepartmentDecision { departmentId: number; decision: 'PENDING' | 'APPROVED' | 'REVISION_REQUIRED' | 'REJECTED' | string; decidedBy: number | null; decidedByName?: string | null; decidedAt: string | null; reason: string | null }
+export interface ReviewDetail {
+  concurrencyToken: string
+  academicScope: ReviewScope | null
+  latestSubmission: null | {
+    id: number
+    projectPeriodId: number
+    submittedBy: number
+    submittedAt: string
+    isLeadOverride?: boolean
+    overrideReason?: string | null
+    overriddenBy?: number | null
+    overriddenAt?: string | null
+    consolidatedRevisionNotes?: string | null
+    evidence: {
+      scope: ReviewScope
+      policy: { minMembers: number; maxMembers: number; minDistinctMajors: number; version: string }
+      organizationId: number
+      windowStartAt: string
+      windowEndAt: string
+      members: { userId: number; fullName: string; majorId: number; isLeader: boolean }[]
+      departmentIds: number[]
+    }
+    decisions: DepartmentDecision[]
+  }
+  consolidatedRevisionNotes?: string | null
+  elapsedWorkingDays?: number
+  slaState?: 'ON_TIME' | 'REMINDER_2WD' | 'ESCALATED_3WD' | string
+  canLeadOverride?: boolean
+}
 export interface ProjectMajorRequirementInput { majorId: number; minMembers: number; maxMembers: number; responsibility: string }
 export interface ProjectMajorRequirement extends ProjectMajorRequirementInput { id: number; concurrencyToken: string }
 export interface ProjectRequirements { concurrencyToken: string; requirements: ProjectMajorRequirement[] }
@@ -43,4 +71,5 @@ export const replaceProjectMajorRequirements = (id: number, input: { concurrency
 export const getReviewSnapshots = (id: number, accessToken: string, page = 1, pageSize = 10) => httpGet<ProjectReviewHistoryPage>(`/v1/projects/${id}/review-snapshots?page=${page}&pageSize=${pageSize}`, auth(accessToken))
 export const startReview = (id: number, concurrencyToken: string, accessToken: string) => httpPost(`/v1/projects/${id}/start-review`, { concurrencyToken }, auth(accessToken))
 export const decideProjectReview = (id: number, kind: 'revision' | 'approve' | 'reject', concurrencyToken: string, reason: string | undefined, accessToken: string) => httpPost(`/v1/projects/${id}/${kind}`, kind === 'approve' ? { concurrencyToken } : { concurrencyToken, reason }, auth(accessToken))
-export const decideDepartment = (id: number, input: { snapshotId: number; concurrencyToken: string; decision: 'APPROVED' | 'REJECTED'; reason?: string }, accessToken: string) => httpPost<ReviewDetail>(`/v1/projects/${id}/department-decisions`, input, auth(accessToken))
+export const leadOverrideApproveProject = (id: number, input: { concurrencyToken: string; reason: string }, accessToken: string) => httpPost<ProjectDto>(`/v1/projects/${id}/lead-override-approve`, input, auth(accessToken))
+export const decideDepartment = (id: number, input: { snapshotId: number; concurrencyToken: string; decision: 'APPROVED' | 'REVISION_REQUIRED' | 'REJECTED'; reason?: string }, accessToken: string) => httpPost<ReviewDetail>(`/v1/projects/${id}/department-decisions`, input, auth(accessToken))

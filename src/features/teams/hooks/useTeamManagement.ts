@@ -286,9 +286,19 @@ export function useTeamManagement() {
     await runMutation(mutationKey('refresh-eligibility', team.id), () => services.team.refreshEligibility(team.id))
   }, [runMutation, team])
 
+  const disbandTeam = useCallback(async () => {
+    if (!team) return
+    await runMutation(mutationKey('disband', team.id), () => services.team.disbandTeam(team.id))
+  }, [runMutation, team])
+
+  const cancelLeaderChange = useCallback(async (requestId: number) => {
+    await runMutation(mutationKey('cancel-leader-change', requestId), () => services.team.cancelLeaderChangeRequest(requestId))
+  }, [runMutation])
+
   return {
     ...journey,
     team,
+    project,
     currentUserId,
     isLeader,
     rosterLocked,
@@ -320,7 +330,9 @@ export function useTeamManagement() {
     cancelInvitation,
     removeMember,
     leaveTeam,
+    disbandTeam,
     transferLeader,
+    cancelLeaderChange,
     refreshEligibility,
   }
 }

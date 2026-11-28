@@ -17,6 +17,7 @@ import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { SubmissionPreflightPanel } from '../../ai-suite/SubmissionPreflightPanel'
+import { GateDeadlineChangePanel } from '../components/GateDeadlineChangePanel'
 
 function timelineError(error: unknown): string {
   if (error instanceof HttpError) {
@@ -222,6 +223,15 @@ export function StudentReviewTimelinePage() {
               if (generation === routeGeneration.current) applyTimeline(updated)
             }}
           />}
+          {Number(timeline.projectId) > 0 && timeline.gates.length > 0 && (
+            <GateDeadlineChangePanel
+              projectId={Number(timeline.projectId)}
+              gates={timeline.gates.map(g => ({ code: g.code, title: g.title }))}
+              canRequest={isLeader || isLecturer}
+              canReview={false}
+              onChanged={() => void loadTimeline(true)}
+            />
+          )}
           {Number(timeline.projectId) > 0 && (
             <SubmissionPreflightPanel
               projectId={Number(timeline.projectId)}

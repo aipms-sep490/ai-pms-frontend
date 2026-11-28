@@ -1,4 +1,5 @@
 import { projectStatusLabel } from '../utils/project-status'
+import { getActivePrimaryAssignment } from '../utils/project-resolution.utils'
 import { Button } from '../../../components/ui/Button'
 import { HistoryTimeline } from '../../../components/ui/HistoryTimeline'
 import { useNavigate } from 'react-router-dom'
@@ -36,11 +37,19 @@ export function ProjectReviewStatusPage() {
   const journey = useStudentJourney()
   const registration = useProjectRegistration(journey)
   const project = journey.project
-  const state = statusCopy[registration.status] ?? {
+  const hasPrimarySupervisor = Boolean(getActivePrimaryAssignment(journey.assignments))
+  const baseState = statusCopy[registration.status] ?? {
     title: project ? projectStatusLabel(project.status) : 'Chưa có đề cương',
     detail: 'Theo dõi kết quả xét duyệt và lịch sử đồ án tại đây.',
     surface: 'neutral' as const,
   }
+  const state = registration.status === 'SUPERVISORPENDING' && hasPrimarySupervisor
+    ? {
+        title: 'Chờ ký Cam kết nhóm',
+        detail: 'Đề cương và GVHD đã được xác nhận. Tất cả thành viên trong nhóm cần ký Cam kết nhóm để kích hoạt đồ án sang trạng thái Đang thực hiện.',
+        surface: 'warning' as const,
+      }
+    : baseState
   const rejected = registration.status === 'REJECTED'
   const rejection = registration.history.filter((item) => normalizeStatus(item.newStatus) === 'REJECTED').at(-1)
   const tone = surfaceClasses[state.surface]
@@ -85,6 +94,11 @@ export function ProjectReviewStatusPage() {
             {registration.status === 'DRAFT' && registration.canEdit && <button type="button" onClick={() => navigate('/project/edit')} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Tiếp tục chỉnh sửa</button>}
             {registration.status === 'REVISIONREQUIRED' && registration.canEdit && <button type="button" onClick={() => navigate('/project/edit')} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Xem phản hồi và chỉnh sửa</button>}
             {rejected && registration.canCreate && <button type="button" onClick={() => navigate('/project/register')} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">Đăng ký đề tài mới</button>}
+            {registration.status === 'SUPERVISORPENDING' && hasPrimarySupervisor && (
+              <button type="button" onClick={() => navigate('/project/agreement')} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">
+                Mở Cam kết nhóm để ký
+              </button>
+            )}
             {registration.canContinueToSupervisor && <button type="button" onClick={() => navigate('/project/supervisor')} className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-hover">{registration.status === 'APPROVED' ? 'Tiếp tục đến Giảng viên hướng dẫn' : 'Mời Giảng viên hướng dẫn / Mentor'}</button>}
           </div>
         </section>

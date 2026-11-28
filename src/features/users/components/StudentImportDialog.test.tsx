@@ -29,7 +29,13 @@ it('requires scope, preview and confirmation before creating Google student acco
   expect(screen.getByText(/an@gmail.com/)).toBeTruthy(); expect(createButton().disabled).toBe(true)
   fireEvent.click(screen.getByRole('checkbox', { name: /Tôi đã kiểm tra/ })); fireEvent.click(createButton())
   await screen.findByText(/Đã tạo 1 tài khoản/)
-  expect(mocks.commitStudentImport).toHaveBeenCalledWith(7, [account], 'token', expect.any(AbortSignal))
+  expect(mocks.commitStudentImport).toHaveBeenCalledWith(
+    7,
+    [account],
+    'token',
+    expect.any(AbortSignal),
+    { requireGoogleSso: false, markProfilesVerified: false },
+  )
   expect(refresh).toHaveBeenCalledOnce(); expect(createButton().disabled).toBe(true)
 })
 

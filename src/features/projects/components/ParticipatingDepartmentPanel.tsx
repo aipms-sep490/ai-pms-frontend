@@ -13,7 +13,7 @@ interface ParticipatingDepartmentPanelProps {
   canApprove: boolean
   canReject: boolean
   pending: boolean
-  onDecide: (decision: 'APPROVED' | 'REJECTED') => void
+  onDecide: (decision: 'APPROVED' | 'REVISION_REQUIRED' | 'REJECTED') => void
 }
 
 export function ParticipatingDepartmentPanel({
@@ -38,6 +38,7 @@ export function ParticipatingDepartmentPanel({
       })}</ul> : <p className="mt-2 text-sm text-ink-muted">Chưa có bộ môn tham gia thẩm định bản đề cương này.</p>}
       {snapshotId && (canApprove || canReject) ? <div className="mt-3 flex flex-wrap gap-2">
         {canApprove ? <Button disabled={pending} onClick={() => onDecide('APPROVED')}>Chấp thuận đề cương</Button> : null}
+        {canReject ? <Button variant="secondary" disabled={pending} onClick={() => onDecide('REVISION_REQUIRED')}>Yêu cầu chỉnh sửa</Button> : null}
         {canReject ? <Button variant="danger" disabled={pending} onClick={() => onDecide('REJECTED')}>Không chấp thuận</Button> : null}
       </div> : null}
     </section>

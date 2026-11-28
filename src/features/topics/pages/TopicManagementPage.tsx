@@ -43,10 +43,12 @@ function readinessChecks(topic: Topic) {
   ]
 }
 
-export function TopicManagementPage() {
+export function TopicManagementPage({ mode = 'department' }: { mode?: 'department' | 'lecturer' } = {}) {
+  const isLecturerMode = mode === 'lecturer'
+  const baseRoute = isLecturerMode ? '/lecturer/topics' : '/department/topics'
   const { id } = useParams()
   const workflow = useContext(AcademicWorkflowContext)
-  const topics = useTopics(id ? Number(id) : undefined)
+  const topics = useTopics(id ? Number(id) : undefined, { mineOnly: isLecturerMode })
   const catalog = useTopicCatalog()
   const [draftDirty, setDraftDirty] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -88,8 +90,8 @@ export function TopicManagementPage() {
   }, [topics.items, modeFilter, majorFilter, domainFilter, sortBy])
 
   const publishableVisibleDrafts = useMemo(
-    () => visibleTopics.filter(t => t.status === 'DRAFT' && catalog.department?.id === t.leadDepartmentId),
-    [visibleTopics, catalog.department?.id],
+    () => (isLecturerMode ? [] : visibleTopics.filter(t => t.status === 'DRAFT' && catalog.department?.id === t.leadDepartmentId)),
+    [isLecturerMode, visibleTopics, catalog.department?.id],
   )
   const selectedPublishTargets = useMemo(
     () => publishableVisibleDrafts.filter(t => selectedDraftIds.has(t.id)),
@@ -172,7 +174,10 @@ export function TopicManagementPage() {
 
   if (id && topics.current) {
     const topic = topics.current
-    const canManage = catalog.department?.id === topic.leadDepartmentId
+    const canEditDraft = isLecturerMode
+      ? topic.status === 'DRAFT'
+      : catalog.department?.id === topic.leadDepartmentId
+    const canPublishOrClose = !isLecturerMode && catalog.department?.id === topic.leadDepartmentId
     const checks = readinessChecks(topic)
     const completedChecks = checks.filter(c => c.ok).length
 
@@ -183,12 +188,12 @@ export function TopicManagementPage() {
         eyebrow={`Đề tài ${topic.code}`}
         title={topic.title}
         description={topic.leadDepartmentName}
-        backTo="/department/topics"
-        backLabel="Danh mục đề tài"
+        backTo={baseRoute}
+        backLabel={isLecturerMode ? 'Đề xuất đề tài của giảng viên' : 'Danh mục đề tài'}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge tone={statusTone[topic.status]} label={statusLabels[topic.status]} />
-            {topic.status === 'DRAFT' && canManage && (
+            {topic.status === 'DRAFT' && canPublishOrClose && (
               <Button
                 icon="publish"
                 className="min-h-10"
@@ -199,7 +204,7 @@ export function TopicManagementPage() {
                 Công bố
               </Button>
             )}
-            {topic.status !== 'CLOSED' && canManage && (
+            {topic.status !== 'CLOSED' && canPublishOrClose && (
               <Button variant="danger" className="min-h-10" disabled={topics.saving} onClick={() => void decide(true)}>
                 Đóng đề tài
               </Button>
@@ -209,7 +214,7 @@ export function TopicManagementPage() {
       >
         {confirmationDialog}
 
-        {draftDirty && topic.status === 'DRAFT' && canManage && (
+        {draftDirty && topic.status === 'DRAFT' && canEditDraft && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 text-sm text-status-warning-text">
             <span>Có chỉnh sửa chưa lưu. Lưu bản nháp trước khi công bố.</span>
             <button
@@ -237,7 +242,7 @@ export function TopicManagementPage() {
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">Đề cương chi tiết</p>
                 <h2 className="mt-0.5 text-base font-bold text-ink">Thông tin đề tài</h2>
               </div>
-              {topic.status === 'DRAFT' && canManage && (
+              {topic.status === 'DRAFT' && canEditDraft && (
                 <button
                   type="button"
                   onClick={() => document.getElementById('topic-draft-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -321,6 +326,10 @@ export function TopicManagementPage() {
                   <dt className="shrink-0 text-xs font-medium text-ink-muted">Lĩnh vực</dt>
                   <dd className="text-right font-medium text-ink-soft">{topic.domain || 'Chưa có lĩnh vực'}</dd>
                 </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-xs font-medium text-ink-muted">Số nhóm tối đa</dt>
+                  <dd className="font-semibold text-ink">{topic.selectedTeamCount ?? 0} / {topic.maxTeams ?? 1} nhóm</dd>
+                </div>
               </dl>
 
               <div className="space-y-2 border-t border-hairline pt-3">
@@ -380,14 +389,14 @@ export function TopicManagementPage() {
           </aside>
         </div>
 
-        {topic.status === 'DRAFT' && canManage && (
+        {topic.status === 'DRAFT' && canEditDraft && (
           <section id="topic-draft-editor" className="topic__edit">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-hairline pb-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">Biên tập nội dung</p>
                 <h2 className="mt-0.5 text-base font-bold text-ink">Chỉnh sửa bản nháp</h2>
               </div>
-              <span className="text-xs text-ink-muted">Lưu bản nháp sau khi sửa rồi nhấn “Công bố” ở góc trên cùng</span>
+              <span className="text-xs text-ink-muted">{isLecturerMode ? 'Lưu bản nháp đề xuất để Khoa xem xét và công bố.' : 'Lưu bản nháp sau khi sửa rồi nhấn “Công bố” ở góc trên cùng'}</span>
             </div>
             <TopicContentForm
               key={`${topic.id}:${topic.concurrencyToken}`}
@@ -423,16 +432,18 @@ export function TopicManagementPage() {
     <WorkspacePage
       size="wide"
       className="topic mk-page-enter"
-      eyebrow="Danh mục học vụ"
-      title="Quản lý đề tài"
-      description="Tạo, kiểm duyệt, công bố và theo dõi các đề tài dùng cho kỳ đồ án."
+      eyebrow={isLecturerMode ? 'Không gian giảng viên' : 'Danh mục học vụ'}
+      title={isLecturerMode ? 'Đề xuất đề tài của giảng viên' : 'Quản lý đề tài'}
+      description={isLecturerMode ? 'Soạn và quản lý bản nháp đề tài đề xuất cho Khoa phê duyệt, công bố vào danh mục.' : 'Tạo, kiểm duyệt, công bố và theo dõi các đề tài dùng cho kỳ đồ án.'}
       action={
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={topics.loading} onClick={() => void topics.refresh()} />
-          <Button variant="secondary" icon="auto_awesome" onClick={() => setAiBatchOpen(true)}>
-            Nhập / Soạn hàng loạt bằng AI
-          </Button>
-          <Button icon="add" onClick={() => setCreateOpen(true)}>Tạo đề tài mới</Button>
+          {!isLecturerMode && (
+            <Button variant="secondary" icon="auto_awesome" onClick={() => setAiBatchOpen(true)}>
+              Nhập / Soạn hàng loạt bằng AI
+            </Button>
+          )}
+          <Button icon="add" onClick={() => setCreateOpen(true)}>{isLecturerMode ? 'Đề xuất đề tài mới' : 'Tạo đề tài mới'}</Button>
         </div>
       }
     >
@@ -648,7 +659,7 @@ export function TopicManagementPage() {
             {visibleTopics.length > 0 ? (
               <div className="grid grid-cols-1 items-stretch gap-3.5 md:grid-cols-2">
                 {visibleTopics.map(topic => {
-                  const canQuickPublish = topic.status === 'DRAFT' && catalog.department?.id === topic.leadDepartmentId && typeof topics.publishById === 'function'
+                  const canQuickPublish = !isLecturerMode && topic.status === 'DRAFT' && catalog.department?.id === topic.leadDepartmentId && typeof topics.publishById === 'function'
                   const isSelected = selectedDraftIds.has(topic.id)
                   return (
                     <article
@@ -681,7 +692,7 @@ export function TopicManagementPage() {
                               {modeLabels[topic.projectMode]}
                             </span>
                           </div>
-                          <Link className="topic__row-title" to={`/department/topics/${topic.id}`}>{topic.title}</Link>
+                          <Link className="topic__row-title" to={`${baseRoute}/${topic.id}`}>{topic.title}</Link>
                           <p className="mt-1 text-xs text-ink-muted">
                             {topic.leadDepartmentName}
                             {topic.requirements.length > 0 && ` · ${topic.requirements.map(r => r.majorName || resolveMajorName(r.majorId)).join(', ')}`}
@@ -709,7 +720,7 @@ export function TopicManagementPage() {
                           </Button>
                         )}
                         <Link
-                          to={`/department/topics/${topic.id}`}
+                          to={`${baseRoute}/${topic.id}`}
                           className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary"
                         >
                           {topic.status === 'DRAFT' ? 'Xem & Sửa' : 'Chi tiết'}

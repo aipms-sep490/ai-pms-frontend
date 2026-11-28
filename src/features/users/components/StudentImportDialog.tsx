@@ -6,7 +6,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { AcademicScopeFields } from '../../academic/components/AcademicScopeFields'
 import { useAuthSession } from '../../auth/context/useAuthSession'
 import { getWorkspaceRole } from '../../auth/utils/role-access'
-import { commitStudentImport, previewStudentImport, type StudentImportPreview } from '../api/student-import-api'
+import { commitStudentImport, previewStudentImport, type StudentImportedCredential, type StudentImportPreview } from '../api/student-import-api'
 import './curriculum-import.css'
 
 const errors: Record<string, string> = {
@@ -46,9 +46,26 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
   const [pending, setPending] = useState<'preview' | 'commit' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<number | null>(null)
+  const [requireGoogleSso, setRequireGoogleSso] = useState(false)
+  const [markProfilesVerified, setMarkProfilesVerified] = useState(false)
+  const [credentials, setCredentials] = useState<StudentImportedCredential[] | null>(null)
   const request = useRef<AbortController | null>(null)
   useEffect(() => () => { request.current?.abort() }, [])
-  function resetPreview() { setPreview(null); setConfirmed(false); setError(null); setCreated(null) }
+  function resetPreview() { setPreview(null); setConfirmed(false); setError(null); setCreated(null); setCredentials(null) }
+  function downloadCredentialsCsv(rows: StudentImportedCredential[]) {
+    const escape = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const lines = [
+      ['MSSV', 'Ho ten', 'Email', 'Mat khau ban dau'].map(escape).join(','),
+      ...rows.map(r => [r.studentCode, r.fullName, r.email, r.initialPassword].map(escape).join(',')),
+    ]
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `student-initial-credentials-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
   function chooseFile(next: File | null) {
     resetPreview(); setFile(null)
     if (!next) return
@@ -69,8 +86,19 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
         const data = await previewStudentImport(file, Number(scope.majorId), session.accessToken, controller.signal)
         if (!controller.signal.aborted) setPreview(data)
       } else {
-        const data = await commitStudentImport(preview!.majorId, preview!.rows.map(row => row.account), session.accessToken, controller.signal)
-        if (!controller.signal.aborted) { setPreview(null); setCreated(data.created); onImported() }
+        const data = await commitStudentImport(
+          preview!.majorId,
+          preview!.rows.map(row => row.account),
+          session.accessToken,
+          controller.signal,
+          { requireGoogleSso, markProfilesVerified },
+        )
+        if (!controller.signal.aborted) {
+          setPreview(null)
+          setCreated(data.created)
+          setCredentials(data.initialCredentials ?? null)
+          onImported()
+        }
       }
     } catch (reason) {
       if (!controller.signal.aborted) { setError(errorMessage(reason, action === 'commit')); setPreview(null) }
@@ -80,15 +108,45 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
   }
 
   return <ImportDialog<StudentImportPreview['rows'][number]> title="Nhập tài khoản sinh viên từ Excel"
-    description="Tạo tài khoản hàng loạt. Sinh viên đăng nhập bằng Google với đúng email trong file."
+    description="Tạo tài khoản hàng loạt. Mặc định hỗ trợ đăng nhập Email + Mật khẩu ban đầu (và có thể liên kết Google SSO)."
     onClose={onClose} authorized={isAdmin && !!session} unauthorizedMessage="Chỉ Admin được nhập tài khoản sinh viên."
-    busy={!!pending} notice={<><p>Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung, Lớp, Chuyên ngành hẹp. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính.</p><p>Dùng email Gmail hoặc email trường do Google Workspace quản lý. Mỗi lô thuộc một chuyên ngành. Tài khoản mới có vai trò Sinh viên, hồ sơ học vụ chờ xác minh và chưa được xếp nhóm.</p></>}
+    busy={!!pending} notice={<><p>Bắt buộc: <strong>MSSV, Họ tên, Email</strong>. Tùy chọn: SĐT, Khung, Lớp, Chuyên ngành hẹp. Tối đa 500 sinh viên, 5 MB; CSV UTF-8 hoặc XLSX một trang tính.</p><p>Mỗi lô thuộc một chuyên ngành. Ở chế độ mặc định, hệ thống sinh mật khẩu ban đầu (yêu cầu đổi lần đầu) và cung cấp nút tải CSV bàn giao 1 lần.</p></>}
     templateHref="/templates/student-accounts-import.csv" fileLabel="File danh sách sinh viên" file={file}
     accept=".csv,.xlsx" limits="5 MB · 500 dòng" onFileChange={chooseFile}
-    beforeFile={<AcademicScopeFields {...scope} disabled={!!pending} onChange={next => { setScope(next); resetPreview() }} />}
+    beforeFile={
+      <div className="space-y-3">
+        <AcademicScopeFields {...scope} disabled={!!pending} onChange={next => { setScope(next); resetPreview() }} />
+        <div className="rounded-xl border border-hairline bg-canvas p-3 space-y-2 text-sm">
+          <label className="flex items-start gap-2 text-ink">
+            <input type="checkbox" checked={requireGoogleSso} disabled={!!pending} onChange={e => setRequireGoogleSso(e.target.checked)} />
+            <span>Bắt buộc đăng nhập Google SSO (khóa đăng nhập bằng mật khẩu)</span>
+          </label>
+          <label className="flex items-start gap-2 text-ink">
+            <input type="checkbox" checked={markProfilesVerified} disabled={!!pending} onChange={e => setMarkProfilesVerified(e.target.checked)} />
+            <span>Xác minh hồ sơ học vụ (VERIFIED) ngay sau khi nhập (dùng cho danh sách chính thức từ Phòng Đào tạo)</span>
+          </label>
+        </div>
+        {credentials && credentials.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-status-success-border bg-status-success-bg p-3 text-sm">
+            <span className="text-status-success-text font-medium">
+              Đã tạo {credentials.length} mật khẩu ban đầu (chỉ hiển thị 1 lần, không lưu dạng văn bản thuần).
+            </span>
+            <button
+              type="button"
+              onClick={() => downloadCredentialsCsv(credentials)}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover"
+            >
+              Tải CSV mật khẩu ban đầu
+            </button>
+          </div>
+        )}
+      </div>
+    }
     previewButtonLabel="Xem trước danh sách" previewDisabled={!file || !scope.majorId}
     onPreview={() => void run('preview')} error={error}
-    success={created === null ? null : `Đã tạo ${created} tài khoản sinh viên. Sinh viên có thể chọn Đăng nhập với Google bằng email đã nhập.`}
+    success={created === null ? null : requireGoogleSso
+      ? `Đã tạo ${created} tài khoản sinh viên (chế độ Google SSO${markProfilesVerified ? ', hồ sơ đã xác minh VERIFIED' : ''}).`
+      : `Đã tạo ${created} tài khoản sinh viên (chế độ Mật khẩu ban đầu${markProfilesVerified ? ', hồ sơ đã xác minh VERIFIED' : ', chờ Khoa xác minh'}). Hãy tải file CSV mật khẩu ban đầu trước khi đóng hộp thoại.`}
     preview={preview && { rows: preview.rows, label: 'Danh sách tài khoản sẽ tạo', regionLabel: 'Chi tiết sinh viên nhập',
       columns: ['Dòng / MSSV', 'Họ tên / Email', 'SĐT / Khung / Lớp', 'Kết quả'],
       getKey: row => row.account.rowNumber, getStatus: row => row.errors.length ? 'error' : 'valid',
@@ -98,7 +156,7 @@ export function StudentImportDialog({ onClose, onImported }: { onClose: () => vo
         <TableCell label="SĐT / Khung / Lớp">{account.phone || '—'}<br />{account.curriculumCode || '—'}{account.classCode ? ` · Lớp ${account.classCode}` : ''}{account.specializationCode ? ` · ${account.specializationCode}` : ''}</TableCell>
         <TableCell label="Kết quả">{rowErrors.length ? rowErrors.map((code, index) => <p key={index} className="text-status-error-text">{errors[code] ?? code}</p>) : <StatusBadge tone="success" label="Sẽ tạo mới" />}</TableCell>
       </>, validLabel: 'sẽ tạo mới', warningLabel: 'sẽ cập nhật', canCommit, commitCount: preview.rows.length,
-      confirmationLabel: `Tôi đã kiểm tra và xác nhận tạo ${preview.rows.length} tài khoản sinh viên đăng nhập Google.`,
+      confirmationLabel: `Tôi đã kiểm tra và xác nhận tạo ${preview.rows.length} tài khoản sinh viên (${requireGoogleSso ? 'Google SSO' : 'Mật khẩu ban đầu'}${markProfilesVerified ? ', VERIFIED ngay' : ''}).`,
       invalidMessage: 'Chưa thể tạo tài khoản. Sửa các dòng lỗi rồi chọn lại file; tài khoản đã tồn tại sẽ không bị ghi đè.',
       extra: <p><strong>{preview.departmentName} · {preview.majorName}</strong></p> }}
     confirmed={confirmed} onConfirmedChange={setConfirmed} onCommit={() => void run('commit')}

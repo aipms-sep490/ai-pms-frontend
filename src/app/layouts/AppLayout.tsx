@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useEntranceMotion } from '../../components/ui/useEntranceMotion'
 import { Sidebar } from './Sidebar'
 import { TopHeader } from './TopHeader'
@@ -103,6 +103,27 @@ export function AppLayout() {
         />
 
         {/* Page Content Outlet */}
+        {session?.user.mustChangePassword && (
+          <div
+            role="alert"
+            className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 text-sm text-status-warning-text sm:mx-6 lg:mx-8"
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">password</span>
+              <span>
+                Tài khoản đang sử dụng mật khẩu tạm / mật khẩu ban đầu. Vui lòng đổi mật khẩu mới ngay để bảo mật tài khoản.
+              </span>
+            </div>
+            {location.pathname !== '/profile/security' && (
+              <Link
+                to="/profile/security"
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover"
+              >
+                Đổi mật khẩu ngay
+              </Link>
+            )}
+          </div>
+        )}
         <main
           id="main-content"
           tabIndex={-1}
