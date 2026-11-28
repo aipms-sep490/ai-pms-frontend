@@ -1,4 +1,6 @@
 import { HttpError } from '../../services/http/http-client'
+import { executionError } from '../execution/execution-utils'
+import { workflowErrorFromCode } from '../execution/execution-error-codes'
 import type { ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import type { MeetingDetail } from './meeting-types'
 
@@ -45,6 +47,9 @@ export function meetingError(reason: unknown): string {
     if (reason.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
     if (reason.status === 403) return 'Bạn không còn quyền thực hiện thao tác này. Tải lại để kiểm tra phân công hiện tại.'
     if (reason.status === 404) return 'Không tìm thấy cuộc họp hoặc người tham gia. Vui lòng tải lại.'
+    if (reason.status < 500 && workflowErrorFromCode(reason.problem?.code)) {
+      return executionError(reason, 'thực hiện thao tác')
+    }
     if (reason.status === 409) return 'Cuộc họp hoặc danh sách người tham gia đã thay đổi. Tải lại dữ liệu rồi kiểm tra trước khi thao tác tiếp.'
     if (reason.status === 400 || reason.status === 422) return 'Thông tin chưa hợp lệ. Kiểm tra tiêu đề, thời gian, người tham gia và trạng thái đồ án.'
   }
