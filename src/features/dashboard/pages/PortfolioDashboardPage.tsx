@@ -294,7 +294,7 @@ export function PortfolioDashboardPage() {
         </p>
       )}
       {!loading && data && <>
-        <DepartmentExecutiveBriefPanel routePrefix={scope === 'admin' ? '/admin' : '/department'} />
+        {scope !== 'admin' && <DepartmentExecutiveBriefPanel />}
         <section aria-label="Tóm tắt danh mục đồ án">
           <StatTileRow
             tiles={[

@@ -29,8 +29,7 @@ export function MeetingAiDetailSection({
   onMeetingChanged: () => void
 }) {
   const isInAppVideo = env.videoMeetingEnabled && meeting.videoChannel === 'IN_APP_VIDEO'
-  const showFeature =
-    isInAppVideo || env.videoMeetingEnabled || env.aiAdvisoryEnabled || env.academicAiAssistantEnabled
+  const showFeature = env.meetingAiEnabled
 
   const [expanded, setExpanded] = useState(isInAppVideo)
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])

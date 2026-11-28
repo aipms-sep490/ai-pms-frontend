@@ -36,13 +36,20 @@ describe('AI advisory components', () => {
   it('shows the newly saved analysis in history without reloading the page or replaying its write', async () => {
     api.recordProjectProgressAnalysis.mockResolvedValue({ ...analysis, runId: 77 })
     api.getProjectAiRuns.mockResolvedValueOnce({ items: [], totalPages: 1 }).mockResolvedValue({ items: [{ id: 77, kind: 'PROGRESS_ANALYSIS', status: 'COMPLETED', modelVersion: 'fresh-model', configVersion: 'v1', startedAt: '2026-10-27T08:00:00Z' }], totalPages: 1 })
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'supervisor', currentUserId: 3, canManageStructure: false, routeBase: '/supervisor/projects/9' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Chưa có lần phân tích nào được lưu.')
     fireEvent.click(screen.getByRole('button', { name: 'Lưu vào lịch sử phân tích' }))
     await screen.findByRole('button', { name: /Phân tích tiến độ.*Hoàn tất/ })
     expect(api.recordProjectProgressAnalysis).toHaveBeenCalledTimes(1)
     expect(api.getProjectAiRuns).toHaveBeenCalledTimes(2)
     expect(api.getProjectAiRuns).toHaveBeenLastCalledWith(9, 1, 10, expect.any(AbortSignal))
+  })
+  it('hides risk and digest panels for students under V4.0 scope rule', async () => {
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
+    await screen.findByText('Trợ lý hỏi đáp theo đồ án đang tắt')
+    expect(screen.queryByText('Rủi ro và tiến độ đồ án')).toBeNull()
+    expect(api.getProjectProgressAnalysis).not.toHaveBeenCalled()
+    expect(api.getProjectAiDigest).not.toHaveBeenCalled()
   })
   it('hides the legacy project ask form by default under W0-09 safety policy', async () => {
     render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage /></ExecutionAccessProvider></MemoryRouter>)
@@ -85,7 +92,7 @@ describe('AI advisory components', () => {
 
   it('keeps the assistant advisory-only and surfaces a rate-limit failure', async () => {
     api.askProjectAssistant.mockRejectedValue(new HttpError('rate limited', 429))
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'supervisor', currentUserId: 3, canManageStructure: false, routeBase: '/supervisor/projects/9' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Việc nào cần ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))
@@ -96,7 +103,7 @@ describe('AI advisory components', () => {
 
   it('renders assistant evidence without converting an API reference into a command', async () => {
     api.askProjectAssistant.mockResolvedValue({ projectId: 9, answer: 'Ưu tiên task quá hạn.', contextScope: 'Project #9', evidence: summary.evidence, limitationNote: 'Dữ liệu có giới hạn.', insufficientEvidence: true, generatedAt: '2026-10-03T08:00:00Z' })
-    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'student', currentUserId: 2, canManageStructure: true, routeBase: '/project' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
+    render(<MemoryRouter><ExecutionAccessProvider value={{ project: { id: 9, title: 'Đồ án', status: 'ACTIVE', majors: [] } as never, actor: 'supervisor', currentUserId: 3, canManageStructure: false, routeBase: '/supervisor/projects/9' }}><ProjectAiPage legacyAskEnabled /></ExecutionAccessProvider></MemoryRouter>)
     await screen.findByText('Rủi ro và tiến độ đồ án')
     fireEvent.change(screen.getByLabelText('Câu hỏi'), { target: { value: 'Ưu tiên?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }))

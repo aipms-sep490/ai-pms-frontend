@@ -90,6 +90,7 @@ function ProjectNavigation() {
 }
 
 it('opens risk on demand, keeps chat drafts and clears the previous project on navigation', () => {
+  state.session = { user: { id: 1, roles: ['LECTURER'] } }
   render(<MemoryRouter initialEntries={['/supervisor/projects/9/ai']}><ProjectNavigation /><AssistantDock /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))
   expect(screen.queryByLabelText('Risk 9')).toBeNull()
@@ -109,11 +110,19 @@ it('opens risk on demand, keeps chat drafts and clears the previous project on n
   expect(screen.getByRole('textbox')).toBeTruthy()
 })
 
-it('hides risk without project context or when its feature flag is off', () => {
+it('hides risk without project context, for student-only sessions, or when its feature flag is off', () => {
   const view = render(tree())
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))
   expect(screen.queryByRole('button', { name: 'Rủi ro & tiến độ' })).toBeNull()
   view.unmount()
+
+  // V4.0: student-only sessions do not see risk tab even inside project context
+  const studentView = render(<MemoryRouter initialEntries={['/project/ai']}><AssistantDock /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))
+  expect(screen.queryByRole('button', { name: 'Rủi ro & tiến độ' })).toBeNull()
+  studentView.unmount()
+
+  state.session = { user: { id: 1, roles: ['DEPARTMENT_STAFF'] } }
   state.riskEnabled = false
   render(<MemoryRouter initialEntries={['/department/projects/9/risk']}><AssistantDock /></MemoryRouter>)
   fireEvent.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }))

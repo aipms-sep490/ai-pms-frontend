@@ -16,10 +16,15 @@ const buildEnv = {
   // Keep the deployed assistant's progress/risk tab available. This must be
   // explicit because .env.example intentionally keeps advisory AI opt-in.
   VITE_ENABLE_AI_PROGRESS_RISK: 'true',
+  VITE_ENABLE_AI_SUITE: 'true',
+  VITE_ENABLE_CHAT_AI: 'true',
+  VITE_ENABLE_MEETING_AI: 'true',
+  VITE_ENABLE_HIGH_RISK_AI: 'true',
   // Runtime APIs and schema are deployed. User authorized these modules on
   // staging; backend permissions, policy references and windows still apply.
   VITE_ENABLE_ROOM_PLANNER: 'true',
-  VITE_ENABLE_PEER_EVAL: 'true',
+  VITE_ENABLE_PEER_EVAL: 'false',
+  VITE_ENABLE_SUPERVISOR_RECOMMENDATION: 'false',
   VITE_ENABLE_RESULT_CORRECTION: 'true',
   VITE_ENABLE_WORKFLOW_PREVIEW: 'false',
 }

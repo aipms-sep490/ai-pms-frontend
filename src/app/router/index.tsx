@@ -185,6 +185,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
             { path: 'academic/review-gates', element: <ReviewGateGovernancePage /> },
             { path: 'academic/profile-verifications', element: <ProfileVerificationsPage /> },
             { path: 'academic/rubrics', element: <RubricManagementPage /> },
+            ...(env.academicAiAssistantEnabled ? [{ path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> }] : []),
           ] },
         ],
       },
@@ -195,7 +196,6 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { path: 'academic/governance', element: <AcademicGovernancePage /> },
           { path: 'academic/project-periods/:periodId/policy', element: <PeriodPolicyManagementPage /> },
           ...(env.roomPlannerEnabled ? [{ path: 'academic/project-periods/:periodId/room-planner', element: <RoomPlannerPage /> }] : []),
-          ...(env.academicAiAssistantEnabled ? [{ path: 'academic/knowledge', element: <AcademicKnowledgeManagementPage /> }] : []),
         ],
       },
       ...(env.resultCorrectionEnabled ? [{

@@ -9,7 +9,7 @@ export interface AiSnapshotMetaDto {
 }
 
 // #1 Defense Mock Q&A, Answer Evaluation & Gate Script Draft
-export type CommitteeRoleFocus = 'ALL' | 'CHAIR' | 'REVIEWER' | 'SECRETARY' | 'INDUSTRY'
+export type CommitteeRoleFocus = 'ALL' | 'CHAIR' | 'REVIEWER' | 'SECRETARY'
 
 export interface DefenseMockRequest {
   roleFocus?: CommitteeRoleFocus
@@ -171,6 +171,7 @@ export interface RubricGradingCopilotDto {
   verificationQuestions: string[]
   disclaimer: string
   meta: AiSnapshotMetaDto
+  antiAnchoringEnforced?: boolean
 }
 
 export interface ScoreCalibrationAlertDto {
@@ -382,6 +383,7 @@ export interface EvaluationSchemeSuggestComponentDto {
   studentWeightPercent: number
   requiredEvaluators: number
   rationale: string
+  isIntegration?: boolean
 }
 
 export interface EvaluationSchemeSuggestDto {
@@ -393,4 +395,7 @@ export interface EvaluationSchemeSuggestDto {
   components: EvaluationSchemeSuggestComponentDto[]
   warnings: string[]
   meta: AiSnapshotMetaDto
+  calculationVersion?: string | null
+  failingComponentFloor?: number | null
+  trackCode?: string | null
 }
