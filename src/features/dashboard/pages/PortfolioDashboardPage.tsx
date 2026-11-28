@@ -16,6 +16,7 @@ import { HttpError } from '../../../services/http/http-client'
 import { exportPortfolio, exportPortfolioCsv, type PortfolioExportFormat, getPortfolioDashboard, type DashboardFilter, type DashboardProject, type PortfolioDashboard } from '../api/dashboard-api'
 import { archiveProject } from '../../projects/api/archive-project'
 import { getReviewActions } from '../../projects/api/project-review-api'
+import { exportDepartmentResultsReconciliation } from '../../../services/api/project-results.api'
 import { env } from '../../../app/config/env'
 import { useActionConfirmation } from '../../../components/ui/useActionConfirmation'
 import { departmentError } from '../../department/hooks/useDepartmentSection'
@@ -38,11 +39,14 @@ export function PortfolioDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportFormat, setExportFormat] = useState<PortfolioExportFormat>('csv')
+  const [exportingResults, setExportingResults] = useState(false)
+  const [archiveTarget, setArchiveTarget] = useState<DashboardProject | null>(null)
+  const [archiveReason, setArchiveReason] = useState('')
   const [archivingId, setArchivingId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const version = useRef(0), archiveLock = useRef(false), exportLock = useRef(false)
-  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
+  const { confirmationDialog } = useActionConfirmation()
 
   const load = useCallback(async () => {
     const current = ++version.current
@@ -91,6 +95,30 @@ export function PortfolioDashboardPage() {
     } finally { exportLock.current = false; setExporting(false) }
   }
 
+  const downloadResultsReconciliation = async (format: 'xlsx' | 'csv') => {
+    if (exportingResults) return
+    setExportingResults(true); setNotice(null); setError(null)
+    try {
+      const blob = await exportDepartmentResultsReconciliation({
+        semesterId: filter.semesterId,
+        majorId: filter.majorId,
+        format,
+        search: filter.search,
+      })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `department-results-reconciliation.${format}`
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      setNotice(`Đã xuất bảng đối soát điểm toàn Khoa (.${format}) theo bộ lọc hiện tại.`)
+    } catch (reason) {
+      setError(departmentError(reason).message)
+    } finally {
+      setExportingResults(false)
+    }
+  }
+
   /** Lazily checks backend archive workflow action on click instead of firing N+1 requests on page mount. */
   const archive = async (project: DashboardProject) => {
     if (archiveLock.current || !session?.accessToken) return
@@ -107,21 +135,37 @@ export function PortfolioDashboardPage() {
           : `Hệ thống không cho phép lưu trữ ${project.code} ở trạng thái hiện tại.`)
         return
       }
-      const decision = await requestConfirmation({
-        title: 'Lưu trữ đồ án?',
-        description: `${project.code} · ${project.title}. Hệ thống sẽ kiểm tra lại quyền, trạng thái và phiên bản trước khi lưu trữ.`,
-        confirmLabel: 'Xác nhận lưu trữ',
-        danger: true,
-      })
-      if (decision === null || current !== version.current) return
-      await archiveProject(project.id, null)
-      await load()
-      setNotice('Đã lưu trữ đồ án; danh sách đã được tải lại từ hệ thống.')
+      setArchiveReason('')
+      setArchiveTarget(project)
     } catch (reason) {
-      if (reason instanceof HttpError && reason.status === 409) await load()
-      setError(reason instanceof HttpError && reason.status === 409
-        ? 'Đồ án đã thay đổi. Danh sách đã được tải lại; hãy kiểm tra trước khi lưu trữ.'
-        : departmentError(reason).message)
+      setError(departmentError(reason).message)
+    } finally { archiveLock.current = false; setArchivingId(null) }
+  }
+
+  const confirmArchive = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!archiveTarget || archiveLock.current) return
+    archiveLock.current = true
+    const target = archiveTarget
+    setArchivingId(target.id); setNotice(null); setError(null)
+    try {
+      await archiveProject(target.id, archiveReason.trim() || null)
+      setArchiveTarget(null)
+      setArchiveReason('')
+      await load()
+      setNotice(`Đã lưu trữ đồ án ${target.code}; danh sách đã được tải lại từ hệ thống.`)
+    } catch (reason) {
+      setArchiveTarget(null)
+      if (reason instanceof HttpError && reason.status === 409) {
+        await load()
+        const problemData = reason.problem as { blockingRequirements?: Array<{ message?: string; code?: string }> } | undefined
+        const blockers = problemData?.blockingRequirements?.map(b => b.message || displayLabel(b.code)).filter(Boolean)
+        setError(blockers?.length
+          ? `Không thể lưu trữ ${target.code}: ${blockers.join(' · ')}`
+          : 'Đồ án đã thay đổi hoặc chưa đáp ứng đủ điều kiện đóng lưu trữ. Danh sách đã được tải lại.')
+      } else {
+        setError(departmentError(reason).message)
+      }
     } finally { archiveLock.current = false; setArchivingId(null) }
   }
 
@@ -203,10 +247,45 @@ export function PortfolioDashboardPage() {
           <Button size="sm" icon="download" disabled={exporting || loading || !data} onClick={() => void download()}>
             {exporting ? 'Đang xuất…' : `Xuất ${exportFormat.toUpperCase()}`}
           </Button>
+          {scope === 'department' && (
+            <Button size="sm" variant="secondary" icon="table_view" disabled={exportingResults || loading || !data} onClick={() => void downloadResultsReconciliation(exportFormat === 'csv' ? 'csv' : 'xlsx')}>
+              {exportingResults ? 'Đang xuất điểm…' : `Đối soát điểm (${exportFormat === 'csv' ? 'CSV' : 'XLSX'})`}
+            </Button>
+          )}
         </div>
       }
     >
       {confirmationDialog}
+      {archiveTarget && (
+        <form
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Xác nhận đưa vào Kho lưu trữ: ${archiveTarget.code}`}
+          onSubmit={(e) => void confirmArchive(e)}
+          className="rounded-xl border border-status-warning-border bg-status-warning-bg p-5 space-y-3 shadow-xs"
+        >
+          <h2 className="font-heading text-base font-semibold text-status-warning-text">Xác nhận đưa vào Kho lưu trữ: {archiveTarget.code}</h2>
+          <p className="text-sm text-status-warning-text">
+            {archiveTarget.title}. Sau khi lưu trữ, toàn bộ hồ sơ, minh chứng và bảng điểm sẽ chuyển sang chỉ đọc.
+          </p>
+          <label className="block text-sm font-medium text-ink">
+            Ghi chú đóng lưu trữ (tùy chọn)
+            <textarea
+              maxLength={1000}
+              rows={2}
+              value={archiveReason}
+              disabled={archivingId !== null}
+              onChange={e => setArchiveReason(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-hairline bg-card p-2.5 text-sm text-ink"
+              placeholder="Ví dụ: Đã hoàn tất công bố điểm và đóng đợt phúc khảo HK Fall 2026."
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" disabled={archivingId !== null} onClick={() => { setArchiveTarget(null); setArchiveReason('') }}>Hủy</Button>
+            <Button type="submit" disabled={archivingId !== null}>{archivingId !== null ? 'Đang lưu trữ…' : 'Xác nhận lưu trữ'}</Button>
+          </div>
+        </form>
+      )}
       {error && <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text"><p className="font-semibold">Không thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
       {notice && (
         <p role="status" className="flex items-start gap-2.5 rounded-lg border border-hairline border-l-4 border-l-status-success-text bg-card p-3.5 text-sm text-ink shadow-2xs">

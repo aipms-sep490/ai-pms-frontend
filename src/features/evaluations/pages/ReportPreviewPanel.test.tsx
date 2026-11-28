@@ -73,3 +73,20 @@ it('keeps the fullscreen download failure visible inside the active dialog', asy
   expect(await within(dialog).findByText(/Không thể tải tệp\. Quyền phân công/)).toBeTruthy()
   expect(downloadEvaluationEvidenceFile).toHaveBeenCalledWith(41, 8)
 })
+
+it('renders PPTX slide fallback extract when Gotenberg PDF fails and offers offline download when both fail', async () => {
+  vi.mocked(downloadEvaluationEvidenceFile).mockResolvedValue(new Blob(['pptx']))
+  office.previewOfficeAsPdf.mockRejectedValueOnce(new Error('gotenberg down')).mockRejectedValueOnce(new Error('gotenberg down'))
+  office.previewOfficeFile.mockResolvedValueOnce({ kind: 'PPTX_SLIDES', paragraphs: ['Slide 1: Kiến trúc hệ thống'], sheets: [], truncated: false }).mockRejectedValueOnce(new Error('parse failed'))
+
+  const { rerender } = render(<ReportPreviewPanel assignmentId={41} files={[
+    { id: 9, fileName: 'Thuyet-trinh.pptx', contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', sizeBytes: 1024 },
+  ]} />)
+  expect(await screen.findByText('Slide 1: Kiến trúc hệ thống')).toBeTruthy()
+
+  rerender(<ReportPreviewPanel assignmentId={41} files={[
+    { id: 10, fileName: 'Hong.pptx', contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', sizeBytes: 1024 },
+  ]} />)
+  expect(await screen.findByText('Chưa tải được bản xem trước trực tuyến.')).toBeTruthy()
+  expect(screen.getByRole('button', { name: /Tải xuống để đọc ngoại tuyến/ })).toBeTruthy()
+})

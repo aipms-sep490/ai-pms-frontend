@@ -112,4 +112,26 @@ describe('recipient notification destinations', () => {
     expect(resolveNotificationLink(item('PROJECT_APPROVED', 'PROJECT'), [] )).toBeNull()
     expect(resolveNotificationLink(item('PROJECT_APPROVED', 'PROJECT'), ['UNKNOWN'])).toBeNull()
   })
+
+  it.each([
+    ['PROJECT_ACTIVATED', 'PROJECT', ['STUDENT'], '/project/overview'],
+    ['PROJECT_ACTIVATED', 'PROJECT', ['LECTURER'], '/supervisor/workspace'],
+    ['PROJECT_FORCE_ACTIVATED', 'PROJECT', ['DEPARTMENT_STAFF'], '/department/projects/review/17'],
+    ['SUPERVISOR_SLOT_RELEASED', 'PROJECT_STATUS_HISTORY', ['LECTURER'], '/supervisor/workspace'],
+    ['PROJECT_RESULT_PUBLISHED', 'PROJECT', ['LECTURER'], '/supervisor/projects/17/result'],
+    ['MENTOR_REFERENCE_NOTE_SAVED', 'PROJECT', ['LECTURER'], '/supervisor/projects/17/individual-process'],
+    ['EVALUATOR_REVOKED', 'EVALUATION_ASSIGNMENT', ['LECTURER'], '/evaluator/workspace'],
+    ['APPEAL_WINDOW_OPENED', 'PROJECT', ['STUDENT'], '/project/result'],
+    ['APPEAL_SUPERVISOR_ERRATA', 'PROJECT', ['DEPARTMENT_STAFF'], '/review/projects/17/corrections'],
+    ['DEPARTMENT_DAILY_DIGEST', 'DEPARTMENT', ['DEPARTMENT_STAFF'], '/department/portfolio'],
+  ])('maps Wave 4 notification %s for %s to %s', (type, entity, identities, expectedUrl) => {
+    const link = resolveNotificationLink(item(type, entity), identities)
+    expect(link?.url).toBe(expectedUrl)
+  })
+
+  it('hides APPEAL_WINDOW_OPENED and APPEAL_SUPERVISOR_ERRATA when resultCorrectionEnabled is false', () => {
+    flags.resultCorrectionEnabled = false
+    expect(resolveNotificationLink(item('APPEAL_WINDOW_OPENED', 'PROJECT'), ['STUDENT'])).toBeNull()
+    expect(resolveNotificationLink(item('APPEAL_SUPERVISOR_ERRATA', 'PROJECT'), ['DEPARTMENT_STAFF'])).toBeNull()
+  })
 })

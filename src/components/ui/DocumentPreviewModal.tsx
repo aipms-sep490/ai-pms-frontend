@@ -175,7 +175,7 @@ export function DocumentPreviewModal({
           } catch {
             if (!active || controller.signal.aborted) return
           }
-          if (/\.(docx|xlsx)$/i.test(fileName) && resultBlob.size <= 5 * 1024 * 1024) {
+          if (/\.(docx|xlsx|pptx)$/i.test(fileName) && resultBlob.size <= 5 * 1024 * 1024) {
             try {
               const preview = await previewOfficeFile(resultBlob, fileName, controller.signal)
               if (active) setOfficePreview(preview)
@@ -423,6 +423,10 @@ export function DocumentPreviewModal({
                 {officePreview.kind === 'DOCX_TEXT' && <div className="doc-preview-office-text">
                   {officePreview.paragraphs.length ? officePreview.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
                     : <p>Không tìm thấy đoạn văn bản nào trong tệp.</p>}
+                </div>}
+                {officePreview.kind === 'PPTX_SLIDES' && <div className="doc-preview-office-text space-y-2">
+                  {officePreview.paragraphs.length ? officePreview.paragraphs.map((slide, index) => <p key={index}>{slide}</p>)
+                    : <p>Không tìm thấy nội dung trang trình chiếu nào trong tệp.</p>}
                 </div>}
                 {officePreview.kind === 'XLSX_GRID' && officePreview.sheets.map((sheet, index) => <section key={`${sheet.name}-${index}`} className="doc-preview-office-sheet">
                   <h3>{sheet.name}</h3>

@@ -22,9 +22,15 @@ import { ResultHistoryPanel } from './ResultHistoryPanel'
 function appealStatusTone(status: string): BadgeTone {
   if (status === 'ACCEPTED') return 'success'
   if (status === 'REJECTED') return 'danger'
-  if (status === 'UNDER_REVIEW') return 'info'
+  if (status === 'UNDER_REVIEW' || status === 'SUPERVISOR_RESPONDED' || status === 'REVIEWED') return 'info'
   return 'warning'
 }
+
+const appealKindLabel = (kind?: string) => ({
+  INDEPENDENT_80: 'Phúc khảo 80% (HĐ / Cold)',
+  PROCESS_20_ERRATA: 'Đính chính 20% Quá trình',
+  DEFENSE_ABSENT: 'Khiếu nại vắng bảo vệ',
+}[kind ?? 'INDEPENDENT_80'] ?? kind ?? 'Phúc khảo 80%')
 
 export function ResultCorrectionsPage() {
   const projectId = Number(useParams().projectId)
@@ -93,7 +99,9 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
             tabs={[
               { value: 'ALL', label: 'Tất cả' },
               { value: 'PENDING', label: 'Chờ xử lý' },
+              { value: 'SUPERVISOR_RESPONDED', label: 'GVHD đã phản hồi' },
               { value: 'UNDER_REVIEW', label: 'Đang thẩm định' },
+              { value: 'REVIEWED', label: 'Đã thẩm định' },
               { value: 'ACCEPTED', label: 'Đã chấp nhận' },
               { value: 'REJECTED', label: 'Đã từ chối' },
             ]}
@@ -128,8 +136,8 @@ function CorrectionsWorkspace({ projectId }: { projectId: number }) {
                     onClick={() => select(item.id)}
                   >
                     <div className="min-w-0">
-                      <p className="font-semibold text-primary">{item.studentName ?? displayLabel(item.targetType)} · {item.componentName ?? displayLabel(item.scope)}</p>
-                      <p className="mt-0.5 text-xs text-ink-muted">{displayLabel(item.source)} · Phiên bản kết quả v{item.resultVersion}</p>
+                      <p className="font-semibold text-primary">{item.studentName ?? displayLabel(item.targetType)} · {item.componentNames?.length ? item.componentNames.join(', ') : (item.componentName ?? displayLabel(item.scope))}</p>
+                      <p className="mt-0.5 text-xs text-ink-muted">{appealKindLabel(item.appealKind)} · {displayLabel(item.source)} · Phiên bản kết quả v{item.resultVersion}</p>
                     </div>
                     <StatusBadge tone={appealStatusTone(item.status)} label={displayLabel(item.status)} />
                   </button>

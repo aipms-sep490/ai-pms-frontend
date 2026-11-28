@@ -203,6 +203,27 @@ export function exportDepartmentStudents(
   )
 }
 
+export function exportEmergencyContacts(
+  filters: Omit<DepartmentStudentQuery, 'page' | 'pageSize'>,
+  accessToken: string,
+  signal?: AbortSignal,
+) {
+  return httpGetBlob(
+    buildQuery('/departments/me/emergency-contacts/export', {
+      semesterId: filters.semesterId,
+      search: filters.search?.trim() || undefined,
+      majorId: filters.majorId,
+      specializationId: filters.specializationId,
+      classCode: filters.classCode?.trim() || undefined,
+      curriculumCode: filters.curriculumCode?.trim() || undefined,
+      profileStatus: filters.profileStatus || undefined,
+      qualificationStatus: filters.qualificationStatus || undefined,
+      teamStatus: filters.teamStatus || undefined,
+    }),
+    { accessToken, signal },
+  )
+}
+
 export function updateMyStudentAcademic(body: UpdateMyStudentAcademicInput) {
   return httpPut<AcademicProfile>('/users/me/academic-profile', body)
 }

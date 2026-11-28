@@ -46,6 +46,9 @@ const WORKFLOW_REASON_LABELS: Record<string, string> = {
   FINAL_RESULT_NOT_PUBLISHED: 'Cần công bố kết quả chính thức trước khi lưu trữ đồ án.',
   UNRESOLVED_APPEALS: 'Đồ án còn đơn phúc khảo chưa xử lý xong nên chưa thể lưu trữ.',
   OPEN_APPEALS_EXIST: 'Đồ án còn đơn phúc khảo đang mở nên chưa thể lưu trữ.',
+  APPEAL_WINDOWS_OPEN: 'Vẫn còn cửa sổ phúc khảo đang mở nên chưa thể lưu trữ.',
+  APPEALS_PENDING: 'Vẫn còn đơn phúc khảo đang chờ xử lý nên chưa thể lưu trữ.',
+  STUDENT_RESULTS_MISSING: 'Chưa công bố đầy đủ kết quả cá nhân của tất cả sinh viên trong nhóm.',
   ARCHIVE_REASON_REQUIRED: 'Cần cung cấp lý do trước khi lưu trữ đồ án.',
 }
 

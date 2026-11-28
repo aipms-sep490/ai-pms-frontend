@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AppealRequestDetail } from './AppealRequestDetail'
 import { HttpError } from '../../services/http/http-client'
-const api = vi.hoisted(() => ({ getCorrectionRequest: vi.fn(), getAppealHistory: vi.fn(), assignAppealReviewer: vi.fn(), getAppealReviewContext: vi.fn(), getAppealEvidence: vi.fn(), previewAppeal: vi.fn(), decideAppeal: vi.fn(), reviewAppeal: vi.fn(), getEligibleAppealReviewers: vi.fn() }))
+const api = vi.hoisted(() => ({ getCorrectionRequest: vi.fn(), getAppealHistory: vi.fn(), assignAppealReviewer: vi.fn(), getAppealReviewContext: vi.fn(), getAppealEvidence: vi.fn(), previewAppeal: vi.fn(), decideAppeal: vi.fn(), reviewAppeal: vi.fn(), getEligibleAppealReviewers: vi.fn(), withdrawCorrectionRequest: vi.fn(), submitSupervisorErrata: vi.fn() }))
 const versions = vi.hoisted(() => ({ getProjectResultVersion: vi.fn(), getStudentResultVersion: vi.fn() }))
 vi.mock('./result-correction-api', () => api)
 vi.mock('../../services/api/project-results.api', () => versions)
@@ -85,4 +85,44 @@ it('discards a preview whose version lookup finishes after changing requests', a
   await act(async () => { finishVersion({ projectId: 9, studentId: 88, version: 2, totalScore: 7, outcome: 'FAIL' }) })
   expect(screen.queryByText('Kết quả ảnh hưởng theo máy chủ')).toBeNull()
   expect((screen.getByRole('button', { name: 'Chấp nhận và công bố bản đính chính' }) as HTMLButtonElement).disabled).toBe(true)
+})
+
+it('allows student owner to withdraw a pending appeal only after confirmation and preserves token on 409', async () => {
+  api.getCorrectionRequest.mockResolvedValue({ ...row, allowedActions: ['READ', 'WITHDRAW'] })
+  api.withdrawCorrectionRequest.mockRejectedValueOnce(new HttpError('stale', 409)).mockResolvedValueOnce({ ...row, status: 'WITHDRAWN', allowedActions: ['READ'] })
+  open()
+  const reasonBox = await screen.findByLabelText('Lý do rút yêu cầu (tùy chọn)')
+  fireEvent.change(reasonBox, { target: { value: 'Nộp bổ sung tài liệu' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Rút yêu cầu phúc khảo' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận rút yêu cầu' }))
+  await waitFor(() => expect(api.withdrawCorrectionRequest).toHaveBeenCalledWith(9, 7, { concurrencyToken: 'old', reason: 'Nộp bổ sung tài liệu' }))
+  const ack = await screen.findByRole('button', { name: 'Tôi đã đối chiếu dữ liệu mới' })
+  fireEvent.click(ack)
+  fireEvent.click(screen.getByRole('button', { name: 'Rút yêu cầu phúc khảo' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận rút yêu cầu' }))
+  await waitFor(() => expect(api.withdrawCorrectionRequest).toHaveBeenCalledTimes(2))
+})
+
+it('allows primary supervisor to submit POL-03 gate score errata response', async () => {
+  api.getCorrectionRequest.mockResolvedValue({ ...row, appealKind: 'PROCESS_20_ERRATA', allowedActions: ['READ', 'SUPERVISOR_ERRATA'] })
+  api.getAppealReviewContext.mockResolvedValue({
+    calculationVersion: 'POL_V4_DECIMAL',
+    evaluations: [],
+    amendments: [],
+    gateScores: [{ gateScoreId: 51, gateNumber: 1, score: 6.5, gateWeightPercent: 30 }],
+  })
+  api.submitSupervisorErrata.mockResolvedValue({ ...row, status: 'SUPERVISOR_RESPONDED' })
+  open()
+  fireEvent.click(await screen.findByRole('button', { name: 'Đọc hồ sơ thẩm định đã khóa' }))
+  fireEvent.change(await screen.findByLabelText('Điểm đính chính Gate 1'), { target: { value: '8.5' } })
+  fireEvent.change(screen.getByLabelText('Lý do đính chính Gate 1'), { target: { value: 'Sửa lỗi nhập điểm 6.5 thành 8.5' } })
+  fireEvent.change(screen.getByLabelText('Lý do thẩm định / quyết định'), { target: { value: 'Xác nhận sai sót nhập liệu' } })
+  fireEvent.change(screen.getByLabelText('Phản hồi GVHD Chính'), { target: { value: 'AMEND' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi phản hồi đính chính 20%' }))
+  await waitFor(() => expect(api.submitSupervisorErrata).toHaveBeenCalledWith(9, 7, {
+    concurrencyToken: 'old',
+    proposal: 'AMEND',
+    reason: 'Xác nhận sai sót nhập liệu',
+    gateAmendments: [{ gateScoreId: 51, gateNumber: 1, score: 8.5, reason: 'Sửa lỗi nhập điểm 6.5 thành 8.5' }],
+  }))
 })

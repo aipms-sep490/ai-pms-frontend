@@ -1,0 +1,122 @@
+name: Go-Live 9-Stage Live Smoke E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: 'Backend git ref to pair with Frontend'
+        required: false
+        default: 'develop'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-9-stages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        ports:
+          - 1433:1433
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "${{ secrets.CI_MSSQL_SA_PASSWORD }}"
+
+    steps:
+      - name: Checkout Frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout Backend
+        uses: actions/checkout@v4
+        with:
+          repository: aipms-sep490/ai-pms-backend
+          ref: ${{ github.event.inputs.backend_ref || 'develop' }}
+          path: backend
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Build Backend Release
+        working-directory: backend
+        run: |
+          dotnet restore AIPMS.sln
+          dotnet build AIPMS.sln -c Release --no-restore -warnaserror
+
+      - name: Provision Isolated 9-Stage Pilot E2E DB
+        id: db
+        shell: pwsh
+        working-directory: backend
+        run: |
+          $saPw = '${{ secrets.CI_MSSQL_SA_PASSWORD }}'
+          $conn = "Server=localhost,1433;Database=master;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;"
+          $env:AIPMS_TEST_SQL_CONNECTION = $conn
+          $env:AIPMS_E2E_PASSWORD = [Guid]::NewGuid().ToString('N') + 'Aa1!'
+          $fixture = "${{ runner.temp }}/smoke-9stages-fixture.json"
+          ./scripts/new-smoke-9stages-database.ps1 -ConnectionString $conn -OutputPath $fixture
+          ./scripts/verify-pilot-readiness.ps1 -ConnectionString "Server=localhost,1433;Database=$((Get-Content $fixture | ConvertFrom-Json).databaseName);User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;"
+          echo "fixture=$fixture" >> $env:GITHUB_OUTPUT
+          echo "e2e_pw=$($env:AIPMS_E2E_PASSWORD)" >> $env:GITHUB_OUTPUT
+          echo "db_name=$((Get-Content $fixture | ConvertFrom-Json).databaseName)" >> $env:GITHUB_OUTPUT
+
+      - name: Start Isolated Backend API & Run 9-Stage Playwright Smoke
+        shell: pwsh
+        run: |
+          $env:AIPMS_E2E_PASSWORD = '${{ steps.db.outputs.e2e_pw }}'
+          $saPw = '${{ secrets.CI_MSSQL_SA_PASSWORD }}'
+          $dbName = '${{ steps.db.outputs.db_name }}'
+          $apiConn = "Server=localhost,1433;Database=$dbName;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;"
+          $env:ConnectionStrings__DefaultConnection = $apiConn
+          $env:ASPNETCORE_ENVIRONMENT = 'Staging'
+          $env:Cors__AllowedOrigins__0 = 'http://127.0.0.1:5230'
+          $env:Jwt__Issuer = 'AI-PMS.SmokeLive'
+          $env:Jwt__Audience = 'AI-PMS.SmokeLive'
+          $env:Jwt__SigningKey = ([Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N'))
+          $env:Appeals__Enabled = 'true'
+          $env:PeerEvaluation__Enabled = 'false'
+          $env:ExecutionConcurrency__RequireTokens = 'true'
+          $env:NotificationEmail__Enabled = 'false'
+          $env:ScheduledNotifications__Enabled = 'false'
+          $env:MeetingReminders__Enabled = 'false'
+          $env:VideoMeeting__Enabled = 'false'
+          $env:GoogleAuth__Enabled = 'false'
+          $env:PasswordRecovery__Enabled = 'false'
+          $env:FileStorage__Provider = 'Local'
+          $env:FileStorage__RootPath = "${{ runner.temp }}/smoke-files"
+          $env:PasswordRecovery__KeyRingPath = "${{ runner.temp }}/smoke-keys"
+          $api = Start-Process -FilePath dotnet -ArgumentList @('backend/src/AIPMS.Api/bin/Release/net8.0/AIPMS.Api.dll', '--urls', 'http://127.0.0.1:5088') -PassThru
+          try {
+            for ($i = 0; $i -lt 30; $i++) {
+              try { if ((Invoke-WebRequest 'http://127.0.0.1:5088/api/v1/system' -UseBasicParsing).StatusCode -eq 200) { break } } catch {}
+              Start-Sleep -Seconds 1
+            }
+            pnpm install --frozen-lockfile
+            pnpm exec playwright install chromium
+            $env:SMOKE_LIVE_FIXTURE = '${{ steps.db.outputs.fixture }}'
+            $env:SMOKE_LIVE_API_URL = 'http://127.0.0.1:5088'
+            $env:SMOKE_LIVE_API_BASE_URL = 'http://127.0.0.1:5088/api/v1'
+            pnpm run test:e2e:smoke-live
+          } finally {
+            if ($api -and -not $api.HasExited) { Stop-Process -Id $api.Id -Force }
+          }
+
+      - name: Upload Go-Live E2E Evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-9stages-playwright-report
+          path: |
+            playwright-report-smoke-live/
+            test-results/smoke-9-stages-results.json

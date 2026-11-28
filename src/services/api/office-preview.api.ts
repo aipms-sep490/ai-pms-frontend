@@ -1,9 +1,10 @@
 import { httpPostForm, httpPostFormBlob } from '../http/http-client'
 
 export interface OfficePreview {
-  kind: 'DOCX_TEXT' | 'XLSX_GRID'
+  kind: 'DOCX_TEXT' | 'XLSX_GRID' | 'PPTX_SLIDES' | 'ZIP_TREE'
   paragraphs: string[]
   sheets: Array<{ name: string; rows: string[][] }>
+  zipEntries?: Array<{ path: string; sizeBytes: number; compressedBytes: number; isDirectory: boolean }>
   truncated: boolean
 }
 

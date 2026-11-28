@@ -1,4 +1,4 @@
-import { HttpError, httpGet, httpPost, httpPut } from '../http/http-client'
+import { HttpError, httpGet, httpGetBlob, httpPost, httpPut } from '../http/http-client'
 import type { PagedResult } from '../../types/backend'
 import type { BatchPublishResult, ProjectResult, ResultPolicy, ResultPreview, ResultRevisionSummary, StudentDefenseAbsence, StudentResult } from '../../features/results/result-types'
 
@@ -36,3 +36,15 @@ export const getStudentResultHistory = (projectId: number, studentId: number, pa
   httpGet<PagedResult<ResultRevisionSummary>>(`/projects/${projectId}/students/${studentId}/result/history?page=${page}&pageSize=${pageSize}`, signal)
 export const getStudentResultVersion = (projectId: number, studentId: number, version: number, signal?: AbortSignal) =>
   httpGet<StudentResult>(`/projects/${projectId}/students/${studentId}/result/versions/${version}`, signal)
+
+export function exportDepartmentResultsReconciliation(
+  filters: { semesterId?: number; majorId?: number; format?: 'xlsx' | 'csv'; search?: string } = {},
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams()
+  if (filters.semesterId) params.set('semesterId', String(filters.semesterId))
+  if (filters.majorId) params.set('majorId', String(filters.majorId))
+  params.set('format', filters.format ?? 'xlsx')
+  if (filters.search?.trim()) params.set('search', filters.search.trim())
+  return httpGetBlob(`/departments/me/results/export?${params.toString()}`, { signal })
+}
