@@ -76,8 +76,7 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
         const key = `${item.kind}-${item.projectId}-${item.id}`
         if (actionKeys.has(key)) continue
         actionKeys.add(key)
-        if (item.severity === 'HIGH') result.attention.push(aggregatorAttention(item))
-        else result.otherOpenActionsCount++
+        result.attention.push(aggregatorAttention(item))
       }
       // A combined view must not claim a newer snapshot than its oldest successful source.
       if (!result.attentionAsOfUtc || Date.parse(data.asOfUtc) < Date.parse(result.attentionAsOfUtc)) result.attentionAsOfUtc = data.asOfUtc
@@ -110,7 +109,6 @@ export async function loadCalendarAttention(input: CalendarLoaderInput, apis: Ca
       loadActions(role === 'student' ? 'next-actions' : 'triage-queue', role === 'student' ? 'Việc cần làm của sinh viên' : 'Việc cần xử lý của giảng viên', () => role === 'student' ? apis.getStudentNextActions(input.signal) : apis.getSupervisorTriageQueue(input.signal)),
     ])
     result.sources.push({ id: 'progress-report-deadline', label: 'Hạn báo cáo tiến độ', state: 'unsupported', message: 'Kỳ báo cáo hiện chưa kèm hạn nộp cụ thể.' })
-    if (role === 'lecturer') result.sources.push({ id: 'evaluation-assignments', label: 'Hạn đánh giá', state: 'unsupported', message: 'Phân công đánh giá hiện chưa có mốc hạn để hiển thị trên lịch.' })
     if (!scopedCalendarReady && dashboard && !input.signal?.aborted) await loadStudentCalendarFallback(dashboard, result, apis, input.signal)
     return { ...result, attention: sort(result.attention) }
   }

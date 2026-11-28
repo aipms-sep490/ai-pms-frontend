@@ -12,6 +12,11 @@ const kinds: Record<ActionAggregatorKind, { label: string; icon: string }> = {
   REVIEWER_ASSIGNMENT: { label: 'Phân công thẩm định', icon: 'assignment_ind' },
   SUPERVISOR_REQUEST: { label: 'Đề nghị hướng dẫn', icon: 'school' },
   APPEAL: { label: 'Phúc khảo', icon: 'feedback' },
+  EVALUATION_ASSIGNMENT: { label: 'Chấm điểm 80% (Cold/Defense)', icon: 'grading' },
+  TASK_BLOCKED_48H: { label: 'Công việc bị chặn > 48h', icon: 'warning' },
+  FINAL_LOCK_APPROVAL: { label: 'Ký khóa hồ sơ Final', icon: 'lock' },
+  GATE_REVIEW_ASSIGNMENT: { label: 'Thẩm định cổng G1–G3', icon: 'fact_check' },
+  DEFENSE_COMMITTEE: { label: 'Hội đồng bảo vệ', icon: 'groups' },
 }
 
 /** A leading slash alone is insufficient: //host and /\\host are external navigations. */

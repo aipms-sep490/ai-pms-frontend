@@ -25,11 +25,9 @@ import type {
 } from '../types/review-gates.types'
 import { ReviewGateBuilder } from '../components/ReviewGateBuilder'
 import { GateWorkbookPanel } from '../components/GateWorkbookPanel'
-import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { ProjectProgressMatrix } from '../components/ProjectProgressMatrix'
 import { InterdisciplinaryGatePanel } from '../components/InterdisciplinaryGatePanel'
 import { DefenseReadinessChecker } from '../components/DefenseReadinessChecker'
-import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
 import { AcademicWorkflowContext } from '../../../app/context/academic-workflow-context'
@@ -121,7 +119,7 @@ export function ReviewGateGovernancePage() {
         getReviewGateTemplates(),
         getProjectReviewMatrix(),
       ])
-      const tmplList = periodId && !env.reviewGatesMockEnabled ? allTemplates.filter(t => String(t.projectPeriodId) === periodId) : allTemplates
+      const tmplList = periodId ? allTemplates.filter(t => String(t.projectPeriodId) === periodId) : allTemplates
       setTemplates(tmplList)
       setMatrixProjects(matrixList)
       setSelectedTemplateId(prev => tmplList.some(t => t.id === prev) ? prev : tmplList[0]?.id || '')
@@ -304,14 +302,12 @@ export function ReviewGateGovernancePage() {
       if (!/^\d+$/.test(periodId)) return decodeURIComponent(periodId)
       return 'Kỳ đồ án đang chọn'
     }
-    if (env.reviewGatesMockEnabled) return 'Fall 2026 · SEP490'
     return academicContext?.academic?.selectedSemester
       ? academicContext.academic.selectedSemester.code
       : 'Tất cả kỳ học'
   }, [periodId, academicContext])
 
   const resolvedPeriodCaption = useMemo(() => {
-    if (env.reviewGatesMockEnabled) return 'Phạm vi cấu hình cổng thẩm định.'
     return academicContext?.academic?.selectedSemester?.name || 'Phạm vi cấu hình cổng thẩm định.'
   }, [academicContext])
 
@@ -354,7 +350,6 @@ export function ReviewGateGovernancePage() {
         </button>
       }
     >
-      <ReviewGatesMockNotice />
       {confirmationDialog}
       {/* Alert Notices */}
       {notice && (
@@ -453,7 +448,7 @@ export function ReviewGateGovernancePage() {
                         name: 'Mẫu tiến trình mới (Bản nháp)',
                         projectPeriodId: periodId && /^\d+$/.test(periodId) ? Number(periodId) : null,
                         mode: 'SINGLE_MAJOR',
-                        major: env.reviewGatesMockEnabled ? 'Kỹ thuật Phần mềm' : '',
+                        major: '',
                         gatesCount: 1,
                         status: 'DRAFT',
                         version: '1.0-draft',
@@ -466,8 +461,8 @@ export function ReviewGateGovernancePage() {
                             objective: 'Thẩm định đề cương chi tiết và yêu cầu chức năng.',
                             required: true,
                             blockNextGate: true,
-                            start: env.reviewGatesMockEnabled ? '2026-11-01' : null,
-                            end: env.reviewGatesMockEnabled ? '2026-11-15' : null,
+                            start: null,
+                            end: null,
                             reviewerPolicy: 'Người thẩm định được phân công',
                             reviewScope: 'COMMON',
                             requirements: [],
@@ -640,7 +635,7 @@ export function ReviewGateGovernancePage() {
           {/* TAB 2: BUILDER */}
           {activeTab === 'builder' && currentTemplate && (
             <>
-            {!env.reviewGatesMockEnabled && /^\d+$/.test(currentTemplate.id) &&
+            {/^\d+$/.test(currentTemplate.id) &&
               <GateWorkbookPanel template={currentTemplate} dirty={dirtyTemplateIds.has(currentTemplate.id)}
                 onSaved={updated => {
                   setTemplates(previous => previous.map(item => item.id === updated.id ? updated : item))
@@ -671,6 +666,7 @@ export function ReviewGateGovernancePage() {
             <ProjectProgressMatrix
               projects={matrixProjects}
               onUpdateDecision={handleUpdateDecision}
+              onRefreshMatrix={loadAllData}
               onSelectProject={(id) => setSelectedProjectId(id)}
               onSelectHybridProject={(id) => {
                 setSelectedProjectId(id)

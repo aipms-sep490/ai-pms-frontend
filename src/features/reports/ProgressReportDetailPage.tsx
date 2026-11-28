@@ -9,6 +9,7 @@ import {
   canonicalSubmissionFields,
   formatReportDate,
   missingSubmissionFields,
+  readingReportFields,
   reportTypeLabels,
   type CreateReport,
   type ProgressReport,
@@ -224,12 +225,12 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
   async function sendFeedback(event: FormEvent) {
     event.preventDefault()
     const token = report?.concurrencyToken
-    if (readOnly || actor !== 'supervisor' || !report || !token || !['SUBMITTED', 'REVIEWED'].includes(report.status) || !feedback.trim()) return
+    if (readOnly || (actor !== 'supervisor' && actor !== 'mentor') || !report || !token || !['SUBMITTED', 'REVIEWED'].includes(report.status) || !feedback.trim()) return
     await mutate(async () => {
       await api.addProgressReportFeedback(id, feedback.trim(), token)
       if (!mounted.current) return
       setFeedback('')
-      setSuccess('Đã gửi phản hồi cho nhóm.')
+      setSuccess(actor === 'mentor' ? 'Đã gửi nhận xét tham vấn của Mentor cho nhóm.' : 'Đã gửi phản hồi cho nhóm.')
       setRevision((value) => value + 1)
     })
   }
@@ -314,7 +315,7 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                 report && (
                   <article className="report-panel report-reading">
                     <h2>Nội dung báo cáo</h2>
-                    {canonicalSubmissionFields.map(({ key, label }, index) => (
+                    {readingReportFields.map(({ key, label }, index) => (
                       <section key={key}>
                         <h3>
                           <span>{String(index + 1).padStart(2, '0')}</span>
@@ -434,9 +435,11 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
               <HistoryTimeline label="Lịch sử phản hồi" emptyLabel="Chưa có phản hồi. Phản hồi của GVHD sẽ xuất hiện tại đây."
                 items={report.feedbacks.map(item => ({ at: item.createdAt, actor: item.supervisorName,
                   action: 'Phản hồi của GVHD', note: item.feedbackText }))} />
-              {!readOnly && actor === 'supervisor' && ['SUBMITTED', 'REVIEWED'].includes(report.status) && (
+              {!readOnly && (actor === 'supervisor' || actor === 'mentor') && ['SUBMITTED', 'REVIEWED'].includes(report.status) && (
                 <form onSubmit={(event) => void sendFeedback(event)}>
-                  <label htmlFor="report-feedback">Phản hồi mới</label>
+                  <label htmlFor="report-feedback">
+                    {actor === 'mentor' ? 'Nhận xét tham vấn của Mentor chuyên ngành' : 'Phản hồi mới'}
+                  </label>
                   <textarea
                     id="report-feedback"
                     required
@@ -444,10 +447,12 @@ function ReportDetailView({ access, create, id }: { access: ExecutionAccess; cre
                     value={feedback}
                     disabled={busy}
                     onChange={(event) => setFeedback(event.target.value)}
-                    placeholder="Phản hồi về kết quả và hướng dẫn bước tiếp theo…"
+                    placeholder={actor === 'mentor'
+                      ? 'Nhập nhận xét chuyên môn tham vấn cho sinh viên thuộc phạm vi phụ trách…'
+                      : 'Phản hồi về kết quả và hướng dẫn bước tiếp theo…'}
                   />
                   <button className="report-button" disabled={busy || !feedback.trim()} type="submit">
-                    {busy ? 'Đang gửi…' : 'Gửi phản hồi'}
+                    {busy ? 'Đang gửi…' : actor === 'mentor' ? 'Gửi nhận xét tham vấn' : 'Gửi phản hồi'}
                   </button>
                 </form>
               )}

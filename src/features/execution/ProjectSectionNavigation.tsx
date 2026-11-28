@@ -19,12 +19,14 @@ export function ProjectSectionNavigation() {
         ['reports', 'Báo cáo'],
         ['meetings', 'Lịch họp'],
         ['evidence', 'Minh chứng'],
+        ['mentor-notes', 'Nhận xét quá trình (G1–G3)'],
         ...(env.gatesEnabled ? [['checkpoints', 'Mốc kiểm soát'] as [string, string]] : []),
       ]
     : [
         ['workspace', 'Tổng quan'],
         ['progress', 'Tiến độ'],
         ['review-gates', 'Cổng kiểm duyệt'],
+        ['individual-process', 'Điểm quá trình 20% (G1–G3)'],
         ['tasks', 'Công việc'],
         ['milestones', 'Mốc đồ án'],
         ['gantt', 'Lịch thực hiện'],
@@ -34,7 +36,7 @@ export function ProjectSectionNavigation() {
         ['files', 'Tệp'],
         ['contributions', 'Đóng góp'],
         ['evidence', 'Minh chứng'],
-        ...(env.weeklyAssessmentEnabled ? [['weekly-assessments', 'Đánh giá tuần'] as [string, string]] : []),
+        ...(env.weeklyAssessmentEnabled ? [['weekly-assessments', 'Nhận xét tuần (Tham khảo)'] as [string, string]] : []),
         ...(env.gatesEnabled ? [['checkpoints', 'Mốc kiểm soát'] as [string, string]] : []),
         ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [['ai', 'Trợ lý AI'] as [string, string]] : []),
         ['final-submission', 'Bàn giao'],
@@ -42,7 +44,7 @@ export function ProjectSectionNavigation() {
       ]
 
   const mentorMajorName = access.actor === 'mentor' && access.supervisor?.majorId
-    ? access.project.majors?.find(m => m.majorId === access.supervisor?.majorId)?.majorName ?? 'Hướng dẫn chuyên ngành'
+    ? `${access.project.majors?.find(m => m.majorId === access.supervisor?.majorId)?.majorName ?? 'Hướng dẫn chuyên ngành'} · Phạm vi: Ngành phụ trách + Chung/Tích hợp`
     : null
 
   return (

@@ -1,4 +1,13 @@
-export type CalendarSourceType = 'TASK' | 'MILESTONE' | 'MEETING' | 'DELIVERABLE' | 'FINAL_SUBMISSION' | 'EVALUATION_ASSIGNMENT' | 'PROGRESS_REPORT'
+export type CalendarSourceType =
+  | 'TASK'
+  | 'MILESTONE'
+  | 'MEETING'
+  | 'DELIVERABLE'
+  | 'FINAL_SUBMISSION'
+  | 'EVALUATION_ASSIGNMENT'
+  | 'PROGRESS_REPORT'
+  | 'REVIEW_GATE'
+  | 'DEFENSE_SESSION'
 
 export interface CalendarProjectionItem {
   sourceType: CalendarSourceType

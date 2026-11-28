@@ -93,6 +93,7 @@ export function TaskBoardPage() {
   const restoreCreateFocus = useRef(false)
   const [revision, setRevision] = useState(0)
   const [data, setData] = useState<PagedResult<TaskDto> | null>(null)
+  const [boardSummary, setBoardSummary] = useState<Array<{ status: string; count: number }> | null>(null)
   const [observedAt, setObservedAt] = useState(() => Date.now())
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [milestoneError, setMilestoneError] = useState('')
@@ -167,6 +168,14 @@ export function TaskBoardPage() {
 
   useEffect(() => {
     const controller = new AbortController()
+    services.task.getTaskBoardSummary(project.id, { milestoneId }, controller.signal)
+      .then(summary => { if (!controller.signal.aborted) setBoardSummary(summary) })
+      .catch(() => { if (!controller.signal.aborted) setBoardSummary(null) })
+    return () => controller.abort()
+  }, [project.id, milestoneId, revision])
+
+  useEffect(() => {
+    const controller = new AbortController()
     setMilestoneError('')
     setMilestoneLoading(true)
     setMilestones([])
@@ -237,10 +246,32 @@ export function TaskBoardPage() {
   const advancedActiveCount = Number(Boolean(milestoneId)) + Number(Boolean(priority)) + (showMajorFilter ? Number(Boolean(majorId)) + Number(Boolean(disciplineRole)) : 0)
   const hasActiveFilters = activeChips.length > 0 || sortBy !== 'default'
   const activeMember = members.find(member => member.userId === assigneeUserId)
+  const currentTeamMember = members.find(member => member.userId === currentUserId)
+  const memberLockedMajorId = access.actor === 'student' && !access.canManageStructure
+    ? ((currentTeamMember as (typeof currentTeamMember & { majorId?: number | null }) | undefined)?.majorId ?? null)
+    : null
   const pageItems = data?.items ?? []
-  const inProgressCount = pageItems.filter(item => item.status === 'IN_PROGRESS' || item.status === 'IN_REVIEW').length
-  const blockedOrOverdueCount = pageItems.filter(item => item.status === 'BLOCKED' || isOverdue({ ...item, assignees: [] }, observedAt)).length
-  const doneCount = pageItems.filter(item => item.status === 'DONE').length
+  const summaryMap = useMemo(() => {
+    if (!boardSummary) return null
+    const map: Record<string, number> = {}
+    for (const row of boardSummary) map[row.status] = row.count
+    return map
+  }, [boardSummary])
+  const canUseBoardSummary = Boolean(
+    summaryMap && !search.trim() && !status && !priority && !assigneeUserId && !overdue && !majorId && !disciplineRole
+  )
+  const totalNonCancelledCount = canUseBoardSummary && summaryMap
+    ? (summaryMap.TODO ?? 0) + (summaryMap.IN_PROGRESS ?? 0) + (summaryMap.BLOCKED ?? 0) + (summaryMap.IN_REVIEW ?? 0) + (summaryMap.DONE ?? 0)
+    : (data?.totalCount ?? null)
+  const inProgressCount = canUseBoardSummary && summaryMap
+    ? (summaryMap.IN_PROGRESS ?? 0) + (summaryMap.IN_REVIEW ?? 0)
+    : pageItems.filter(item => item.status === 'IN_PROGRESS' || item.status === 'IN_REVIEW').length
+  const blockedOrOverdueCount = canUseBoardSummary && summaryMap
+    ? (summaryMap.BLOCKED ?? 0)
+    : pageItems.filter(item => item.status === 'BLOCKED' || isOverdue({ ...item, assignees: [] }, observedAt)).length
+  const doneCount = canUseBoardSummary && summaryMap
+    ? (summaryMap.DONE ?? 0)
+    : pageItems.filter(item => item.status === 'DONE').length
 
   return (
     <ExecutionPage
@@ -289,6 +320,7 @@ export function TaskBoardPage() {
               project={project}
               members={members}
               milestones={eligibleMilestones}
+              lockedMajorId={memberLockedMajorId}
               onCancel={closeCreate}
               onCreated={() => { closeCreate(); setCreated(true); refresh() }}
             />
@@ -306,10 +338,10 @@ export function TaskBoardPage() {
         <div className="mb-5">
           <StatTileRow
             tiles={[
-              { icon: 'assignment', label: 'Tổng công việc', value: data ? data.totalCount : null, caption: 'Toàn bộ phạm vi bộ lọc hiện tại', hero: true },
-              { icon: 'pending_actions', label: 'Đang thực hiện', value: data ? inProgressCount : null, caption: 'Đang làm và chờ kiểm tra trên trang này', tone: 'info' },
-              { icon: 'warning', label: 'Quá hạn / Bị chặn', value: data ? blockedOrOverdueCount : null, caption: 'Cần ưu tiên tháo gỡ trên trang này', tone: blockedOrOverdueCount > 0 ? 'danger' : 'neutral' },
-              { icon: 'task_alt', label: 'Hoàn tất', value: data ? doneCount : null, caption: 'Hoàn thành trên trang hiện tại', tone: 'success' },
+              { icon: 'assignment', label: 'Tổng công việc', value: totalNonCancelledCount, caption: canUseBoardSummary ? 'Tổng việc hiệu lực (không tính đã hủy)' : 'Toàn bộ phạm vi bộ lọc hiện tại', hero: true },
+              { icon: 'pending_actions', label: 'Đang thực hiện', value: data || canUseBoardSummary ? inProgressCount : null, caption: canUseBoardSummary ? 'Đang làm và chờ kiểm tra toàn bảng' : 'Đang làm và chờ kiểm tra trên trang này', tone: 'info' },
+              { icon: 'warning', label: 'Quá hạn / Bị chặn', value: data || canUseBoardSummary ? blockedOrOverdueCount : null, caption: canUseBoardSummary ? 'Công việc đang bị chặn toàn bảng' : 'Cần ưu tiên tháo gỡ trên trang này', tone: blockedOrOverdueCount > 0 ? 'danger' : 'neutral' },
+              { icon: 'task_alt', label: 'Hoàn tất', value: data || canUseBoardSummary ? doneCount : null, caption: canUseBoardSummary ? 'Hoàn thành trên toàn bảng' : 'Hoàn thành trên trang hiện tại', tone: 'success' },
             ]}
           />
         </div>

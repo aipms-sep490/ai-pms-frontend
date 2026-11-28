@@ -2,11 +2,13 @@ import { useContext, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { displayLabel } from '../../components/ui/display-label'
 import * as api from '../../services/api/meetings.api'
+import * as governanceApi from '../projects/api/project-governance-api'
 import * as tasksApi from '../../services/api/tasks.api'
 import * as milestonesApi from '../../services/api/milestones.api'
 import { ExecutionAccessContext } from '../execution/context/ExecutionAccessContext'
 import type { MilestoneDto, TaskDto } from '../../types/backend'
 import type { MeetingActionItem, MeetingCandidate, MeetingDecision, MeetingDetail } from './meeting-types'
+import type { ProjectActionItem } from '../projects/api/project-governance-api'
 import {
   displayDescription,
   extractTaskId,
@@ -20,11 +22,19 @@ import { taskStatusTone } from '../tasks/pages/TaskDetailPage'
 import { taskStatusLabel } from '../projects/utils/collaboration-workspace'
 
 const actionLabels: Record<string, string> = {
+  TODO: 'Chưa bắt đầu',
   OPEN: 'Mở',
   IN_PROGRESS: 'Đang thực hiện',
   DONE: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
 }
+
+const projectActionStatuses: Array<{ value: ProjectActionItem['status']; label: string }> = [
+  { value: 'TODO', label: 'Chưa bắt đầu' },
+  { value: 'IN_PROGRESS', label: 'Đang thực hiện' },
+  { value: 'DONE', label: 'Hoàn thành' },
+  { value: 'CANCELLED', label: 'Đã hủy' },
+]
 
 export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, canManage, disabled, onChanged }: {
   meeting: MeetingDetail; concurrencyToken: string; candidates: MeetingCandidate[]; canManage: boolean; disabled: boolean; onChanged: () => void
@@ -37,7 +47,8 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
   const teamMembers = access?.team?.members ?? []
 
   const [decisions, setDecisions] = useState<MeetingDecision[]>([])
-  const [actions, setActions] = useState<MeetingActionItem[]>([])
+  const [projectActions, setProjectActions] = useState<ProjectActionItem[]>([])
+  const [legacyActions, setLegacyActions] = useState<MeetingActionItem[]>([])
   const [milestones, setMilestones] = useState<MilestoneDto[]>([])
   const [tasksMap, setTasksMap] = useState<Record<number, TaskDto>>({})
   const [loading, setLoading] = useState(true)
@@ -67,13 +78,15 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
     setLoading(true); setError(''); setNotice(''); setAwaitingRefresh(false)
     Promise.all([
       api.getMeetingDecisions(meeting.id, controller.signal),
-      api.getMeetingActionItems(meeting.id, controller.signal),
+      governanceApi.getProjectActionItems(meeting.projectId, controller.signal, 1, { meetingId: meeting.id, pageSize: 100 }).catch(() => ({ items: [] as ProjectActionItem[] })),
+      api.getMeetingActionItems(meeting.id, controller.signal).catch(() => ({ items: [] as MeetingActionItem[] })),
       milestonesApi.getProjectMilestones(meeting.projectId, controller.signal).catch(() => []),
     ])
-      .then(([decisionPage, actionPage, milestoneList]) => {
+      .then(([decisionPage, projectActionPage, legacyActionPage, milestoneList]) => {
         if (!controller.signal.aborted) {
           setDecisions(decisionPage.items)
-          setActions(actionPage.items)
+          setProjectActions(projectActionPage.items)
+          setLegacyActions(legacyActionPage.items)
           setMilestones(milestoneList)
           if (milestoneList.length > 0) {
             setSelectedMilestoneId(String(milestoneList[0].id))
@@ -82,12 +95,11 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
             setCreateTaskOnSubmit(false)
           }
 
-          // Fetch linked tasks
-          const taskIds = Array.from(new Set(
-            actionPage.items
-              .map(a => extractTaskId(a.description))
-              .filter((id): id is number => id !== null)
-          ))
+          // Fetch linked tasks from unified project_action_items FK + legacy descriptions
+          const taskIds = Array.from(new Set([
+            ...projectActionPage.items.map(a => a.taskId).filter((id): id is number => Boolean(id)),
+            ...legacyActionPage.items.map(a => extractTaskId(a.description)).filter((id): id is number => id !== null),
+          ]))
           if (taskIds.length > 0) {
             Promise.all(taskIds.map(id => tasksApi.getTask(id).catch(() => null)))
               .then(taskList => {
@@ -158,42 +170,41 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
     const dueAtUtc = dueAt ? toMeetingUtc(dueAt) : null
 
     void run(async () => {
-      let finalDescription = cleanDesc
       let createdTask: TaskDto | null = null
+      const ownerIdNum = assigneeUserId ? Number(assigneeUserId) : null
+      const milestoneIdNum = (canCreateTask && createTaskOnSubmit && selectedMilestoneId) ? Number(selectedMilestoneId) : null
 
-      if (canCreateTask && createTaskOnSubmit && selectedMilestoneId) {
+      if (canCreateTask && createTaskOnSubmit && milestoneIdNum) {
         const meetingRef = `Nguồn: Cuộc họp #${meeting.id}: ${meeting.title}`
         const taskDesc = cleanDesc ? `${cleanDesc}\n\n${meetingRef}` : meetingRef
-
-        const assigneeIdNum = assigneeUserId ? Number(assigneeUserId) : null
-        const taskAssignees = (assigneeIdNum && isAssigneeTeamMember(assigneeIdNum)) ? [assigneeIdNum] : []
+        const taskAssignees = (ownerIdNum && isAssigneeTeamMember(ownerIdNum)) ? [ownerIdNum] : []
 
         createdTask = await tasksApi.createTask({
-          milestoneId: Number(selectedMilestoneId),
+          milestoneId: milestoneIdNum,
           title: cleanTitle,
           description: taskDesc,
           priority: selectedPriority || 'MEDIUM',
           dueAt: dueAtUtc,
           assigneeUserIds: taskAssignees,
         })
-
-        finalDescription = `[Task #${createdTask.id}] ${cleanDesc}`.trim()
       }
 
-      const createdAction = await api.createMeetingActionItem(meeting.id, {
+      const createdAction = await governanceApi.createProjectActionItem(meeting.projectId, {
+        sourceType: 'MEETING',
+        meetingId: meeting.id,
         title: cleanTitle,
-        description: finalDescription || null,
-        assigneeUserId: assigneeUserId ? Number(assigneeUserId) : null,
+        description: cleanDesc || null,
+        ownerId: ownerIdNum,
+        taskId: createdTask?.id ?? null,
+        milestoneId: milestoneIdNum,
         dueAt: dueAtUtc,
-        status: 'OPEN',
-        concurrencyToken,
       })
 
       if (createdTask) {
         setTasksMap(current => ({ ...current, [createdTask.id]: createdTask }))
       }
 
-      setActions(current => [createdAction, ...current])
+      setProjectActions(current => [createdAction, ...current])
       setTitle('')
       setDescription('')
       setAssigneeUserId('')
@@ -202,13 +213,13 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
     }, 'Đã tạo công việc sau họp. Dữ liệu cuộc họp đang được tải lại.')
   }
 
-  function handleCreateTaskForAction(item: MeetingActionItem) {
+  function handleCreateTaskForAction(item: ProjectActionItem) {
     if (!linkMilestoneId) return
-    const cleanDesc = displayDescription(item.description)
+    const cleanDesc = item.description?.trim() ?? ''
     const meetingRef = `Nguồn: Cuộc họp #${meeting.id}: ${meeting.title}`
     const taskDesc = cleanDesc ? `${cleanDesc}\n\n${meetingRef}` : meetingRef
 
-    const assigneeIdNum = item.assigneeUserId
+    const assigneeIdNum = item.ownerId
     const taskAssignees = (assigneeIdNum && isAssigneeTeamMember(assigneeIdNum)) ? [assigneeIdNum] : []
 
     void run(async () => {
@@ -221,34 +232,32 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
         assigneeUserIds: taskAssignees,
       })
 
-      const updatedDesc = `[Task #${createdTask.id}] ${cleanDesc}`.trim()
-      const updated = await api.updateMeetingActionItem(meeting.id, item.id, {
+      const updated = await governanceApi.updateProjectActionItem(meeting.projectId, item.id, {
         title: item.title,
-        description: updatedDesc,
-        assigneeUserId: item.assigneeUserId,
+        description: item.description,
+        ownerId: item.ownerId,
+        taskId: createdTask.id,
+        milestoneId: Number(linkMilestoneId),
         dueAt: item.dueAt,
-        status: item.status as import('./meeting-types').MeetingActionStatus,
-        concurrencyToken: item.concurrencyToken,
+        concurrencyToken: item.concurrencyToken ?? '',
       })
 
       setTasksMap(current => ({ ...current, [createdTask.id]: createdTask }))
-      setActions(current => current.map(action => action.id === updated.id ? updated : action))
+      setProjectActions(current => current.map(action => action.id === updated.id ? updated : action))
       setLinkingActionId(null)
     }, 'Đã tạo Task liên kết thành công.')
   }
 
-  function updateStatus(item: MeetingActionItem, status: string) {
+  function updateStatus(item: ProjectActionItem, status: ProjectActionItem['status']) {
     if (status === item.status) return
     void run(async () => {
-      const updated = await api.updateMeetingActionItem(meeting.id, item.id, {
-        title: item.title,
-        description: item.description,
-        assigneeUserId: item.assigneeUserId,
-        dueAt: item.dueAt,
-        status: status as import('./meeting-types').MeetingActionStatus,
-        concurrencyToken: item.concurrencyToken,
-      })
-      setActions(current => current.map(action => action.id === updated.id ? updated : action))
+      const updated = await governanceApi.updateProjectActionItemStatus(
+        meeting.projectId,
+        item.id,
+        status,
+        item.concurrencyToken ?? '',
+      )
+      setProjectActions(current => current.map(action => action.id === updated.id ? updated : action))
     }, 'Đã cập nhật trạng thái công việc. Dữ liệu cuộc họp đang được tải lại.')
   }
 
@@ -334,7 +343,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
           <div>
             <div className="mtg-section-heading">
               <h3 className="mtg-subheading">
-                Công việc sau họp <span className="mtg-count">{actions.length}</span>
+                Công việc sau họp <span className="mtg-count">{projectActions.length + legacyActions.length}</span>
               </h3>
               {mayManageActions && (
                 <button
@@ -349,18 +358,18 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
               )}
             </div>
 
-            {actions.length ? (
+            {projectActions.length ? (
               <ul className="mtg-feedback-list">
-                {actions.map(item => {
-                  const linkedTaskId = extractTaskId(item.description)
+                {projectActions.map(item => {
+                  const linkedTaskId = item.taskId ?? null
                   const linkedTask = linkedTaskId ? tasksMap[linkedTaskId] : null
-                  const linkedMilestoneTitle = linkedTask
-                    ? milestones.find(m => m.id === linkedTask.milestoneId)?.title ?? null
-                    : null
-                  const cleanDesc = displayDescription(item.description)
-                  const assigneeName = item.assigneeName
-                    ?? candidates.find(c => c.userId === item.assigneeUserId)?.fullName
-                    ?? meeting.participants.find(p => p.userId === item.assigneeUserId)?.fullName
+                  const milestoneFromTask = linkedTask ? milestones.find(m => m.id === linkedTask.milestoneId)?.title ?? null : null
+                  const milestoneFromId = item.milestoneId ? milestones.find(m => m.id === item.milestoneId)?.title ?? null : null
+                  const linkedMilestoneTitle = item.milestoneTitle || milestoneFromTask || milestoneFromId || null
+                  const cleanDesc = item.description?.trim() ?? ''
+                  const assigneeName = item.ownerName
+                    ?? candidates.find(c => c.userId === item.ownerId)?.fullName
+                    ?? meeting.participants.find(p => p.userId === item.ownerId)?.fullName
                     ?? 'Thành viên nhóm'
 
                   return (
@@ -372,9 +381,9 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                           <select
                             value={item.status}
                             disabled={controlsDisabled || !mayManageActions || ['DONE', 'CANCELLED'].includes(item.status)}
-                            onChange={event => updateStatus(item, event.target.value)}
+                            onChange={event => updateStatus(item, event.target.value as ProjectActionItem['status'])}
                           >
-                            {Object.entries(actionLabels).map(([value, label]) => (
+                            {projectActionStatuses.map(({ value, label }) => (
                               <option key={value} value={value}>{label}</option>
                             ))}
                           </select>
@@ -383,7 +392,7 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                       {cleanDesc && <p className="mtg-prose">{cleanDesc}</p>}
                       <p className="mtg-help">
                         {item.dueAt ? `Hạn: ${formatMeetingTime(item.dueAt)}` : 'Chưa đặt hạn'}
-                        {item.assigneeUserId ? ` · Phụ trách: ${assigneeName}` : ' · Chưa giao người phụ trách'}
+                        {item.ownerId ? ` · Phụ trách: ${assigneeName}` : ' · Chưa giao người phụ trách'}
                       </p>
 
                       {/* Linked Task Display or Link Task Action */}
@@ -492,8 +501,34 @@ export function MeetingGovernancePanel({ meeting, concurrencyToken, candidates, 
                   )
                 })}
               </ul>
-            ) : (
+            ) : legacyActions.length === 0 ? (
               <p className="mtg-help">Chưa có công việc sau họp.</p>
+            ) : null}
+
+            {legacyActions.length > 0 && (
+              <div className="mt-3 border-t border-hairline pt-3">
+                <p className="mtg-help mb-2">Lịch sử công việc sau họp phiên bản cũ (Chỉ đọc):</p>
+                <ul className="mtg-feedback-list">
+                  {legacyActions.map(item => {
+                    const linkedTaskId = extractTaskId(item.description)
+                    const cleanDesc = displayDescription(item.description)
+                    return (
+                      <li key={`legacy-${item.id}`}>
+                        <div className="mtg-section-heading">
+                          <strong>{item.title}</strong>
+                          <span className="text-xs text-ink-muted">{actionLabels[item.status] ?? item.status}</span>
+                        </div>
+                        {cleanDesc && <p className="mtg-prose">{cleanDesc}</p>}
+                        {linkedTaskId && (
+                          <Link to={`${routeBase}/tasks/${linkedTaskId}`} className="mtg-text-button mtg-task-link">
+                            Mở công việc #{linkedTaskId}
+                          </Link>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
             )}
 
             {/* Create Action Item Form */}

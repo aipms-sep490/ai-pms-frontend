@@ -12,6 +12,14 @@ export interface DashboardProject {
     dataStatus: string
     riskLevel: string
     trendStatus: string
+    healthPulseStatus?: string | null
+    healthPulseSignals?: {
+      evidenceReadyPercent?: number | null
+      totalMandatoryGateRequirements?: number
+      blockedOver48hCount?: number
+      weeklyReportsLast14Days?: number
+      interdisciplinaryBalanceRatio?: number | null
+    } | null
     progressSummary: { progressPercentage: number; overdueTasks: number; blockedTasks: number }
   } | null
   departmentId: number | null

@@ -10,8 +10,15 @@ import { MeetingDetailPage } from './MeetingDetailPage'
 import type { MeetingDetail } from './meeting-types'
 
 const api = vi.hoisted(() => ({ getMeetings: vi.fn(), getMeeting: vi.fn(), getMeetingCandidates: vi.fn(), createMeeting: vi.fn(), updateMeeting: vi.fn(), cancelMeeting: vi.fn(), completeMeeting: vi.fn(), updateMeetingNotes: vi.fn(), addMeetingParticipant: vi.fn(), removeMeetingParticipant: vi.fn(), addMeetingFeedback: vi.fn(), getMeetingDecisions: vi.fn(), getMeetingActionItems: vi.fn(), createMeetingDecision: vi.fn(), createMeetingActionItem: vi.fn(), updateMeetingActionItem: vi.fn() }))
+const governanceApi = vi.hoisted(() => ({
+  getProjectActionItems: vi.fn(),
+  createProjectActionItem: vi.fn(),
+  updateProjectActionItem: vi.fn(),
+  updateProjectActionItemStatus: vi.fn(),
+}))
 const runtime = vi.hoisted(() => ({ env: { apiBaseUrl: '/api/v1', dataMode: 'api' as const, isMockMode: false, aiAdvisoryEnabled: false, videoMeetingEnabled: false } }))
 vi.mock('../../services/api/meetings.api', () => api)
+vi.mock('../projects/api/project-governance-api', () => governanceApi)
 // This suite verifies the established legacy meeting workflow. Keep its feature-off contract
 // explicit so a developer's local Video rollout setting cannot change the assertions.
 vi.mock('../../app/config/env', () => runtime)
@@ -48,6 +55,7 @@ beforeEach(() => {
   api.getMeetingCandidates.mockResolvedValue({ candidates: [{ userId: 9, fullName: 'Khang', role: 'Trưởng nhóm' }, { userId: 6, fullName: 'GVHD', role: 'Giảng viên hướng dẫn' }] })
   api.getMeetingDecisions.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getMeetingActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+  governanceApi.getProjectActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
 })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
@@ -226,26 +234,24 @@ describe('Meetings end-user workflow', () => {
     await waitFor(() => expect(api.createMeetingDecision).toHaveBeenCalledWith(42, 'Chốt kiểm thử', 'meeting-token'))
   })
   it('creates a meeting action with the current meeting token', async () => {
-    const action = { id: 7, meetingId: 42, title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
+    const action = { id: 7, projectId: 2, sourceType: 'MEETING', meetingId: 42, title: 'Chuẩn bị demo', description: null, ownerId: 6, ownerName: 'GVHD', taskId: null, milestoneId: null, dueAt: null, status: 'TODO', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
-    api.createMeetingActionItem.mockResolvedValue(action)
+    governanceApi.createProjectActionItem.mockResolvedValue(action)
     mount(); await ready(); await screen.findByText('Chưa có công việc sau họp.')
     click('Thêm công việc'); fireEvent.change(screen.getByLabelText('Công việc', { exact: true }), { target: { value: 'Chuẩn bị demo' } }); input('Người phụ trách', '6'); click('Tạo công việc')
-    await waitFor(() => expect(api.createMeetingActionItem).toHaveBeenCalledWith(42, {
-      title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'meeting-token',
+    await waitFor(() => expect(governanceApi.createProjectActionItem).toHaveBeenCalledWith(2, {
+      sourceType: 'MEETING', meetingId: 42, title: 'Chuẩn bị demo', description: null, ownerId: 6, taskId: null, milestoneId: null, dueAt: null,
     }))
   })
   it('updates a reloaded meeting action with its server-issued action token', async () => {
-    const action = { id: 7, meetingId: 42, title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'OPEN', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
+    const action = { id: 7, projectId: 2, sourceType: 'MEETING', meetingId: 42, title: 'Chuẩn bị demo', description: null, ownerId: 6, ownerName: 'GVHD', taskId: null, milestoneId: null, dueAt: null, status: 'TODO', concurrencyToken: 'action-token', createdBy: 9, createdAt: '2026-09-23T03:00:00Z', updatedAt: '2026-09-23T03:00:00Z' }
     api.getMeeting.mockResolvedValue({ ...meeting, status: 'COMPLETED' })
-    api.getMeetingActionItems.mockResolvedValue({ items: [action], page: 1, pageSize: 100, totalCount: 1 })
-    api.updateMeetingActionItem.mockResolvedValue({ ...action, status: 'IN_PROGRESS', concurrencyToken: 'action-token-v2' })
+    governanceApi.getProjectActionItems.mockResolvedValue({ items: [action], page: 1, pageSize: 100, totalCount: 1 })
+    governanceApi.updateProjectActionItemStatus.mockResolvedValue({ ...action, status: 'IN_PROGRESS', concurrencyToken: 'action-token-v2' })
     mount(); await ready()
     await screen.findByText('Chuẩn bị demo')
     input('Trạng thái', 'IN_PROGRESS')
-    await waitFor(() => expect(api.updateMeetingActionItem).toHaveBeenCalledWith(42, 7, {
-      title: 'Chuẩn bị demo', description: null, assigneeUserId: 6, dueAt: null, status: 'IN_PROGRESS', concurrencyToken: 'action-token',
-    }))
+    await waitFor(() => expect(governanceApi.updateProjectActionItemStatus).toHaveBeenCalledWith(2, 7, 'IN_PROGRESS', 'action-token'))
   })
   it('protects unsaved content on route changes and allows explicit discard', async () => {
     mount(); await ready(); click('Cập nhật biên bản'); input('Biên bản & kết luận', 'Chưa lưu')

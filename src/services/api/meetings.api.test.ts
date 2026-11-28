@@ -87,7 +87,7 @@ describe('Meetings HTTP contract', () => {
     vi.stubGlobal('fetch', fetch)
     const result = await api.getMeetingCandidates(2, 3)
     expect(result.candidates).toEqual([{ userId: 6, fullName: 'GVHD', role: 'Giảng viên hướng dẫn' }])
-    expect(result.notice).toContain('trưởng nhóm có thể thêm sinh viên sau')
+    expect(result.notice).toContain('Không thể tải đầy đủ danh sách sinh viên của nhóm')
     expect(fetch).toHaveBeenCalledTimes(2)
   })
   it('does not disguise network failures as an empty roster', async () => {

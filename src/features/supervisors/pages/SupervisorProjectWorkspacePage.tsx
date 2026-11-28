@@ -2,6 +2,7 @@ import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionP
 import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { Button } from '../../../components/ui/Button'
+import { HealthPulseBadge } from '../../../components/ui/HealthPulseBadge'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
@@ -16,6 +17,7 @@ type QuickLinkItem = { key: string; icon: string; title: string; path: string }
 const quickLinks: QuickLinkItem[] = [
   { key: 'progress', icon: 'monitoring', title: 'Tiến độ & Báo cáo', path: 'progress' },
   { key: 'review-gates', icon: 'fact_check', title: 'Cổng kiểm duyệt', path: 'review-gates' },
+  { key: 'individual-process', icon: 'grade', title: 'Điểm quá trình 20% (G1–G3)', path: 'individual-process' },
   { key: 'tasks', icon: 'checklist', title: 'Công việc & mốc', path: 'tasks' },
   { key: 'meetings', icon: 'groups', title: 'Cuộc họp', path: 'meetings' },
   { key: 'deliverables', icon: 'inventory_2', title: 'Hạng mục bàn giao', path: 'deliverables' },
@@ -34,11 +36,11 @@ export function SupervisorProjectWorkspacePage() {
 
   const availableQuickLinks: QuickLinkItem[] = [
     ...quickLinks,
-    ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', icon: 'calendar_view_week', title: 'Điểm cá nhân theo tuần', path: 'weekly-assessments' }] : []),
+    ...(env.weeklyAssessmentEnabled ? [{ key: 'weekly', icon: 'calendar_view_week', title: 'Nhận xét tuần (Tham khảo)', path: 'weekly-assessments' }] : []),
     ...(env.gatesEnabled ? [{ key: 'checkpoints', icon: 'flag', title: 'Mốc kiểm soát', path: 'checkpoints' }] : []),
     ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [{ key: 'ai', icon: 'auto_awesome', title: 'Rủi ro & AI', path: 'ai' }] : []),
     ...(env.defenseScheduleEnabled ? [{ key: 'defense', icon: 'school', title: 'Lịch bảo vệ', path: 'defense' }] : []),
-    ...(evaluatorAssigned ? [{ key: 'evaluation', icon: 'grading', title: 'Đánh giá', path: '/evaluator/evaluations' }] : []),
+    ...(evaluatorAssigned ? [{ key: 'evaluation', icon: 'grading', title: 'Đánh giá', path: '/evaluator/workspace' }] : []),
   ]
 
   const progressSummary = progress.summary?.state === 'ready' ? progress.summary.data : null
@@ -81,6 +83,11 @@ export function SupervisorProjectWorkspacePage() {
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-subtle px-3 py-1 font-mono text-xs font-bold text-primary">
                   {progressSummary.progressPercentage}% công việc
                 </span>
+              )}
+              {progress.attention.state === 'ready' && (
+                <HealthPulseBadge
+                  healthPulseStatus={blockedTasks.length >= 2 ? 'RED' : blockedTasks.length === 1 || overdueTasks.length > 0 ? 'YELLOW' : 'GREEN'}
+                />
               )}
             </div>
           </div>

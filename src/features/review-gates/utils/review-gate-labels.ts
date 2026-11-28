@@ -2,7 +2,7 @@ import type { GateStatus, RequirementType } from '../types/review-gates.types'
 
 export const gateStatusLabels: Record<GateStatus, string> = {
   PLANNED: 'Chưa bắt đầu', IN_REVIEW: 'Đang thẩm định', PASSED: 'Đã đạt',
-  REVISION_REQUIRED: 'Cần chỉnh sửa', LOCKED: 'Chưa mở',
+  REVISION_REQUIRED: 'Cần chỉnh sửa', FAILED: 'Không đạt', LOCKED: 'Chưa mở',
 }
 
 export function requirementTypeLabel(type: RequirementType): string {

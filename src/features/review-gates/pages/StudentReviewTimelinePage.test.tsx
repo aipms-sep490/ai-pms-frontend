@@ -5,9 +5,16 @@ import { StudentReviewTimelinePage } from './StudentReviewTimelinePage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 
-vi.mock('../../../app/config/env', async importOriginal => {
-  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
-  return { env: { ...env, reviewGatesMockEnabled: true } }
+vi.mock('../api/review-gates-api', async () => {
+  const { reviewGatesMockAdapter: adapter } = await import('../api/review-gates-mock-adapter')
+  return {
+    getStudentReviewTimeline: (projectId?: string) => adapter.getStudentReviewTimeline(projectId),
+    getDefenseReadiness: (projectId: string) => adapter.getDefenseReadiness(projectId),
+    submitRevision: (req: Parameters<typeof adapter.submitRevision>[0], isLeader: boolean) => adapter.submitRevision(req, isLeader),
+    submitGateForReview: (req: Parameters<typeof adapter.submitGateForReview>[0]) => adapter.submitGateForReview(req),
+    submitSupervisorFeedback: (req: Parameters<typeof adapter.submitSupervisorFeedback>[0]) => adapter.submitSupervisorFeedback(req),
+    getUploadPolicy: vi.fn(),
+  }
 })
 
 const mockLeaderContext = {
@@ -100,11 +107,12 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     expect(await screen.findByText(/Nộp bản sửa đổi · R2-SDD/)).toBeTruthy()
     expect(screen.getByText(/v3 \(Bản mới\)/)).toBeTruthy()
 
-    // Fill form
-    const artifactInput = screen.getByPlaceholderText(/Ví dụ: SDD_v3.pdf/)
+    // Select file & fill notes
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const notesInput = screen.getByPlaceholderText(/Mô tả cụ thể những điểm đã chỉnh sửa/)
 
-    fireEvent.change(artifactInput, { target: { value: 'SDD_v3_Final.pdf' } })
+    const revisedFile = new File(['sdd content'], 'SDD_v3_Final.pdf', { type: 'application/pdf' })
+    fireEvent.change(fileInput, { target: { files: [revisedFile] } })
     fireEvent.change(notesInput, { target: { value: 'Đã bổ sung component boundaries và sequence diagrams' } })
 
     const confirmBtn = screen.getByRole('button', { name: 'Xác nhận nộp bản sửa' })
@@ -117,8 +125,21 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
   })
 
   it('blocks member from submitting project-level gate review', async () => {
+    const mockMemberContext = {
+      ...mockLeaderContext,
+      session: {
+        ...mockLeaderContext.session,
+        user: { id: 'stu-2', fullName: 'Tran Van B (Member)', email: 'member@university.edu.vn', roles: ['STUDENT'] },
+      },
+    }
+    const base = await reviewGatesMockAdapter.getStudentReviewTimeline('IT-01')
+    vi.spyOn(reviewGatesMockAdapter, 'getStudentReviewTimeline').mockResolvedValueOnce({
+      ...base,
+      capabilities: { canSubmitPackage: false, canSubmitRevision: false, blockingReasons: ['Chỉ trưởng nhóm được nộp'] },
+    })
+
     render(
-      <AuthSessionContext.Provider value={mockLeaderContext as any}>
+      <AuthSessionContext.Provider value={mockMemberContext as any}>
         <MemoryRouter>
           <StudentReviewTimelinePage />
         </MemoryRouter>
@@ -127,13 +148,7 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
 
     await screen.findByText('Campus Support Platform')
 
-    // Toggle role to member
-    const toggleRoleBtn = screen.getByRole('button', { name: '⇄ Đổi vai trò kiểm thử' })
-    fireEvent.click(toggleRoleBtn)
-
-    expect(screen.getByText(/Bạn đang xem với vai trò Thành viên/)).toBeTruthy()
-
-    // Action button is disabled for member
+    // Action buttons are disabled for non-leader member
     const actionBtns = screen.getAllByRole('button', { name: /Nộp bản sửa|Nộp lại|Nộp tài liệu/ })
     actionBtns.forEach((btn) => {
       expect((btn as HTMLButtonElement).disabled).toBe(true)
@@ -158,9 +173,10 @@ describe('StudentReviewTimelinePage (Cross-Role ST-01 & ST-02)', () => {
     const submitRevisionBtn = within(screen.getByRole('row', { name: /Software Design Document \(SDD\)/ })).getByRole('button', { name: 'Nộp bản sửa' })
     fireEvent.click(submitRevisionBtn)
 
-    const artifactInput = screen.getByPlaceholderText(/Ví dụ: SDD_v3.pdf/)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const notesInput = screen.getByPlaceholderText(/Mô tả cụ thể những điểm đã chỉnh sửa/)
-    fireEvent.change(artifactInput, { target: { value: 'SDD_v3_Conflict.pdf' } })
+    const conflictFile = new File(['sdd conflict'], 'SDD_v3_Conflict.pdf', { type: 'application/pdf' })
+    fireEvent.change(fileInput, { target: { files: [conflictFile] } })
     fireEvent.change(notesInput, { target: { value: 'Ghi chú thử nghiệm conflict' } })
 
     const confirmBtn = screen.getByRole('button', { name: 'Xác nhận nộp bản sửa' })

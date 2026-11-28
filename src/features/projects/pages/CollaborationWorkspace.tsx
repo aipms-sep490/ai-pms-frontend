@@ -58,16 +58,16 @@ export function CollaborationWorkspace({ project, team, supervisor, currentUserI
   const [reviewTimeline, setReviewTimeline] = useState<StudentReviewTimelineDto | null>(null)
 
   useEffect(() => {
-    let active = true
-    getStudentReviewTimeline(String(project.id))
+    const controller = new AbortController()
+    getStudentReviewTimeline(String(project.id), controller.signal)
       .then((res) => {
-        if (active) setReviewTimeline(res)
+        if (!controller.signal.aborted) setReviewTimeline(res)
       })
       .catch(() => {
         // Silently skip if gates are unconfigured
       })
     return () => {
-      active = false
+      controller.abort()
     }
   }, [project.id])
 

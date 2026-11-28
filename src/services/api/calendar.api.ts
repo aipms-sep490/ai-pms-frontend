@@ -1,7 +1,7 @@
 import { httpGet } from '../http/http-client'
 
 export interface BackendCalendarItem {
-  sourceType: 'TASK' | 'MILESTONE' | 'MEETING' | 'DELIVERABLE' | 'FINAL_SUBMISSION' | 'PROGRESS_REPORT'
+  sourceType: 'TASK' | 'MILESTONE' | 'MEETING' | 'DELIVERABLE' | 'FINAL_SUBMISSION' | 'EVALUATION_ASSIGNMENT' | 'PROGRESS_REPORT' | 'REVIEW_GATE' | 'DEFENSE_SESSION'
   sourceId: number
   projectId: number
   code?: string | null

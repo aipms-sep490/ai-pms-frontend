@@ -20,15 +20,18 @@ function formatCalendarDateVn(isoDate?: string | null): string | null {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : null
 }
 
-export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated, initialDraft }: {
-  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: TaskMilestoneOption[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
+export function WorkspaceTaskForm({ project, milestones, members, lockedMajorId = null, onCancel, onCreated, initialDraft }: {
+  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: TaskMilestoneOption[]; members: TeamMemberDto[]; lockedMajorId?: number | null; onCancel: () => void; onCreated: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const pending = useRef(false)
   const scope = useProjectDisciplineScope(project)
   const [primaryChoice, setPrimary] = useState<string | null>(null)
-  const primary = primaryChoice ?? String(uniqueNameMatch(scope.majors, initialDraft?.task?.primaryMajorName, m => m.majorName)?.majorId ?? '')
+  const isMajorLocked = lockedMajorId !== null && lockedMajorId > 0 && scope.majors.some(item => item.majorId === lockedMajorId)
+  const primary = isMajorLocked
+    ? String(lockedMajorId)
+    : (primaryChoice ?? String(uniqueNameMatch(scope.majors, initialDraft?.task?.primaryMajorName, m => m.majorName)?.majorId ?? ''))
   const [milestoneChoice, setMilestoneChoice] = useState<string | null>(null)
   const [dueAtInput, setDueAtInput] = useState(() => toMeetingInput(initialDraft?.task?.dueAt ?? null))
   function setQuickDue(daysFromNow: number) {
@@ -95,16 +98,18 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       <fieldset disabled={busy || !scope.ready} className="cw-form-fields">
         <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
         <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-        <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span>
-          <input
-            name="dueAt"
-            type="datetime-local"
-            min={milestoneMinDate ? `${milestoneMinDate}T00:00` : undefined}
-            max={milestoneMaxDate ? `${milestoneMaxDate}T23:59` : undefined}
-            value={dueAtInput}
-            onChange={event => setDueAtInput(event.target.value)}
-          />
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-col gap-1">
+          <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span>
+            <input
+              name="dueAt"
+              type="datetime-local"
+              min={milestoneMinDate ? `${milestoneMinDate}T00:00` : undefined}
+              max={milestoneMaxDate ? `${milestoneMaxDate}T23:59` : undefined}
+              value={dueAtInput}
+              onChange={event => setDueAtInput(event.target.value)}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-1.5">
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(0)}>Hôm nay</button>
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(3)}>+3 ngày</button>
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(7)}>+7 ngày</button>
@@ -113,11 +118,11 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
           <span className="cw-field-hint">
             Giờ Việt Nam (UTC+7){milestoneWindowText ? ` · Khung thời gian mốc: ${milestoneWindowText}` : ''}
           </span>
-        </label>
+        </div>
         <label>Mức ưu tiên<select name="priority" defaultValue={initialDraft?.task?.priority ?? 'MEDIUM'}><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
         {showDisciplineFields && <>
-          <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select></label>
-          <fieldset className="cw-full-width cw-assignees"><legend>Ngành hỗ trợ</legend><p className="cw-field-hint">Công việc liên ngành cần đúng một ngành chính. Chỉ chọn ngành thuộc phạm vi đồ án.</p><div>{scope.majors.filter(item => String(item.majorId) !== primary).map(item => <label key={item.majorId}><input type="checkbox" name="supportingMajor" value={item.majorId} />{item.majorName}</label>)}</div></fieldset>
+          <label>Ngành chính<select name="primaryMajor" value={primary} required={scope.interdisciplinary} disabled={isMajorLocked} onChange={event => setPrimary(event.target.value)}><option value="">{scope.interdisciplinary ? 'Chọn ngành chính' : 'Chưa phân loại'}</option>{scope.majors.map(item => <option key={item.majorId} value={item.majorId}>{item.majorName}</option>)}</select>{isMajorLocked && <span className="cw-field-hint">Tự khóa theo chuyên ngành của thành viên.</span>}</label>
+          {!isMajorLocked && <fieldset className="cw-full-width cw-assignees"><legend>Ngành hỗ trợ</legend><p className="cw-field-hint">Công việc liên ngành cần đúng một ngành chính. Chỉ chọn ngành thuộc phạm vi đồ án.</p><div>{scope.majors.filter(item => String(item.majorId) !== primary).map(item => <label key={item.majorId}><input type="checkbox" name="supportingMajor" value={item.majorId} />{item.majorName}</label>)}</div></fieldset>}
         </>}
         <label className="cw-full-width"><span>Mô tả <span className="cw-optional">(không bắt buộc)</span></span><textarea name="description" defaultValue={initialDraft?.description} rows={2} maxLength={10000} placeholder="Kết quả cần đạt và thông tin để bắt đầu công việc" /></label>
         <fieldset className="cw-full-width cw-assignees"><legend>Người phụ trách</legend><p className="cw-field-hint">Có thể chọn nhiều người hoặc phân công sau.</p>

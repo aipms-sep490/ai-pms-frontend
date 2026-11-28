@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { HttpError } from '../../../services/http/http-client'
 import * as api from '../task-evidence-api'
 import type { TaskComment, TaskFile } from '../task-evidence-api'
-import { createProjectEvidence } from '../../projects/api/project-governance-api'
 import { DocumentPreviewModal, getFileCategory } from '../../../components/ui/DocumentPreviewModal'
 import { getUploadPolicy, uploadPolicyLabel, validateUploadFile, type UploadPolicy } from '../../../services/api/upload-policies.api'
 import { getInitials } from '../../../components/ui/initials'
@@ -20,7 +19,7 @@ function getFileIcon(name: string): string {
   return 'draft'
 }
 
-export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajorId, canAddEvidence }: { taskId: number; projectId: number; majors: Array<{ majorId: number; majorCode: string; majorName: string }>; mentorMajorId: number | null; canAddEvidence: boolean }) {
+export function TaskEvidenceAndComments({ taskId, canAddEvidence }: { taskId: number; projectId: number; majors: Array<{ majorId: number; majorCode: string; majorName: string }>; mentorMajorId: number | null; canAddEvidence: boolean }) {
   const [selectedFileName, setSelectedFileName] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadPolicy, setUploadPolicy] = useState<UploadPolicy | null>(null)
@@ -36,9 +35,6 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
   const [loading, setLoading] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [evidenceNotes, setEvidenceNotes] = useState('')
-  const [evidenceMajorId, setEvidenceMajorId] = useState<number | null>(mentorMajorId ?? null)
-  const [evidenceBusy, setEvidenceBusy] = useState(false)
   const [evidenceNotice, setEvidenceNotice] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<TaskFile | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -113,22 +109,6 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
       setSelectedFile(null); setSelectedFileName('')
     })
   }
-  const submitEvidence = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!canAddEvidence) return
-    setEvidenceBusy(true); setEvidenceNotice(''); setError(null)
-    try {
-      await createProjectEvidence(projectId, { sourceType: 'TASK', sourceId: taskId, majorId: mentorMajorId ?? evidenceMajorId, notes: evidenceNotes.trim() || null })
-      setEvidenceNotes(''); setEvidenceNotice('Minh chứng của công việc đã được hệ thống ghi nhận hoặc đã tồn tại.')
-      await load()
-    } catch (reason) {
-      if (reason instanceof HttpError && reason.status === 409) {
-        setError('Minh chứng đã thay đổi hoặc trùng với dữ liệu khác. Danh sách đã được tải lại để bạn kiểm tra.')
-        await load()
-      } else if (reason instanceof HttpError && reason.status === 403) setError('Hệ thống không cấp quyền ghi minh chứng cho công việc này.')
-      else setError('Không thể ghi minh chứng. Hãy kiểm tra lại và thử lại.')
-    } finally { setEvidenceBusy(false) }
-  }
   const comment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!content.trim()) return
@@ -176,7 +156,7 @@ export function TaskEvidenceAndComments({ taskId, projectId, majors, mentorMajor
         void cancelProjectFileUpload(uploadProgress.sessionId, owner).then(() => { setUploadProgress(null); setEvidenceNotice('Đã hủy phiên tải.') }).catch(() => setError('Chưa hủy được phiên tải. Hãy kiểm tra lại kết nối.')).finally(() => setBusy(false))
       }}>Hủy phiên tải</button>}
     </div>}
-    <div className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Minh chứng công việc</h2>{canAddEvidence ? <><form onSubmit={submitEvidence} className="mt-4 space-y-3"><p className="text-sm text-ink-muted">Đính kèm tài liệu hoặc kết quả để ghi nhận phần việc đã thực hiện.</p>{mentorMajorId ? <p className="text-sm text-ink-muted">Ngành được hướng dẫn: {majors.find(item => item.majorId === mentorMajorId)?.majorName ?? mentorMajorId}</p> : majors.length > 0 && <label className="block text-sm font-medium text-ink-soft">Chuyên ngành (nếu áp dụng)<select value={evidenceMajorId ?? ''} onChange={event => setEvidenceMajorId(event.target.value ? Number(event.target.value) : null)} className="mt-1 block min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" disabled={evidenceBusy}><option value="">Không gắn chuyên ngành</option>{majors.map(major => <option key={major.majorId} value={major.majorId}>{major.majorCode} · {major.majorName}</option>)}</select></label>}<label className="block text-sm font-medium text-ink-soft">Ghi chú minh chứng<textarea value={evidenceNotes} maxLength={2000} onChange={event => setEvidenceNotes(event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-hairline bg-card p-3 text-sm font-normal text-ink" disabled={evidenceBusy} /></label><button disabled={evidenceBusy} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">{evidenceBusy ? 'Đang ghi nhận…' : 'Ghi nhận minh chứng'}</button></form>{evidenceNotice && <p role="status" className="mt-3 text-sm text-status-success-text">{evidenceNotice}</p>}<form onSubmit={upload} className="mt-4 flex flex-wrap items-end gap-2 border-t border-hairline pt-4"><label className="task-evidence-file text-sm">Ảnh hoặc tệp minh chứng<input type="file" name="file" aria-label="Ảnh hoặc tệp minh chứng" className="sr-only" accept={uploadPolicy?.allowedExtensions.join(',')} disabled={busy} onChange={event => { const file = event.target.files?.[0] ?? null; setSelectedFile(file); setSelectedFileName(file?.name ?? ''); setError(null) }} /><span className="task-evidence-file-choice"><span>Chọn tệp</span><span>{selectedFileName || 'Chưa chọn tệp'}</span></span></label><button disabled={busy || !selectedFile} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Tải lên</button>{selectedFile && getFileCategory(selectedFile.name, selectedFile.type) !== 'archive' && <button type="button" className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary" onClick={() => setPreview({ kind: 'local', file: selectedFile })}>Xem trước</button>}<p className="w-full text-xs text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : 'Giới hạn và định dạng do máy chủ xác nhận khi tải lên.'}</p></form></> : <p className="mt-3 text-sm leading-6 text-ink-muted">Bạn chưa được cấp quyền bổ sung minh chứng cho công việc này.</p>}{!loading && files.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}<ul className="mt-4 space-y-2">{files.map(file => (
+    <div className="rounded-xl border border-hairline bg-card p-5"><h2 className="font-semibold text-ink">Tệp đính kèm &amp; Minh chứng công việc</h2><p className="mt-2 text-xs text-ink-muted">Sổ minh chứng tự động (Chỉ đọc): Khi công việc chuyển sang Hoàn tất kèm tệp đính kèm, hệ thống tự động ghi nhận vào Sổ minh chứng đồ án.</p>{canAddEvidence ? <>{evidenceNotice && <p role="status" className="mt-3 text-sm text-status-success-text">{evidenceNotice}</p>}<form onSubmit={upload} className="mt-4 flex flex-wrap items-end gap-2 border-t border-hairline pt-4"><label className="task-evidence-file text-sm">Ảnh hoặc tệp minh chứng<input type="file" name="file" aria-label="Ảnh hoặc tệp minh chứng" className="sr-only" accept={uploadPolicy?.allowedExtensions.join(',')} disabled={busy} onChange={event => { const file = event.target.files?.[0] ?? null; setSelectedFile(file); setSelectedFileName(file?.name ?? ''); setError(null) }} /><span className="task-evidence-file-choice"><span>Chọn tệp</span><span>{selectedFileName || 'Chưa chọn tệp'}</span></span></label><button disabled={busy || !selectedFile} className="min-h-11 rounded-lg bg-primary hover:bg-primary-hover px-4 text-sm font-semibold text-white disabled:opacity-50">Tải lên</button>{selectedFile && getFileCategory(selectedFile.name, selectedFile.type) !== 'archive' && <button type="button" className="min-h-11 rounded-lg border border-hairline px-4 text-sm font-semibold text-primary" onClick={() => setPreview({ kind: 'local', file: selectedFile })}>Xem trước</button>}<p className="w-full text-xs text-ink-muted">{uploadPolicy ? uploadPolicyLabel(uploadPolicy) : 'Giới hạn và định dạng do máy chủ xác nhận khi tải lên.'}</p></form></> : <p className="mt-3 text-sm leading-6 text-ink-muted">Bạn chưa được cấp quyền bổ sung tệp minh chứng cho công việc này.</p>}{!loading && files.length === 0 && <p className="mt-4 text-sm text-ink-muted">Chưa có tệp đính kèm.</p>}<ul className="mt-4 space-y-2">{files.map(file => (
       <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-canvas p-3 text-sm">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="material-symbols-outlined text-primary text-base" aria-hidden="true">{getFileIcon(file.fileName)}</span>

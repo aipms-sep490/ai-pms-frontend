@@ -267,6 +267,30 @@ function MeetingDetailView({ id }: { id: number }) {
     }
   }
 
+  const [unlockOpen, setUnlockOpen] = useState(false)
+  const [unlockReason, setUnlockReason] = useState('')
+
+  async function unlockNotes(event: FormEvent) {
+    event.preventDefault()
+    const cleanReason = unlockReason.trim()
+    if (lockBusy || !collaboration?.canUnlockNotes || cleanReason.length < 10) return
+    setLockBusy(true)
+    setError('')
+    try {
+      const updated = await api.unlockMeetingNotes(id, collaboration.concurrencyToken, cleanReason)
+      if (alive.current) {
+        setCollaboration(updated)
+        setUnlockOpen(false)
+        setUnlockReason('')
+        setSuccess('Đã mở khóa biên bản cuộc họp và ghi nhật ký kiểm toán.')
+      }
+    } catch (reason) {
+      if (alive.current) setError(meetingError(reason))
+    } finally {
+      if (alive.current) setLockBusy(false)
+    }
+  }
+
   function sendFeedback(event: FormEvent) {
     event.preventDefault()
     if (access.readOnly || access.actor !== 'supervisor' || !writableNotes || !feedback.trim()) return
@@ -535,6 +559,16 @@ function MeetingDetailView({ id }: { id: number }) {
                           {lockBusy ? 'Đang khóa…' : 'Khóa biên bản'}
                         </button>
                       )}
+                      {env.meetingCollaborationEnabled && collaboration?.canUnlockNotes && (
+                        <button
+                          type="button"
+                          className="mtg-button mtg-button--secondary mtg-button--small"
+                          disabled={disabled || lockBusy}
+                          onClick={() => setUnlockOpen(open => !open)}
+                        >
+                          Mở khóa biên bản
+                        </button>
+                      )}
                       {manage && notesEditable && editor !== 'notes' && (
                         <button
                           type="button"
@@ -563,6 +597,41 @@ function MeetingDetailView({ id }: { id: number }) {
                           , không thể chỉnh sửa thêm.
                         </span>
                       </p>
+                    )}
+
+                    {unlockOpen && collaboration?.canUnlockNotes && (
+                      <form className="mtg-form mt-3 rounded-lg border border-hairline bg-canvas p-3" onSubmit={unlockNotes}>
+                        <label className="block text-sm font-medium text-ink">
+                          Lý do mở khóa biên bản (tối thiểu 10 ký tự)
+                          <textarea
+                            required
+                            minLength={10}
+                            maxLength={1000}
+                            rows={2}
+                            value={unlockReason}
+                            disabled={lockBusy}
+                            onChange={(event) => setUnlockReason(event.target.value)}
+                            placeholder="Nêu rõ lý do cần chỉnh sửa lại biên bản đã khóa (ghi AuditLog)…"
+                          />
+                        </label>
+                        <div className="mtg-actions mt-2">
+                          <button
+                            type="button"
+                            className="mtg-button mtg-button--secondary mtg-button--small"
+                            disabled={lockBusy}
+                            onClick={() => { setUnlockOpen(false); setUnlockReason('') }}
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="submit"
+                            className="mtg-button mtg-button--small"
+                            disabled={lockBusy || unlockReason.trim().length < 10}
+                          >
+                            {lockBusy ? 'Đang mở khóa…' : 'Xác nhận mở khóa'}
+                          </button>
+                        </div>
+                      </form>
                     )}
 
                     {assistant.draft && (

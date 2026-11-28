@@ -64,7 +64,7 @@ export interface ReviewGateTemplate {
   gates: ReviewGate[]
 }
 
-export type GateStatus = 'PLANNED' | 'IN_REVIEW' | 'PASSED' | 'REVISION_REQUIRED' | 'LOCKED'
+export type GateStatus = 'PLANNED' | 'IN_REVIEW' | 'PASSED' | 'REVISION_REQUIRED' | 'FAILED' | 'LOCKED'
 
 export interface ProjectReviewMatrixRow {
   projectId: string
@@ -102,6 +102,15 @@ export interface DefenseReadinessSummary {
   conditions: DefenseCondition[]
 }
 
+export interface GateEvidenceVerificationSummary {
+  assignmentId: number
+  reviewerId: number
+  reviewerName: string
+  decision: 'ACCEPTED' | 'REJECTED' | string
+  feedback?: string | null
+  verifiedAt: string
+}
+
 export interface StudentGateRequirement {
   id: string
   code: string
@@ -110,6 +119,9 @@ export interface StudentGateRequirement {
   scope: RequirementScope
   isMandatory: boolean
   verificationStatus: 'PENDING' | 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'QUARANTINED'
+  majorId?: number | null
+  targetStudentId?: number | null
+  verifications?: GateEvidenceVerificationSummary[] | null
   latestArtifact?: {
     evidenceId?: number | null
     version: number
@@ -244,5 +256,85 @@ export interface GateDecisionRequest {
   notes: string
   concurrencyToken: string
   packageId?: number | null
+}
+
+export interface GateAssignmentSummary {
+  id: number
+  reviewerId: number
+  reviewerName: string
+  scope: string
+  majorId?: number | null
+  majorName?: string | null
+  studentId?: number | null
+  status: string
+  sessionRole: string
+  latestDecision?: string | null
+  reviewerNotes?: string | null
+  validFrom?: string | null
+  validUntil?: string | null
+  concurrencyToken: string
+}
+
+export interface GateReviewerCandidate {
+  userId: number
+  fullName: string
+  email: string
+  departmentId?: number | null
+  departmentName?: string | null
+  isOnFixedProjectPanel: boolean
+}
+
+export interface CreateReviewGateAssignmentRequest {
+  projectId: string
+  gateCode: string
+  reviewerId: number
+  scope: string
+  majorId?: number | null
+  studentId?: number | null
+  concurrencyToken?: string | null
+  sessionRole?: 'CHAIR' | 'SECRETARY' | 'MEMBER' | string
+}
+
+export interface RevokeReviewGateAssignmentRequest {
+  concurrencyToken: string
+  reason: string
+}
+
+export interface ReopenReviewGateRequest {
+  reason: string
+  concurrencyToken: string
+}
+
+export interface RoundScopeDecision {
+  id: number
+  gateInstanceId: number
+  roundNumber: number
+  scope: string
+  departmentId?: number | null
+  majorId?: number | null
+  decision: 'PENDING' | 'PASSED' | 'REVISION_REQUIRED' | string
+  notes?: string | null
+  decidedBy?: number | null
+  decidedAt?: string | null
+  concurrencyToken: string
+}
+
+export interface GateRoundConsensus {
+  projectId: number
+  gateCode: string
+  roundNumber: number
+  gateStatus: string
+  allRequiredScopesPassed: boolean
+  consolidatedRevisionFeedback?: string | null
+  decisions: RoundScopeDecision[]
+}
+
+export interface RecordRoundScopeDecisionRequest {
+  scope: string
+  roundNumber: number
+  decision: 'PASSED' | 'REVISION_REQUIRED'
+  notes?: string | null
+  concurrencyToken?: string | null
+  isLeadOverride?: boolean
 }
 

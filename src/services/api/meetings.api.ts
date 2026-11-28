@@ -31,6 +31,8 @@ export const createMeetingSeries = (projectId: number, body: CreateMeetingSeries
 export const getMeetingCollaboration = (meetingId: number, signal?: AbortSignal) => httpGet<MeetingCollaboration>(`/meetings/${meetingId}/collaboration`, signal)
 export const respondMeetingRsvp = (meetingId: number, status: string, concurrencyToken: string) => httpPut<MeetingRsvp>(`/meetings/${meetingId}/rsvp`, { status, concurrencyToken })
 export const lockMeetingNotes = (meetingId: number, concurrencyToken: string) => httpPost<MeetingCollaboration>(`/meetings/${meetingId}/notes/lock`, { concurrencyToken })
+export const unlockMeetingNotes = (meetingId: number, concurrencyToken: string, reason: string) =>
+  httpPost<MeetingCollaboration>(`/meetings/${meetingId}/notes/unlock`, { concurrencyToken, reason })
 export const getMeetingNotesHistory = (meetingId: number, page = 1, pageSize = 20, signal?: AbortSignal) =>
   httpGet<PagedResult<MeetingNotesVersion>>(`/meetings/${meetingId}/notes/history?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`, signal)
 
@@ -42,9 +44,8 @@ export async function getMeetingCandidates(projectId: number, teamId: number, si
     members = (await httpGet<TeamDto>(`/teams/${teamId}`, signal)).members
   } catch (reason) {
     if (!(reason instanceof HttpError) || reason.status !== 403) throw reason
-    // Assigned lecturers can access meetings but the current Teams endpoint denies their roster access.
-    // Keep scheduling available; never substitute an old registration snapshot or a global user directory.
-    notice = 'Tài khoản này chưa được cấp quyền xem danh sách sinh viên của nhóm. Bạn vẫn có thể lưu lịch và mời GVHD; trưởng nhóm có thể thêm sinh viên sau.'
+    // Keep scheduling available if the current actor is denied direct team roster read.
+    notice = 'Không thể tải đầy đủ danh sách sinh viên của nhóm với quyền hiện tại.'
   }
   const candidates = new Map<number, MeetingCandidate>(members.map((member) => [member.userId, {
     userId: member.userId, fullName: member.fullName, role: member.isLeader ? 'Trưởng nhóm' : 'Thành viên',

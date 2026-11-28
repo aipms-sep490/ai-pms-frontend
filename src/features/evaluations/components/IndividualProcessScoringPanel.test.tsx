@@ -1,66 +1,139 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { IndividualProcessScoringPanel } from './IndividualProcessScoringPanel'
-import * as api from '../../../services/api/evaluations.api'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import * as evaluationsApi from '../../../services/api/evaluations.api'
 import { HttpError } from '../../../services/http/http-client'
+import { IndividualProcessScoringPanel } from './IndividualProcessScoringPanel'
 
-vi.mock('../../../services/api/evaluations.api', () => ({
-  getProjectIndividualProcessScores: vi.fn(),
-  saveIndividualProcessScore: vi.fn(),
-  finalizeIndividualProcessScore: vi.fn(),
-}))
+vi.mock('../../../services/api/evaluations.api')
 
-describe('IndividualProcessScoringPanel (POL-03)', () => {
+const mockGates = [
+  { id: 101, gateNumber: 1, title: 'Cổng 1' },
+  { id: 102, gateNumber: 2, title: 'Cổng 2' },
+  { id: 103, gateNumber: 3, title: 'Cổng 3' },
+]
+
+describe('IndividualProcessScoringPanel (TK-W2-10)', () => {
   beforeEach(() => {
-    vi.resetAllMocks()
+    vi.clearAllMocks()
+  })
+  afterEach(() => {
+    cleanup()
   })
 
-  it('allows primary supervisor to save and finalize G1 individual score and shows cumulative score', async () => {
-    vi.mocked(api.getProjectIndividualProcessScores).mockResolvedValue({
+  it('allows Discipline Mentor to save reference notes even before Primary Supervisor enters a draft score', async () => {
+    vi.mocked(evaluationsApi.getProjectIndividualProcessScores).mockResolvedValue({
+      projectId: 10,
+      viewerRole: 'DISCIPLINE_MENTOR',
+      canEdit: false,
+      gateWeights: [
+        { gateNumber: 1, weightPercent: 30 },
+        { gateNumber: 2, weightPercent: 35 },
+        { gateNumber: 3, weightPercent: 35 },
+      ],
+      students: [
+        {
+          studentId: 501,
+          studentName: 'Nguyễn Minh A',
+          majorId: 1,
+          cumulativeScore: null,
+          isComplete: false,
+          gateScores: [],
+        },
+      ],
+    })
+    vi.mocked(evaluationsApi.saveIndividualProcessMentorNote).mockResolvedValue({
+      id: 900,
+      gateInstanceId: 101,
+      gateNumber: 1,
+      studentId: 501,
+      supervisorAssignmentId: 77,
+      gateWeightPercent: 30,
+      score: null,
+      comments: null,
+      mentorReferenceNotes: 'Phân tích thị trường rõ ràng.',
+      status: 'DRAFT',
+      finalizedAt: null,
+      updatedAt: '2026-11-28T00:00:00Z',
+      concurrencyToken: 'tok-1',
+    })
+
+    render(<IndividualProcessScoringPanel projectId={10} gateInstances={mockGates} />)
+
+    await screen.findByText('Nhận xét Quá trình Tham khảo (G1–G3 · Mentor chuyên ngành)')
+    // Mentor never sees numeric score inputs
+    expect(screen.queryByLabelText('Điểm G1 Nguyễn Minh A')).toBeNull()
+
+    const noteArea = screen.getByLabelText('Nhận xét Mentor G1 Nguyễn Minh A')
+    fireEvent.change(noteArea, { target: { value: 'Phân tích thị trường rõ ràng.' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Lưu nhận xét tham khảo' })[0])
+
+    await waitFor(() => {
+      expect(evaluationsApi.saveIndividualProcessMentorNote).toHaveBeenCalledWith(10, 101, 501, {
+        mentorReferenceNotes: 'Phân tích thị trường rõ ràng.',
+        concurrencyToken: null,
+      })
+    })
+    expect(await screen.findByText('Đã lưu nhận xét tham khảo gửi GVHD Chính.')).toBeTruthy()
+  })
+
+  it('requires confirmation before Primary Supervisor finalizes a gate score and handles 409 stale concurrency', async () => {
+    vi.mocked(evaluationsApi.getProjectIndividualProcessScores).mockResolvedValue({
       projectId: 10,
       viewerRole: 'PRIMARY_SUPERVISOR',
       canEdit: true,
       gateWeights: [
-        { gateNumber: 1, weightPercent: 20 },
+        { gateNumber: 1, weightPercent: 30 },
         { gateNumber: 2, weightPercent: 35 },
-        { gateNumber: 3, weightPercent: 45 },
+        { gateNumber: 3, weightPercent: 35 },
       ],
-      students: [{
-        studentId: 101,
-        studentName: 'Nguyen Van A',
-        majorId: 1,
-        cumulativeScore: 8.25,
-        isComplete: true,
-        gateScores: [{
-          id: 501, gateInstanceId: 1, gateNumber: 1, studentId: 101, supervisorAssignmentId: 7,
-          score: 7.5, gateWeightPercent: 20, mentorReferenceNotes: 'Tiến độ tốt', comments: 'Ổn',
-          status: 'DRAFT', concurrencyToken: 'tok1', updatedAt: '2026-11-22T00:00:00Z', finalizedAt: null,
-        }],
-      }],
+      students: [
+        {
+          studentId: 501,
+          studentName: 'Nguyễn Minh A',
+          majorId: 1,
+          cumulativeScore: null,
+          isComplete: false,
+          gateScores: [
+            {
+              id: 900,
+              gateInstanceId: 101,
+              gateNumber: 1,
+              studentId: 501,
+              supervisorAssignmentId: 77,
+              gateWeightPercent: 30,
+              score: 8.5,
+              comments: 'Hoàn thành tốt',
+              mentorReferenceNotes: 'Đóng góp MKT tốt',
+              status: 'DRAFT',
+              finalizedAt: null,
+              updatedAt: '2026-11-28T00:00:00Z',
+              concurrencyToken: 'tok-1',
+            },
+          ],
+        },
+      ],
     })
-    vi.mocked(api.finalizeIndividualProcessScore).mockResolvedValue({
-      id: 501, gateInstanceId: 1, gateNumber: 1, studentId: 101, supervisorAssignmentId: 7,
-      score: 7.5, gateWeightPercent: 20, mentorReferenceNotes: 'Tiến độ tốt', comments: 'Ổn',
-      status: 'FINALIZED', concurrencyToken: 'tok2', updatedAt: '2026-11-22T00:00:00Z', finalizedAt: '2026-11-22T00:01:00Z',
-    })
-
-    render(<IndividualProcessScoringPanel projectId={10} gateInstances={[{ id: 1, gateNumber: 1, title: 'Gate 1' }]} />)
-
-    expect(await screen.findByText('Tích lũy 20%: 8.25/10')).toBeTruthy()
-    expect(screen.getByText(/Tiến độ tốt/)).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Chốt G1' }))
-    await waitFor(() => {
-      expect(api.finalizeIndividualProcessScore).toHaveBeenCalledWith(10, 1, 101, 'tok1')
-    })
-  })
-
-  it('hides scores and shows privacy alert when backend returns 403 RESULT_NOT_PUBLISHED', async () => {
-    vi.mocked(api.getProjectIndividualProcessScores).mockRejectedValue(
-      new HttpError('Hidden', 403, { code: 'RESULT_NOT_PUBLISHED', detail: 'Hidden' }),
+    vi.mocked(evaluationsApi.finalizeIndividualProcessScore).mockRejectedValue(
+      new HttpError('Bản ghi đã thay đổi bởi phiên khác.', 409, {
+        code: 'STALE_CONCURRENCY_TOKEN',
+        detail: 'Bản ghi đã thay đổi bởi phiên khác.',
+      }),
     )
-    render(<IndividualProcessScoringPanel projectId={10} gateInstances={[{ id: 1, gateNumber: 1, title: 'Gate 1' }]} />)
-    const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('Điểm 20% cá nhân quá trình đang được ẩn')
+
+    render(<IndividualProcessScoringPanel projectId={10} gateInstances={mockGates} />)
+
+    await screen.findByText('Đóng góp MKT tốt')
+    fireEvent.click(screen.getByRole('button', { name: 'Chốt G1' }))
+
+    // Confirmation dialog opens before calling API
+    const confirmBtn = await screen.findByRole('button', { name: 'Chốt điểm G1' })
+    expect(evaluationsApi.finalizeIndividualProcessScore).not.toHaveBeenCalled()
+
+    fireEvent.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(evaluationsApi.finalizeIndividualProcessScore).toHaveBeenCalledWith(10, 101, 501, 'tok-1')
+    })
+    expect(await screen.findByRole('button', { name: 'Tải lại phiên bản mới nhất' })).toBeTruthy()
   })
 })

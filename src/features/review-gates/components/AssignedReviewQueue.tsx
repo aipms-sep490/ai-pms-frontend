@@ -10,7 +10,6 @@ import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
-import { env } from '../../../app/config/env'
 import { downloadReviewGateEvidence } from '../api/review-gates-api'
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 import { evidenceArtifactLabel, isLinkArtifact, safeEvidenceLink } from '../utils/evidence-link'
@@ -216,7 +215,7 @@ export function AssignedReviewQueue({
       await onVerifyEvidence(selectedItem.id, requirementId, decision, feedback, selectedItem.concurrencyToken)
       setSuccessMsg(`Đã cập nhật trạng thái minh chứng thành ${decision === 'ACCEPTED' ? 'Chấp thuận' : 'Yêu cầu nộp lại'}.`)
     } catch (err) {
-      setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
+      setConflict(err instanceof HttpError && err.status === 409)
       setActionError(humanizeHttpError(err, 'Không thể xác minh minh chứng.'))
     } finally {
       setBusy(false)
@@ -238,7 +237,7 @@ export function AssignedReviewQueue({
       setSuccessMsg(`Đã lưu quyết định thẩm định cổng kiểm duyệt thành công: ${decision === 'PASSED' ? 'Đạt' : 'Cần chỉnh sửa'}.`)
       setReviewNotes('')
     } catch (err) {
-      setConflict(err instanceof HttpError ? err.status === 409 : env.reviewGatesMockEnabled && err instanceof Error && err.message.includes('409'))
+      setConflict(err instanceof HttpError && err.status === 409)
       setActionError(humanizeHttpError(err, 'Không thể lưu quyết định thẩm định.'))
     } finally {
       setBusy(false)
@@ -616,7 +615,7 @@ export function AssignedReviewQueue({
       {previewingArtifact && (() => {
         const isLink = isLinkArtifact(previewingArtifact) || previewingArtifact.requirementType === 'LINK'
         const safeUrl = isLink ? safeEvidenceLink(previewingArtifact.linkUrl ?? previewingArtifact.filename) : null
-        const canAccessFile = !isLink && !env.reviewGatesMockEnabled && Boolean(previewingArtifact.downloadUrl)
+        const canAccessFile = !isLink && Boolean(previewingArtifact.downloadUrl)
         return (
           <>
             <Modal

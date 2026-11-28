@@ -86,8 +86,10 @@ function WeeklyAssessmentsBody({ projectId, projectCode, projectTitle, routeBase
   const activeMember = members.find(m => m.userId === selectedStudentId)
   const eyebrowTitle = projectCode ? `${projectCode} · ${projectTitle}` : projectTitle
 
-  return <WeeklyShell title={isStudent ? 'Đánh giá cá nhân theo tuần' : 'Điểm cá nhân theo tuần'} projectTitle={eyebrowTitle} backTo={isStudent ? undefined : `${routeBase}/workspace`}
-    description={isStudent ? 'Theo dõi nhận xét và điểm tham khảo hằng tuần từ Giảng viên hướng dẫn (chỉ tham khảo, không cộng vào điểm học phần chính thức).' : 'Chấm tham khảo hằng tuần cho từng sinh viên. Điểm theo dõi được lưu theo phiên bản và không tự cộng vào kết quả chính thức.'}
+  return <WeeklyShell title="Nhận xét tiến độ tuần (Tham khảo · Không tính điểm)" projectTitle={eyebrowTitle} backTo={isStudent ? undefined : `${routeBase}/workspace`}
+    description={isStudent
+      ? 'Tùy chọn — 0% điểm chính thức; điểm quá trình 20% được chốt theo Gate G1–G3. Theo dõi nhận xét tiến độ hằng tuần từ Giảng viên hướng dẫn để cải thiện đồ án.'
+      : 'Tùy chọn — 0% điểm chính thức; điểm quá trình 20% được chốt theo Gate G1–G3. Ghi nhận xét tham khảo hằng tuần để đối chiếu khi chốt điểm G1–G3.'}
     action={
       <button
         type="button"

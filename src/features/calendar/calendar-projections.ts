@@ -69,7 +69,10 @@ export function scopedCalendarProjection(item: BackendCalendarItem, role: 'stude
       : item.sourceType === 'MEETING' ? `/project/meetings/${item.sourceId}`
         : item.sourceType === 'DELIVERABLE' ? '/project/deliverables'
           : item.sourceType === 'FINAL_SUBMISSION' ? '/project/final-submission'
-            : item.sourceType === 'PROGRESS_REPORT' ? `/project/reports/${item.sourceId}` : null
+            : item.sourceType === 'PROGRESS_REPORT' ? `/project/reports/${item.sourceId}`
+              : item.sourceType === 'REVIEW_GATE' ? '/project/review-gates'
+                : item.sourceType === 'DEFENSE_SESSION' ? '/project/defense'
+                  : item.sourceType === 'EVALUATION_ASSIGNMENT' ? `/evaluator/assignments/${item.sourceId}` : null
   const scopedLink = role === 'lecturer' ? safeInternalDeepLink(item.deepLink) ?? `/supervisor/projects/${item.projectId}/workspace` : deepLink
   if (!scopedLink || (!item.startAt && !item.endAt && !item.dueAt)) return null
   return { sourceType: item.sourceType, sourceId: item.sourceId, projectId: item.projectId, title: item.title, startAt: item.startAt ?? undefined, endAt: item.endAt ?? undefined, dueAt: item.dueAt ?? undefined, status: item.status, deepLink: scopedLink }

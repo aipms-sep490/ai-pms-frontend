@@ -213,7 +213,7 @@ export function ReportEditor({
       <div className="report-panel report-empty" role="status">
         <span className="material-symbols-outlined" aria-hidden="true">event_busy</span>
         <h3>Chưa có kỳ báo cáo</h3>
-        <p>Đồ án chưa có kỳ báo cáo. GVHD hoặc bộ môn cần tạo lịch báo cáo trước.</p>
+        <p>Đồ án chưa có kỳ báo cáo. Bộ môn cần tạo lịch báo cáo cho đợt thực thi trước.</p>
       </div>
     )
   }

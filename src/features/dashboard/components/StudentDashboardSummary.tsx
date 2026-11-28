@@ -7,6 +7,7 @@ import type { StudentReviewTimelineDto } from '../../review-gates/types/review-g
 import { getWeeklyAssessmentHistory, type WeeklyAssessment } from '../../../services/api/weekly.api'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { PageLoading } from '../../../components/ui/PageLoading'
+import { HealthPulseBadge } from '../../../components/ui/HealthPulseBadge'
 
 export function StudentDashboardSummary() {
   const [data, setData] = useState<StudentDashboard | null>(null)
@@ -107,18 +108,12 @@ export function StudentDashboardSummary() {
                 {project.code} · {projectStatusLabel(project.status)}
               </span>
             )}
-            {analysis?.riskLevel && (
-              <span
-                className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
-                  analysis.riskLevel === 'HIGH' || analysis.riskLevel === 'CRITICAL'
-                    ? 'bg-status-error-bg text-status-error-text border border-status-error-border'
-                    : analysis.riskLevel === 'LOW'
-                      ? 'bg-status-success-bg text-status-success-text border border-status-success-border'
-                      : 'bg-status-warning-bg text-status-warning-text border border-status-warning-border'
-                }`}
-              >
-                Rủi ro: {riskLabel(analysis.riskLevel)}
-              </span>
+            {(analysis?.healthPulseStatus || analysis?.riskLevel) && (
+              <HealthPulseBadge
+                healthPulseStatus={analysis.healthPulseStatus}
+                riskLevel={analysis.riskLevel}
+                signals={analysis.healthPulseSignals}
+              />
             )}
           </div>
           <span className="text-xs text-ink-muted">
@@ -508,10 +503,6 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime())
     ? value
     : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(date)
-}
-
-function riskLabel(value: string) {
-  return ({ CRITICAL: 'Rất cao', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' } as Record<string, string>)[value] ?? value
 }
 
 function contributionStatusLabel(value: string) {

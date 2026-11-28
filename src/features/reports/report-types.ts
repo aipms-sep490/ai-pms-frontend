@@ -103,8 +103,8 @@ export const formSections: FormSectionConfig[] = [
   {
     group: 'Vướng mắc và rủi ro',
     fields: [
-      { key: 'blockers', label: 'Vướng mắc cần hỗ trợ', hint: 'Việc đang bị chặn, cần người khác hoặc GVHD can thiệp.', required: false, rows: 3 },
-      { key: 'risks', label: 'Rủi ro tiềm ẩn', hint: 'Nguy cơ có thể ảnh hưởng tiến độ trong thời gian tới.', required: false, rows: 3 },
+      { key: 'blockers', label: 'Vướng mắc cần hỗ trợ', hint: 'Tùy chọn — để trống nếu tuần này không phát sinh vướng mắc cần hỗ trợ.', required: false, rows: 3 },
+      { key: 'risks', label: 'Rủi ro tiềm ẩn', hint: 'Tùy chọn — để trống nếu tuần này không phát sinh rủi ro tiềm ẩn.', required: false, rows: 3 },
     ],
   },
   {
@@ -126,7 +126,15 @@ export const contentFields = [
   { key: 'issuesAndRisks', label: 'Khó khăn & rủi ro', hint: 'Điểm cần hỗ trợ từ GVHD. Ghi “Không có” nếu chưa phát sinh.' },
 ] as const
 
+// TK-W2-01: Blockers and Risks are optional on submission; only 4 core narrative fields are mandatory.
 export const canonicalSubmissionFields = [
+  { key: 'summary' as const, label: 'Tóm tắt tiến độ' },
+  { key: 'completedWork' as const, label: 'Công việc đã hoàn thành' },
+  { key: 'inProgressWork' as const, label: 'Công việc đang thực hiện' },
+  { key: 'nextActions' as const, label: 'Hành động tiếp theo' },
+] as const
+
+export const readingReportFields = [
   { key: 'summary' as const, label: 'Tóm tắt tiến độ' },
   { key: 'completedWork' as const, label: 'Công việc đã hoàn thành' },
   { key: 'inProgressWork' as const, label: 'Công việc đang thực hiện' },

@@ -12,6 +12,7 @@ import { MeetingError, MeetingLoading } from '../meeting-ui'
 import { canManageMeeting, meetingError } from '../meeting-utils'
 import { MeetingNotesForm } from '../MeetingNotesForm'
 import { MeetingGovernancePanel } from '../MeetingGovernancePanel'
+import { useMeetingCandidates } from '../useMeetingCandidates'
 import type { MeetingAiActionItem } from './ai/meeting-video-ai.types'
 import { meetingVideoError, meetingVideoErrorCode } from './meeting-video-errors'
 import { endMeetingVideo, joinMeetingVideo } from './meeting-video-api'
@@ -498,7 +499,9 @@ function RoomGovernanceDrawer({
   onMeetingSynced: (updated: MeetingDetail) => void
   onClose: () => void
 }) {
+  const access = useExecutionAccess()
   const [meeting, setMeeting] = useState(externalMeeting)
+  const candidatesState = useMeetingCandidates(meeting.projectId, access.project.teamId, open && access.project.teamId > 0)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -617,7 +620,7 @@ function RoomGovernanceDrawer({
           <MeetingGovernancePanel
             meeting={meeting}
             concurrencyToken={meeting.concurrencyToken}
-            candidates={[]}
+            candidates={candidatesState.data}
             canManage={canManage}
             disabled={busy || needsRefresh}
             onChanged={() => void reload()}

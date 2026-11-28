@@ -1,19 +1,17 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { env } from '../../../app/config/env'
 import { AuthSessionContext } from '../../auth/context/auth-session-context'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { PageLoading } from '../../../components/ui/PageLoading'
 import { getDefenseReadiness, getStudentReviewTimeline, submitGateForReview, submitRevision, submitSupervisorFeedback } from '../api/review-gates-api'
 import type { DefenseReadinessSummary } from '../types/review-gates.types'
 import type { StudentReviewTimelineDto } from '../types/review-gates.types'
-import { StudentReviewTimeline } from '../components/StudentReviewTimeline'
+import { canUploadGateRequirement, StudentReviewTimeline } from '../components/StudentReviewTimeline'
 import type { ReviewSubmissionPayload } from '../components/ReviewSubmissionModal'
 import { SupervisorGateFollowupPanel } from '../components/SupervisorGateFollowupPanel'
 import { HttpError } from '../../../services/http/http-client'
 import { humanizeHttpError } from '../../../services/http/humanize-http-error'
 import { Button } from '../../../components/ui/Button'
-import { ReviewGatesMockNotice } from '../components/ReviewGatesMockNotice'
 import { EntityIdentityStrip } from '../../../components/ui/EntityIdentityStrip'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
 import { SubmissionPreflightPanel } from '../../ai-suite/SubmissionPreflightPanel'
@@ -56,14 +54,14 @@ export function StudentReviewTimelinePage() {
 
   const isLecturer = auth?.session?.user.roles.includes('LECTURER') ?? false
   const isStaff = (auth?.session?.user.roles.includes('DEPARTMENT_STAFF') || auth?.session?.user.roles.includes('ADMIN')) ?? false
+  const rawUser = auth?.session?.user as { id?: string | number; majorId?: number | null } | undefined
+  const currentUserId = rawUser?.id != null && /^\d+$/.test(String(rawUser.id)) ? Number(rawUser.id) : null
+  const currentUserMajorId = typeof rawUser?.majorId === 'number' ? rawUser.majorId : null
 
-  // Leader state: In real sessions, rely on team/project capabilities (deny-by-default if session absent); allow mock preview toggle only in dev sandbox
-  const authIsLeader = !isLecturer && !isStaff && Boolean(auth?.session) && Boolean(
+  // Leader state relies on real team/project capabilities (deny-by-default if session absent)
+  const isLeader = !isLecturer && !isStaff && Boolean(auth?.session) && Boolean(
     timeline?.capabilities.canSubmitPackage || timeline?.capabilities.canSubmitRevision,
   )
-  const [mockLeaderOverride, setMockLeaderOverride] = useState<boolean | null>(null)
-  const isLeaderToggleAllowed = Boolean(import.meta.env.DEV && env.reviewGatesMockEnabled)
-  const isLeader = isLeaderToggleAllowed && mockLeaderOverride !== null ? mockLeaderOverride : authIsLeader
 
   const loadTimeline = useCallback(async (silent = false) => {
     const request = ++loadId.current
@@ -116,6 +114,16 @@ export function StudentReviewTimelinePage() {
     const targetGate = timeline.gates.find((g) => g.code === gateCode)
     const targetReq = targetGate?.requirements.find((r) => r.id === requirementId)
     const expectedVersion = targetReq?.latestArtifact?.version ?? 0
+    const uploadAllowed = targetReq
+      ? canUploadGateRequirement(targetReq, {
+          isAuthenticated: Boolean(auth?.session),
+          isLeader,
+          currentUserId,
+          currentUserMajorId,
+          gateStatus: targetGate?.status,
+          isCurrentGate: targetGate?.code === timeline.currentGateCode,
+        }).allowed
+      : isLeader
 
     const updated = await submitRevision(
       {
@@ -130,7 +138,7 @@ export function StudentReviewTimelinePage() {
         expectedVersion,
         concurrencyToken: targetGate?.concurrencyToken,
       },
-      isLeader,
+      uploadAllowed,
     )
     if (generation === routeGeneration.current) applyTimeline(updated)
   }
@@ -165,7 +173,6 @@ export function StudentReviewTimelinePage() {
         { icon: 'flag', label: 'Mốc hiện tại', value: timeline.currentGateCode || 'Chưa có mốc' },
       ]} /> : undefined}
     >
-      <ReviewGatesMockNotice />
       {feedbackRefreshWarning && <div role="alert" className="mb-4 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
         <p>{feedbackRefreshWarning}</p>
         <Button variant="outline" className="mt-2 min-h-11" disabled={feedbackRefreshing} onClick={() => void refreshFeedback()}>
@@ -212,7 +219,8 @@ export function StudentReviewTimelinePage() {
             timeline={timeline}
             isLeader={isLeader}
             isAuthenticated={Boolean(auth?.session)}
-            onToggleRole={isLeaderToggleAllowed ? () => setMockLeaderOverride(!isLeader) : undefined}
+            currentUserId={currentUserId}
+            currentUserMajorId={currentUserMajorId}
             onSubmitRevision={handleSubmitRevision}
             readiness={readiness}
             onReload={() => loadTimeline(true)}

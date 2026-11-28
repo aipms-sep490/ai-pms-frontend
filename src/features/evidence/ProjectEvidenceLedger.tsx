@@ -124,11 +124,11 @@ function EvidenceLedger({ projectId, projectLabel, routeBase, majors = [], locke
   return <WorkspacePage
     size="wide"
     className="space-y-5"
-    title="Sổ minh chứng"
-    eyebrow={projectLabel ? `${projectLabel} · Sổ minh chứng` : 'Sổ minh chứng đồ án'}
+    title="Sổ minh chứng tự động (Chỉ đọc)"
+    eyebrow={projectLabel ? `${projectLabel} · Sổ minh chứng tự động` : 'Sổ minh chứng tự động (Chỉ đọc)'}
     backTo={actor !== 'student' ? `${routeBase}/workspace` : undefined}
     backLabel="Tổng quan đồ án"
-    description="Tra cứu minh chứng theo công việc, báo cáo và cuộc họp; đối chiếu trạng thái từ hệ thống."
+    description="Sổ cái tự động ghi nhận minh chứng khi nộp sản phẩm bàn giao, báo cáo tiến độ, khóa biên bản họp và hoàn thành công việc có tệp; hiển thị đầy đủ lịch sử thẩm định và lý do phản hồi."
     action={
       <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading} onClick={() => void load()} />
     }
@@ -268,7 +268,7 @@ function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items
               )}
             </div>
           </div>
-          {actor && actor !== 'student' && <EvidenceReviewSection evidenceId={item.id} onReviewed={onReviewed} />}
+          {actor && <EvidenceReviewSection evidenceId={item.id} readOnly={actor === 'student'} onReviewed={onReviewed} />}
         </li>
       )
     })}</ul>
@@ -286,7 +286,7 @@ function EvidenceList({ items, majorMap, routeBase, actor, onReviewed }: { items
 
 const reviewDecisionLabels: Record<string, string> = { ACCEPTED: 'Đã chấp nhận', CHANGES_REQUESTED: 'Cần bổ sung', REJECTED: 'Từ chối' }
 
-function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number; onReviewed: () => void }) {
+function EvidenceReviewSection({ evidenceId, readOnly = false, onReviewed }: { evidenceId: number; readOnly?: boolean; onReviewed: () => void }) {
   const [open, setOpen] = useState(false)
   const [target, setTarget] = useState<EvidenceReviewTarget | null>(null)
   const [history, setHistory] = useState<EvidenceReview[] | null>(null)
@@ -298,20 +298,27 @@ function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number;
 
   const load = useCallback(() => {
     setLoading(true); setError('')
+    if (readOnly) {
+      getEvidenceReviews(evidenceId, 1, 20)
+        .then((historyResult) => { setHistory(historyResult.items) })
+        .catch((reason_: unknown) => setError(reason_ instanceof HttpError && reason_.status === 403 ? 'Minh chứng này nằm ngoài phạm vi ngành của bạn.' : 'Không tải được lịch sử thẩm định. Hãy thử lại.'))
+        .finally(() => setLoading(false))
+      return
+    }
     Promise.all([getEvidenceReviewTarget(evidenceId), getEvidenceReviews(evidenceId, 1, 20)])
       .then(([targetResult, historyResult]) => { setTarget(targetResult); setHistory(historyResult.items) })
       .catch((reason_: unknown) => setError(reason_ instanceof HttpError && reason_.status === 403 ? 'Bạn không có quyền duyệt minh chứng này.' : 'Không tải được dữ liệu duyệt. Hãy thử lại.'))
       .finally(() => setLoading(false))
-  }, [evidenceId])
+  }, [evidenceId, readOnly])
 
   function toggle() {
     const next = !open
     setOpen(next)
-    if (next && !target && !loading) load()
+    if (next && history === null && !loading) load()
   }
 
   async function submit() {
-    if (!target || !reason.trim()) return
+    if (readOnly || !target || !reason.trim()) return
     setBusy(true); setError('')
     try {
       await reviewEvidence(evidenceId, { sourceVersionId: target.sourceVersionId, expectedSourceVersion: target.sourceVersion, expectedLatestReviewId: target.latestReviewId, decision, reason: reason.trim() })
@@ -327,15 +334,22 @@ function EvidenceReviewSection({ evidenceId, onReviewed }: { evidenceId: number;
   }
 
   return <div className="border-t border-hairline pt-3">
-    <button type="button" className="min-h-9 text-sm font-semibold text-primary underline underline-offset-4" onClick={toggle}>{open ? 'Ẩn duyệt minh chứng' : 'Duyệt minh chứng'}</button>
+    <button type="button" className="min-h-9 text-sm font-semibold text-primary underline underline-offset-4" onClick={toggle}>
+      {readOnly
+        ? (open ? 'Ẩn lịch sử thẩm định' : 'Xem lịch sử thẩm định & lý do')
+        : (open ? 'Ẩn duyệt minh chứng' : 'Duyệt minh chứng')}
+    </button>
     {open && <div className="mt-3 space-y-3">
       {loading && <p role="status" className="text-sm text-ink-muted">Đang tải…</p>}
       {error && <p role="alert" className="text-sm text-status-error-text">{error}</p>}
       {!loading && history && history.length > 0 && <ul className="space-y-2">
-        {history.map((review) => <li key={review.id} className="text-sm"><span className="font-semibold text-ink">{reviewDecisionLabels[review.decision] ?? review.decision}</span> <span className="text-ink-muted">· {formatDate(review.reviewedAt)}</span><p className="mt-0.5 text-ink-soft">{review.reason}</p></li>)}
+        {history.map((review) => <li key={review.id} className="rounded-lg border border-hairline bg-canvas p-3 text-sm"><span className="font-semibold text-ink">{reviewDecisionLabels[review.decision] ?? review.decision}</span> <span className="text-ink-muted">· {formatDate(review.reviewedAt)}</span><p className="mt-1 text-ink-soft">{review.reason}</p></li>)}
       </ul>}
-      {!loading && target && !target.canReview && <p className="text-sm text-ink-muted">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
-      {!loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
+      {!loading && history && history.length === 0 && readOnly && !error && (
+        <p className="text-sm text-ink-muted">Chưa có nhận xét thẩm định từ GVHD hoặc Mentor.</p>
+      )}
+      {!readOnly && !loading && target && !target.canReview && <p className="text-sm text-ink-muted">{target.denialReason ?? 'Chưa thể duyệt minh chứng này.'}</p>}
+      {!readOnly && !loading && target?.canReview && <div className="flex flex-wrap items-end gap-2">
         <label className="text-sm text-ink-soft">Kết quả<select className="mt-1 block min-h-10 rounded-lg border border-hairline bg-card px-3 py-2 text-sm font-normal text-ink" value={decision} disabled={busy} onChange={(event) => setDecision(event.target.value as EvidenceReviewDecision)}>
           <option value="ACCEPTED">Đã chấp nhận</option>
           <option value="CHANGES_REQUESTED">Cần bổ sung</option>

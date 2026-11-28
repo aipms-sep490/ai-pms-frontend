@@ -1,6 +1,20 @@
 import { httpGet } from '../../services/http/http-client'
 
-export type ActionAggregatorKind = 'TASK' | 'MILESTONE' | 'REVIEW_GATE' | 'PROGRESS_REPORT' | 'PROGRESS_REVIEW' | 'MEETING_SIGN_OFF' | 'REVIEWER_ASSIGNMENT' | 'SUPERVISOR_REQUEST' | 'APPEAL'
+export type ActionAggregatorKind =
+  | 'TASK'
+  | 'MILESTONE'
+  | 'REVIEW_GATE'
+  | 'PROGRESS_REPORT'
+  | 'PROGRESS_REVIEW'
+  | 'MEETING_SIGN_OFF'
+  | 'REVIEWER_ASSIGNMENT'
+  | 'SUPERVISOR_REQUEST'
+  | 'APPEAL'
+  | 'EVALUATION_ASSIGNMENT'
+  | 'TASK_BLOCKED_48H'
+  | 'FINAL_LOCK_APPROVAL'
+  | 'GATE_REVIEW_ASSIGNMENT'
+  | 'DEFENSE_COMMITTEE'
 export interface ActionAggregatorItem {
   /** Kept as a string so an unknown server kind remains visible. */
   kind: string

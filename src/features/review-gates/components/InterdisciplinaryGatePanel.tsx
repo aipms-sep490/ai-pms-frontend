@@ -1,7 +1,6 @@
 import { Table, TableHead } from '../../../components/ui/Table'
 import { useEffect, useState } from 'react'
 import type { GateStatus } from '../types/review-gates.types'
-import { env } from '../../../app/config/env'
 import { getProject } from '../../../services/api/projects.api'
 import { HttpError } from '../../../services/http/http-client'
 import { dateTimeLabel } from '../../execution/execution-utils'
@@ -61,7 +60,6 @@ export function InterdisciplinaryGatePanel({
   useEffect(() => {
     setDraftChoices({}); setConflictedScope(null); setScopeError(null)
     if (!projectId) { setRequiredScopes([]); setTopologyState('unavailable'); return }
-    if (env.reviewGatesMockEnabled) { setRequiredScopes([]); setTopologyState('ready'); return }
     if (!/^\d+$/.test(projectId)) { setRequiredScopes([]); setTopologyState('unavailable'); return }
     let active = true
     setTopologyState('loading')
@@ -97,9 +95,9 @@ export function InterdisciplinaryGatePanel({
     }
   }
 
-  const effectiveRequiredScopes = env.reviewGatesMockEnabled ? Object.keys(scopes) : requiredScopes
+  const effectiveRequiredScopes = requiredScopes.length > 0 ? requiredScopes : Object.keys(scopes)
   const scopeKeys = [...new Set([...effectiveRequiredScopes, ...Object.keys(scopes)])]
-  const allPassed = topologyState === 'ready' && effectiveRequiredScopes.length > 0 && effectiveRequiredScopes.every(key => scopes[key] === 'PASSED')
+  const allPassed = (topologyState === 'ready' || effectiveRequiredScopes.length > 0) && effectiveRequiredScopes.length > 0 && effectiveRequiredScopes.every(key => scopes[key] === 'PASSED')
   const hasRevision = scopeKeys.some(key => scopes[key] === 'REVISION_REQUIRED')
   const scopeName = (key: string) => hybridScopeLabels?.[key]?.trim() || projectScopeLabels[key] || scopeMeta[key]?.name || `Ngành ${key}`
 

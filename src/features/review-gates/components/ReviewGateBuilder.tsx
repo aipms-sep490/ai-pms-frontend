@@ -6,7 +6,6 @@ import type {
   ReviewGateTemplate,
 } from '../types/review-gates.types'
 import { GateRequirementDrawer } from './GateRequirementDrawer'
-import { env } from '../../../app/config/env'
 import { gateWeightTotal, validateGateWeights } from '../api/review-gates-contract'
 
 interface ReviewGateBuilderProps {
@@ -73,8 +72,8 @@ export function ReviewGateBuilder({
       objective: 'Chưa cấu hình mục tiêu học thuật',
       required: true,
       blockNextGate: true,
-      start: env.reviewGatesMockEnabled ? '2026-11-15' : null,
-      end: env.reviewGatesMockEnabled ? '2026-11-30' : null,
+      start: null,
+      end: null,
       reviewerPolicy: 'Assigned Reviewer',
       reviewScope: 'COMMON',
       requirements: [],

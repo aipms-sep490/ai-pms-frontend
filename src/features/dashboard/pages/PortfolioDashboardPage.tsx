@@ -5,6 +5,7 @@ import { Pagination } from '../../../components/ui/Pagination'
 import { humanizeWorkflowReason } from '../../../components/ui/workflow-action-gate'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { HealthPulseBadge } from '../../../components/ui/HealthPulseBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { projectStatusLabel } from '../../projects/utils/project-status'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -376,7 +377,6 @@ function MajorChips({ majors, selected, onSelect }: { majors: PortfolioDashboard
 
 function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = false }: { readOnly?: boolean; project: DashboardProject; archiving: boolean; archivingThis: boolean; onArchive: () => void }) {
   const risk = project.analysis?.riskLevel
-  const riskTone = risk === 'HIGH' || risk === 'CRITICAL' ? 'danger' : risk === 'MEDIUM' ? 'warning' : risk === 'LOW' ? 'success' : 'neutral'
   const normalized = project.status.replaceAll('_', '').toUpperCase()
   return (
     <li className="flex flex-wrap items-start justify-between gap-4 py-4 text-sm">
@@ -388,7 +388,13 @@ function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = f
             tone={normalized === 'ACTIVE' || normalized === 'COMPLETED' ? 'success' : normalized === 'FINALSUBMISSION' ? 'info' : normalized === 'REJECTED' ? 'danger' : 'neutral'}
             label={projectStatusLabel(project.status)}
           />
-          {env.aiAdvisoryEnabled && risk && <StatusBadge status={risk} tone={riskTone} label={`Rủi ro: ${displayLabel(risk)}`} />}
+          {(project.analysis?.healthPulseStatus || risk) && (
+            <HealthPulseBadge
+              healthPulseStatus={project.analysis?.healthPulseStatus}
+              riskLevel={risk}
+              signals={project.analysis?.healthPulseSignals}
+            />
+          )}
         </div>
       </div>
       {readOnly && (

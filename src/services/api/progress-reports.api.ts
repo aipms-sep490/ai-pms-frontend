@@ -45,3 +45,31 @@ export const updateProgressReport = (id: number, body: ReportContent & { concurr
 const reportTokenQuery = (concurrencyToken: string) => `?${new URLSearchParams({ concurrencyToken })}`
 export const submitProgressReport = (id: number, concurrencyToken: string) => httpPost<ProgressReport>(`/progress-reports/${id}/submit${reportTokenQuery(concurrencyToken)}`)
 export const addProgressReportFeedback = (id: number, feedbackText: string, concurrencyToken: string) => httpPost<ReportFeedback>(`/progress-reports/${id}/feedback${reportTokenQuery(concurrencyToken)}`, { feedbackText })
+
+export interface GenerateReportingCyclesRequest {
+  cadence: 'WEEKLY' | 'BIWEEKLY'
+  latePolicy?: 'FLAG' | 'BLOCK'
+  deadlineOffsetDays?: number
+  dryRun?: boolean
+}
+
+export interface GeneratedReportingCycleSlot {
+  periodStart: string
+  periodEnd: string
+  deadline: string
+  adjustedForHolidayOrWeekend: boolean
+}
+
+export interface GenerateReportingCyclesResult {
+  projectPeriodId: number
+  cadence: string
+  latePolicy: string
+  dryRun: boolean
+  projectsProcessed: number
+  cyclesCreated: number
+  cyclesSkipped: number
+  slots: GeneratedReportingCycleSlot[]
+}
+
+export const generateReportingCycles = (periodId: number, body: GenerateReportingCyclesRequest) =>
+  httpPost<GenerateReportingCyclesResult>(`/project-periods/${periodId}/reporting-cycles/generate`, body)
