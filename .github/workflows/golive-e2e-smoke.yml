@@ -77,15 +77,17 @@ jobs:
           $env:AIPMS_E2E_PASSWORD = '${{ steps.db.outputs.e2e_pw }}'
           $saPw = '${{ secrets.CI_MSSQL_SA_PASSWORD }}'
           $dbName = '${{ steps.db.outputs.db_name }}'
-          $apiConn = "Server=localhost,1433;Database=$dbName;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;"
+          $apiConn = "Server=localhost,1433;Database=$dbName;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True;"
           $env:ConnectionStrings__DefaultConnection = $apiConn
           $env:ASPNETCORE_ENVIRONMENT = 'Staging'
           $env:Cors__AllowedOrigins__0 = 'http://127.0.0.1:5230'
+          $env:Cors__AllowedOrigins__1 = 'http://localhost:5230'
           $env:Jwt__Issuer = 'AI-PMS.SmokeLive'
           $env:Jwt__Audience = 'AI-PMS.SmokeLive'
           $env:Jwt__SigningKey = ([Guid]::NewGuid().ToString('N') + [Guid]::NewGuid().ToString('N'))
           $env:Appeals__Enabled = 'true'
           $env:PeerEvaluation__Enabled = 'false'
+          $env:Chat__Enabled = 'true'
           $env:ExecutionConcurrency__RequireTokens = 'true'
           $env:NotificationEmail__Enabled = 'false'
           $env:ScheduledNotifications__Enabled = 'false'
@@ -98,10 +100,12 @@ jobs:
           $env:PasswordRecovery__KeyRingPath = "${{ runner.temp }}/smoke-keys"
           $api = Start-Process -FilePath dotnet -ArgumentList @('backend/src/AIPMS.Api/bin/Release/net8.0/AIPMS.Api.dll', '--urls', 'http://127.0.0.1:5088') -PassThru
           try {
-            for ($i = 0; $i -lt 30; $i++) {
-              try { if ((Invoke-WebRequest 'http://127.0.0.1:5088/api/v1/system' -UseBasicParsing).StatusCode -eq 200) { break } } catch {}
+            $ready = $false
+            for ($i = 0; $i -lt 45; $i++) {
+              try { if ((Invoke-WebRequest 'http://127.0.0.1:5088/health/ready' -UseBasicParsing).StatusCode -eq 200) { $ready = $true; break } } catch {}
               Start-Sleep -Seconds 1
             }
+            if (-not $ready) { throw 'Isolated Backend API failed to become ready on http://127.0.0.1:5088/health/ready' }
             pnpm install --frozen-lockfile
             pnpm exec playwright install chromium
             $env:SMOKE_LIVE_FIXTURE = '${{ steps.db.outputs.fixture }}'

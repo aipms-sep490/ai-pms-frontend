@@ -7,6 +7,7 @@ import type { DefenseSession } from './defense-types'
 
 const mocks = vi.hoisted(() => ({
   journey: { project: { id: 9 } as { id: number } | null },
+  env: { roomPlannerEnabled: false, defenseScheduleEnabled: true },
   getProjectDefenseSessions: vi.fn(),
   getDefenseCommittees: vi.fn(),
   getDefenseCommitteeCandidates: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   scheduleDefense: vi.fn(),
   cancelDefense: vi.fn(),
 }))
+vi.mock('../../app/config/env', () => ({ env: mocks.env }))
 vi.mock('../../app/context', () => ({ useStudentJourney: () => mocks.journey }))
 vi.mock('./defense-api', () => ({
   getProjectDefenseSessions: mocks.getProjectDefenseSessions,
@@ -38,6 +40,8 @@ const paged = (items: DefenseSession[]) => ({ items, page: 1, pageSize: 10, tota
 
 beforeEach(() => {
   mocks.journey.project = { id: 9 }
+  mocks.env.roomPlannerEnabled = false
+  mocks.env.defenseScheduleEnabled = true
   mocks.getDefenseCommittees.mockResolvedValue({ items: [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
   mocks.getDefenseCommitteeCandidates.mockResolvedValue({ items: [
     { userId: 11, fullName: 'Giảng viên độc lập', majorId: 1, majorName: 'KTPM', canAssign: true, blockReason: null },
@@ -252,5 +256,15 @@ describe('ProjectDefensePage', () => {
     renderManagement()
     expect(await screen.findByText(/A1\.01/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Hủy lịch' })).toBeTruthy()
+  })
+
+  it('keeps committee creation active while hiding optional room scheduling when POL-06 flags are disabled', async () => {
+    mocks.env.roomPlannerEnabled = false
+    mocks.env.defenseScheduleEnabled = false
+    mocks.getProjectDefenseSessions.mockResolvedValue(paged([]))
+    renderManagement()
+    expect(await screen.findByText('Chia phòng bảo vệ đang tắt (Tùy chọn theo POL-06)')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Tạo hội đồng' })).toBeTruthy()
+    expect(screen.queryByLabelText(/Chọn hội đồng/)).toBeNull()
   })
 });
