@@ -308,6 +308,7 @@ export function PortfolioDashboardPage() {
               {visibleProjects.map(project => (
                 <ProjectRow
                   readOnly={scope === 'admin'}
+                  viewerDepartmentId={scope === 'department' ? data.departmentId : null}
                   key={project.id}
                   project={project}
                   archiving={archivingId !== null}
@@ -372,9 +373,11 @@ function MajorChips({ majors, selected, onSelect }: { majors: PortfolioDashboard
   )
 }
 
-function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = false }: { readOnly?: boolean; project: DashboardProject; archiving: boolean; archivingThis: boolean; onArchive: () => void }) {
+function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = false, viewerDepartmentId = null }: { readOnly?: boolean; viewerDepartmentId?: number | null; project: DashboardProject; archiving: boolean; archivingThis: boolean; onArchive: () => void }) {
   const risk = project.analysis?.riskLevel
   const normalized = project.status.replaceAll('_', '').toUpperCase()
+  const isParticipatingDepartment = !readOnly && viewerDepartmentId != null && project.departmentId != null && project.departmentId !== viewerDepartmentId
+  const isLeadDepartment = !readOnly && viewerDepartmentId != null && project.departmentId != null && project.departmentId === viewerDepartmentId
   return (
     <li className="flex flex-wrap items-start justify-between gap-4 py-4 text-sm">
       <div className="min-w-0 flex-1">
@@ -385,6 +388,8 @@ function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = f
             tone={normalized === 'ACTIVE' || normalized === 'COMPLETED' ? 'success' : normalized === 'FINALSUBMISSION' ? 'info' : normalized === 'REJECTED' ? 'danger' : 'neutral'}
             label={projectStatusLabel(project.status)}
           />
+          {isLeadDepartment && <StatusBadge tone="neutral" label="Khoa chủ trì" />}
+          {isParticipatingDepartment && <StatusBadge tone="info" label="Khoa phối hợp" />}
           {(project.analysis?.healthPulseStatus || risk) && (
             <HealthPulseBadge
               healthPulseStatus={project.analysis?.healthPulseStatus}
@@ -411,19 +416,19 @@ function ProjectRow({ project, archiving, archivingThis, onArchive, readOnly = f
             </summary>
             <div className="absolute right-0 z-20 mt-1 flex min-w-44 flex-col rounded-xl border border-hairline bg-card p-1.5 shadow-lg">
               <Link to={`/department/projects/${project.id}/evaluation-schemes`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phương án đánh giá</Link>
+              <Link to={`/department/projects/${project.id}/defense`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Hội đồng bảo vệ</Link>
               {project.status === 'FINAL_SUBMISSION' && <Link to={`/department/projects/${project.id}/evaluations`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Người chấm</Link>}
               <Link to={`/department/projects/${project.id}/files`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Tệp</Link>
-              {env.defenseScheduleEnabled && <Link to={`/department/projects/${project.id}/defense`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Lịch bảo vệ</Link>}
               {env.aiAdvisoryEnabled && <Link to={`/department/projects/${project.id}/risk`} className="rounded-lg px-3 py-2 text-xs font-semibold text-ink hover:bg-primary-subtle hover:text-primary">Phân tích</Link>}
             </div>
           </details>
           {normalized === 'ARCHIVED' ? (
             <Link to={`/department/projects/${project.id}/archive-view`} className="inline-flex min-h-10 items-center rounded-lg border border-hairline bg-canvas px-3 text-xs font-semibold text-ink-soft hover:border-primary hover:text-primary">Hồ sơ lưu trữ</Link>
-          ) : (
+          ) : !isParticipatingDepartment ? (
             <button type="button" disabled={archiving} className="min-h-10 rounded-lg px-2.5 text-xs font-semibold text-status-error-text hover:bg-status-error-bg disabled:cursor-not-allowed disabled:opacity-50" onClick={onArchive}>
               {archivingThis ? 'Đang kiểm tra…' : 'Lưu trữ'}
             </button>
-          )}
+          ) : null}
         </div>
       )}
     </li>

@@ -13,16 +13,16 @@ import { readAllPages } from '../../services/api/paged-read'
 import { HttpError } from '../../services/http/http-client'
 import type { ProjectDto } from '../../types/backend'
 import * as schemesApi from '../../services/api/evaluations.api'
-import { evaluationStageLabel, evaluationStageLabels, type EvaluationScheme, type EvaluationScope } from './evaluation-types'
+import { evaluationStageLabel, evaluationStageLabels, type EvaluationScheme, type EvaluationScope, type SchemePolicy } from './evaluation-types'
 import { listRubrics, type Rubric } from './rubrics-api'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import type { ProjectPeriod } from '../academic/types/governance.types'
 import { useAuthSession } from '../auth/context/useAuthSession'
 import { Button } from '../../components/ui/Button'
+import { Modal } from '../../components/ui/Modal'
 import { ResourcePermissionNotice } from '../../components/ui/ResourcePermissionNotice'
 import { useProjectCapabilities } from '../capabilities/useProjectCapabilities'
 import { SchemeConflictReview, type SchemeConflict } from './SchemeConflictReview'
-import { suggestEvaluationScheme, formatAiSuiteError } from '../ai-suite/ai-suite-api'
 
 type DraftComponent = schemesApi.EvaluationSchemeComponentInput & { key: string }
 
@@ -89,9 +89,20 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
   const [periodId, setPeriodId] = useState(0)
   const [threshold, setThreshold] = useState<number | ''>('')
   const [components, setComponents] = useState<DraftComponent[]>(() => [component()])
+  const [policyMode, setPolicyMode] = useState<'DEMO' | 'OFFICIAL'>('DEMO')
+  const [formula, setFormula] = useState<'COMPONENT_WEIGHTS' | 'POL_SINGLE_30_50_20' | 'POL_INTER_40_40_20'>('COMPONENT_WEIGHTS')
+  const [approvalReference, setApprovalReference] = useState('')
+  const [failingFloor, setFailingFloor] = useState<number>(4)
+  const [policyDirty, setPolicyDirty] = useState(false)
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkTrack, setBulkTrack] = useState<'IT_ONLY' | 'MKT_ONLY' | 'IT_MKT'>('IT_ONLY')
+  const [bulkUseBlueprint, setBulkUseBlueprint] = useState(false)
+  const [bulkAutoPublish, setBulkAutoPublish] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkResult, setBulkResult] = useState<schemesApi.BulkApplyEvaluationSchemeResult | null>(null)
+  const [bulkError, setBulkError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [aiSuggesting, setAiSuggesting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [conflict, setConflict] = useState<SchemeConflict | null>(null)
@@ -152,50 +163,81 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     return { major, stages: [...totals].map(([stage, total]) => ({ stage, total })) }
   }), [components, project])
 
+  const syncPolicyFromScheme = (scheme: EvaluationScheme) => {
+    const p = scheme.policy
+    if (p) {
+      setPolicyMode(p.isDemo ? 'DEMO' : 'OFFICIAL')
+      setFormula((p.formula === 'POL_SINGLE_30_50_20' || p.formula === 'POL_INTER_40_40_20') ? p.formula : 'COMPONENT_WEIGHTS')
+      setApprovalReference(p.approvalReference ?? '')
+      setFailingFloor(p.failingComponentThreshold ?? 4)
+    } else {
+      setPolicyMode('DEMO')
+      setFormula('COMPONENT_WEIGHTS')
+      setApprovalReference('')
+      setFailingFloor(4)
+    }
+    setPolicyDirty(false)
+  }
+
   const choose = (scheme: EvaluationScheme) => {
     if (busy || loading) return
     setSelected(scheme); setCreating(false); setName(scheme.name); setPeriodId(scheme.projectPeriodId)
-    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); setError(null); setNotice(null); setConflict(null)
+    setThreshold(scheme.passThreshold); setComponents(asDraft(scheme)); syncPolicyFromScheme(scheme); setError(null); setNotice(null); setConflict(null)
   }
   const startDraft = () => {
     if (!canManage || busy || loading || conflicted || !project) return
-    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(''); setComponents([component()]); setError(null); setNotice(null); setConflict(null)
+    setSelected(null); setCreating(true); setName(''); setPeriodId(0); setThreshold(''); setComponents([component()])
+    setPolicyMode('DEMO'); setFormula('COMPONENT_WEIGHTS'); setApprovalReference(''); setFailingFloor(4); setPolicyDirty(false)
+    setError(null); setNotice(null); setConflict(null)
   }
-  const runAiSuggest = async () => {
-    if (!editable || busy || aiSuggesting || !project) return
-    setAiSuggesting(true)
-    setError(null)
-    setNotice(null)
+  const buildPolicyPayload = (): SchemePolicy => {
+    const isPolV4 = formula === 'POL_SINGLE_30_50_20' || formula === 'POL_INTER_40_40_20'
+    return {
+      isDemo: policyMode === 'DEMO',
+      approvalStatus: policyMode === 'OFFICIAL' ? 'APPROVED' : 'DEMO',
+      approvalReference: policyMode === 'OFFICIAL' ? approvalReference.trim() : null,
+      formula,
+      calculationVersion: isPolV4 ? 'POL_V4_DECIMAL' : 'DECIMAL_V2',
+      roundingMode: 'AWAY_FROM_ZERO',
+      decimalPlaces: 2,
+      failingComponentThreshold: isPolV4 ? failingFloor : null,
+      individualGateWeights: isPolV4
+        ? [{ gateNumber: 1, weightPercent: 20 }, { gateNumber: 2, weightPercent: 35 }, { gateNumber: 3, weightPercent: 45 }]
+        : null,
+    }
+  }
+  const runBulkApply = async () => {
+    if (!periodId) { setBulkError('Chọn đợt đánh giá trước khi áp dụng hàng loạt.'); return }
+    if (!bulkUseBlueprint && (!name.trim() || components.length === 0)) {
+      setBulkError('Cần nhập cấu hình phương án mẫu hoặc bật tùy chọn nạp từ AcademicBlueprint đã công bố.')
+      return
+    }
+    if (!bulkUseBlueprint && policyMode === 'OFFICIAL' && !approvalReference.trim()) {
+      setBulkError('Phương án Chính thức (OFFICIAL) yêu cầu nhập Số quyết định phê duyệt.')
+      return
+    }
+    setBulkBusy(true); setBulkError(null); setBulkResult(null)
     try {
-      const suggestion = await suggestEvaluationScheme(projectId)
-      if (!mounted.current) return
-      if (suggestion.components.length === 0) {
-        setError(suggestion.warnings.join(' ') || suggestion.summary)
-        return
-      }
-      if (!name.trim() && suggestion.suggestedName) setName(suggestion.suggestedName)
-      if (threshold === '' && Number.isFinite(suggestion.suggestedPassThreshold)) setThreshold(suggestion.suggestedPassThreshold)
-      if (!periodId) {
-        const activePeriod = periods.find(p => p.status === 'ACTIVE')
-        if (activePeriod) setPeriodId(activePeriod.id)
-      }
-      setComponents(suggestion.components.map(item => ({
-        key: crypto.randomUUID(),
-        name: item.name,
-        scope: (item.scope === 'MAJOR_SPECIFIC' || item.scope === 'INDIVIDUAL' ? item.scope : 'COMMON') as EvaluationScope,
-        majorId: item.scope === 'COMMON' ? null : item.majorId,
-        rubricId: item.rubricId,
-        projectWeightPercent: item.projectWeightPercent,
-        studentWeightPercent: item.studentWeightPercent,
-        requiredEvaluators: item.requiredEvaluators,
-        stage: (item.stage === 'ON_GOING' || item.stage === 'COLD' || item.stage === 'DEFENSE' ? item.stage : null),
-      })))
-      const warnSuffix = suggestion.warnings.length > 0 ? ` Lưu ý: ${suggestion.warnings.join(' ')}` : ''
-      setNotice(`AI đã điền sẵn ${suggestion.components.length} thành phần từ các Rubric ĐÃ CÔNG BỐ (${suggestion.summary}). Hãy kiểm tra kỹ trọng số & ngưỡng đạt trước khi bấm Lưu bản nháp.${warnSuffix}`)
+      const res = await schemesApi.bulkApplyEvaluationSchemes({
+        projectPeriodId: periodId,
+        trackCode: bulkTrack,
+        usePublishedBlueprint: bulkUseBlueprint,
+        autoPublish: bulkAutoPublish,
+        ...(bulkUseBlueprint
+          ? {}
+          : {
+              name: name.trim(),
+              passThreshold: threshold === '' ? 5 : threshold,
+              policy: buildPolicyPayload(),
+              components: components.map(({ key: _key, ...item }) => ({ ...item, name: item.name.trim() })),
+            }),
+      })
+      setBulkResult(res)
+      await load()
     } catch (reason) {
-      if (mounted.current) setError(formatAiSuiteError(reason, 'Chưa thể gợi ý phân bổ phổ điểm bằng AI lúc này.'))
+      setBulkError(errorMessage(reason, 'Không thể áp dụng hàng loạt phương án đánh giá theo Track.'))
     } finally {
-      if (mounted.current) setAiSuggesting(false)
+      setBulkBusy(false)
     }
   }
   const useServer = () => {
@@ -235,6 +277,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     })
     if (projectWeight !== 100) issues.push('Tổng trọng số điểm đồ án phải đúng 100%.')
     studentWeights.filter(item => item.total !== 100).forEach(item => issues.push(`Tổng trọng số điểm sinh viên của ngành ${item.major.majorCode} phải đúng 100%.`))
+    if ((creating || policyDirty) && policyMode === 'OFFICIAL' && !approvalReference.trim()) issues.push('Phương án Chính thức (OFFICIAL) bắt buộc nhập Số quyết định phê duyệt.')
     return issues
   }
 
@@ -244,9 +287,11 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     if (busy || conflicted || loading || !project || threshold === '') { if (threshold === '') setError('Nhập ngưỡng đạt từ cấu hình đã được duyệt.'); return }
     const issues = validate()
     if (issues.length) { setError(issues.join(' ')); return }
+    const includePolicy = policyDirty || (creating && (policyMode === 'OFFICIAL' || formula !== 'COMPONENT_WEIGHTS'))
     const input: schemesApi.SaveEvaluationSchemeInput = {
       projectId, projectPeriodId: periodId, name: name.trim(), passThreshold: threshold,
       components: components.map(({ key: _key, ...item }) => ({ ...item, name: item.name.trim() })),
+      ...(includePolicy ? { policy: buildPolicyPayload() } : {}),
       ...(selected ? { concurrencyToken: selected.concurrencyToken } : {}),
     }
     void run(() => selected ? schemesApi.updateEvaluationScheme(selected.id, input) : schemesApi.createEvaluationScheme(input), selected ? 'Đã lưu thay đổi cho phương án đánh giá bản nháp.' : 'Đã tạo phương án đánh giá bản nháp.', true)
@@ -264,11 +309,11 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
       if (!mounted.current || authority.current.session !== session) return
       if (result && selectResult) {
         setSelected(result); setCreating(false); setName(result.name); setPeriodId(result.projectPeriodId)
-        setThreshold(result.passThreshold); setComponents(asDraft(result)); setConflict(null)
+        setThreshold(result.passThreshold); setComponents(asDraft(result)); syncPolicyFromScheme(result); setConflict(null)
       }
       else if (selected) {
         const fresh = freshItems?.find(item => item.id === selected.id)
-        if (fresh) { setSelected(fresh); setName(fresh.name); setPeriodId(fresh.projectPeriodId); setThreshold(fresh.passThreshold); setComponents(asDraft(fresh)) }
+        if (fresh) { setSelected(fresh); setName(fresh.name); setPeriodId(fresh.projectPeriodId); setThreshold(fresh.passThreshold); setComponents(asDraft(fresh)); syncPolicyFromScheme(fresh) }
         else if (freshItems) { setSelected(null); setCreating(false) }
       }
       setNotice(success)
@@ -301,15 +346,26 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
     if (!editable || !project) return
     const defaultRubricId = rubrics[0]?.id ?? 0
     setThreshold(5)
+    setPolicyMode('OFFICIAL')
+    setFailingFloor(4)
+    setPolicyDirty(true)
+    if (!periodId) {
+      const activePeriod = periods.find(p => p.status === 'ACTIVE')
+      if (activePeriod) setPeriodId(activePeriod.id)
+    }
     if (mode === 'SINGLE') {
+      setFormula('POL_SINGLE_30_50_20')
+      if (!name.trim()) setName('Phương án đánh giá POL-01 Đơn ngành (30/50/20)')
       const majorId = project.majors[0]?.majorId ?? null
       setComponents([
         { key: crypto.randomUUID(), name: 'Chấm Nguội Tài liệu (Cold 30%)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 37.5, studentWeightPercent: 30, requiredEvaluators: 2, stage: 'COLD', targetScope: 'PROJECT', isIntegration: false },
         { key: crypto.randomUUID(), name: 'Bảo vệ Hội đồng (Defense 50%)', scope: 'COMMON', majorId: null, rubricId: defaultRubricId, projectWeightPercent: 62.5, studentWeightPercent: 50, requiredEvaluators: 2, stage: 'DEFENSE', targetScope: 'PROJECT', isIntegration: false },
         { key: crypto.randomUUID(), name: 'Cá nhân Quá trình GVHD (G1–G3 20%)', scope: 'INDIVIDUAL', majorId, rubricId: defaultRubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT', isIntegration: false },
       ])
-      setNotice('Đã áp dụng mẫu POL-01 Đơn ngành: 30% Cold + 50% Defense + 20% GVHD G1–G3 (điểm liệt < 4.00).')
+      setNotice('Đã áp dụng mẫu POL-01 Đơn ngành CHÍNH THỨC: 30% Cold + 50% Defense + 20% GVHD G1–G3 (điểm liệt < 4.00). Hãy nhập Số quyết định phê duyệt và chọn Rubric trước khi Lưu.')
     } else {
+      setFormula('POL_INTER_40_40_20')
+      if (!name.trim()) setName('Phương án đánh giá POL-01 Liên ngành (40/40/20)')
       const majors = project.majors
       const majorShare = majors.length > 0 ? Number((50 / majors.length).toFixed(4)) : 50
       const rows: DraftComponent[] = [
@@ -324,7 +380,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
         )
       })
       setComponents(rows)
-      setNotice('Đã áp dụng mẫu POL-01 Liên ngành: 40% Chung (30% Cold + 70% Defense, gồm INT-*) + 40% Chuyên ngành riêng + 20% GVHD G1–G3 (điểm liệt < 4.00).')
+      setNotice('Đã áp dụng mẫu POL-01 Liên ngành CHÍNH THỨC: 40% Chung (30% Cold + 70% Defense, gồm INT-*) + 40% Chuyên ngành riêng + 20% GVHD G1–G3 (điểm liệt < 4.00). Hãy nhập Số quyết định phê duyệt và chọn Rubric trước khi Lưu.')
     }
   }
 
@@ -344,7 +400,7 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
   }, [components])
 
   const editable = canManage && !conflicted && project !== null && (creating || selected?.status === 'DRAFT')
-  return <WorkspacePage size="wide" className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" backTo={paths.admin ? '/admin/access' : '/department/portfolio'} backLabel={paths.admin ? 'Quản trị hệ thống' : 'Danh mục đồ án'} description={displayCanManage ? 'Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm.' : 'Theo dõi các thành phần, trọng số và ngưỡng đạt đã ghi nhận.'} action={<><ButtonLink to={paths.evaluators}>{capabilities.can('manage_evaluators') ? 'Phân công người chấm' : 'Xem phân công người chấm'}</ButtonLink>{displayCanManage && <Button disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft} icon="add">Tạo bản nháp</Button>}</>}>
+  return <WorkspacePage size="wide" className="space-y-5 evaluation-scheme-page academic-capability-page" title="Phương án đánh giá" eyebrow="Đánh giá đồ án" backTo={paths.admin ? '/admin/access' : '/department/portfolio'} backLabel={paths.admin ? 'Quản trị hệ thống' : 'Danh mục đồ án'} description={displayCanManage ? 'Thiết lập các thành phần, trọng số và ngưỡng đạt trước khi phân công người chấm.' : 'Theo dõi các thành phần, trọng số và ngưỡng đạt đã ghi nhận.'} action={<><ButtonLink to={paths.evaluators}>{capabilities.can('manage_evaluators') ? 'Phân công người chấm' : 'Xem phân công người chấm'}</ButtonLink>{displayCanManage && <><Button variant="secondary" disabled={busy || loading || !project || !canManage} onClick={() => { setBulkOpen(true); setBulkError(null); setBulkResult(null); setBulkTrack((project?.majors?.length ?? 0) >= 2 ? 'IT_MKT' : 'IT_ONLY') }} icon="dynamic_feed">Áp dụng hàng loạt theo Track</Button><Button disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft} icon="add">Tạo bản nháp</Button></>}</>}>
     
     {confirmationDialog}
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluation_scheme')} onRetry={capabilities.retry} />
@@ -361,25 +417,64 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
       <section className="rounded-xl border border-hairline bg-card p-4"><h2 className="font-semibold text-ink">Phiên bản của đồ án</h2>{loading ? <p role="status" className="mt-3 text-sm text-ink-muted">Đang tải phương án đánh giá…</p> : items.length === 0 ? <p className="mt-3 text-sm text-ink-muted">Chưa có phương án đánh giá. Bạn có thể tạo bản nháp khi gói bàn giao và đợt đánh giá đã sẵn sàng.</p> : <ul className="mt-3 space-y-2">{items.map(item => <li key={item.id}><button type="button" disabled={busy || loading} onClick={() => choose(item)} className={`min-h-11 w-full rounded-lg border p-3 text-left text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${selected?.id === item.id ? 'border-primary bg-primary/5' : 'border-hairline hover:bg-canvas'}`}><strong>{item.name}</strong><span className="mt-1 block text-xs text-ink-muted">v{item.version} · {displayLabel(item.status)} · {item.components.length} thành phần</span></button></li>)}</ul>}</section>
       <section className="rounded-xl border border-hairline bg-card p-5">{!creating && (!selected || selected.status !== 'DRAFT') ? <span className="mb-4 inline-block rounded-full border border-hairline bg-card px-3 py-1 text-xs font-semibold text-ink-soft">Chế độ xem</span> : <span className="mb-4 inline-block rounded-full border border-attention-border bg-attention-bg px-3 py-1 text-xs font-semibold text-ink">ĐANG CHỈNH SỬA</span>}{!creating && !selected ? <div className="workspace-empty-detail"><span className="material-symbols-outlined" aria-hidden="true">schema</span><h2>Thiết lập phương án đánh giá</h2><p>Chọn phiên bản để xem, hoặc tạo bản nháp với các thành phần và trọng số của đợt đánh giá.</p>{displayCanManage && <Button variant="secondary" disabled={busy || loading || conflicted || !project || !canManage} onClick={startDraft}>Tạo bản nháp</Button>}</div> : <form onSubmit={save} className="space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-ink">{creating ? 'Bản nháp phương án đánh giá mới' : `${selected?.name} · v${selected?.version}`}</h2>{selected && <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted"><StatusBadge status={selected.status} /> <span>{selected.policyVersionId ? `Áp dụng chính sách kỳ đánh giá (phiên bản ${selected.policyVersionId})` : 'Chưa chốt chính sách áp dụng'}</span></p>}{selected && (selected.status ?? '').toUpperCase() === 'PROPOSED' && <p role="note" className="mt-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-2 text-xs text-status-warning-text">Phương án này mới là đề xuất, chưa được bộ môn phê duyệt. Khóa cấu hình để chấm không thay cho phê duyệt học thuật; hệ thống kiểm tra riêng điều kiện công bố điểm chính thức.</p>}</div>{selected && displayCanManage && <div className="flex flex-wrap gap-2">{selected.status === 'DRAFT' && <><Button disabled={busy || conflicted || !project || !canManage} onClick={publish} icon="lock">Công bố phương án</Button><Button variant="danger" disabled={busy || conflicted || !project || !canManage} onClick={remove} icon="delete">Xóa bản nháp</Button></>}{selected.status !== 'DRAFT' && <Button variant="secondary" disabled={busy || conflicted || !project || !canManage} onClick={version} icon="content_copy">Tạo phiên bản</Button>}</div>}</div>
         {selected && <EvaluationSchemePolicySummary scheme={selected} />}
-        {editable && import.meta.env.VITE_ENABLE_HIGH_RISK_AI === 'true' && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary-subtle/40 px-4 py-3">
-            <p className="text-xs text-ink-soft">
-              <strong className="text-primary">AI gợi ý phân bổ từ Rubric ĐÃ CÔNG BỐ:</strong> Chỉ chọn các Rubric hợp lệ có sẵn trong DB, cân bằng tổng điểm đồ án 100% và điểm sinh viên từng ngành 100% — không tự lưu hay công bố.
-            </p>
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              icon="auto_awesome"
-              disabled={busy || aiSuggesting || rubrics.length === 0}
-              onClick={() => void runAiSuggest()}
-            >
-              {aiSuggesting ? 'AI đang gợi ý…' : 'AI gợi ý phân bổ Phổ điểm'}
-            </Button>
-          </div>
-        )}
         {editable && project && <div className="flex flex-wrap items-center gap-2 rounded-lg border border-hairline bg-canvas p-3 text-xs"><span className="font-semibold text-ink">Mẫu POL-01 chuẩn:</span><Button variant="secondary" size="sm" onClick={() => applyPol01Preset('SINGLE')}>Đơn ngành 30/50/20</Button>{project.majors.length >= 2 && <Button variant="secondary" size="sm" onClick={() => applyPol01Preset('INTERDISCIPLINARY')}>Liên ngành 40(30/70)/40/20</Button>}<span className="text-ink-muted">Điểm liệt thành phần &lt; 4.00 · GVHD G1–G3: 20/35/45%</span></div>}
-        {creating && <p className="workspace-note p-4 text-sm">Bản nháp mới được hệ thống lưu ở chế độ minh họa khi chưa có chính sách phê duyệt riêng.</p>}
+        {editable && (
+          <fieldset disabled={!editable || busy} className="rounded-xl border border-hairline bg-canvas/50 p-4 space-y-3">
+            <legend className="px-1 text-xs font-bold uppercase tracking-wide text-ink">Chính sách &amp; Phê duyệt Học vụ</legend>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-sm font-medium text-ink-soft">
+                Chế độ áp dụng
+                <select
+                  aria-label="Chế độ áp dụng phương án"
+                  value={policyMode}
+                  onChange={e => { setPolicyMode(e.target.value as 'DEMO' | 'OFFICIAL'); setPolicyDirty(true) }}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+                >
+                  <option value="OFFICIAL">Chính thức (OFFICIAL · Công bố điểm)</option>
+                  <option value="DEMO">Minh họa (DEMO · Không công bố)</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-ink-soft">
+                Công thức tính điểm
+                <select
+                  aria-label="Công thức tính điểm"
+                  value={formula}
+                  onChange={e => { setFormula(e.target.value as 'COMPONENT_WEIGHTS' | 'POL_SINGLE_30_50_20' | 'POL_INTER_40_40_20'); setPolicyDirty(true) }}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+                >
+                  <option value="POL_SINGLE_30_50_20">POL-01 Đơn ngành (30/50/20)</option>
+                  <option value="POL_INTER_40_40_20">POL-01 Liên ngành (40[30/70]/40/20)</option>
+                  <option value="COMPONENT_WEIGHTS">Theo trọng số thành phần (DECIMAL_V2)</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-ink-soft">
+                Ngưỡng điểm liệt (&lt; X)
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  value={failingFloor}
+                  disabled={formula === 'COMPONENT_WEIGHTS'}
+                  onChange={e => { setFailingFloor(Number(e.target.value)); setPolicyDirty(true) }}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"
+                />
+              </label>
+            </div>
+            {policyMode === 'OFFICIAL' && (
+              <label className="block text-sm font-medium text-ink-soft">
+                Số quyết định phê duyệt (ApprovalReference · bắt buộc)
+                <input
+                  type="text"
+                  value={approvalReference}
+                  onChange={e => { setApprovalReference(e.target.value); setPolicyDirty(true) }}
+                  placeholder="Ví dụ: QĐ-2026/ĐT-POL01"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+                />
+              </label>
+            )}
+          </fieldset>
+        )}
         <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-medium text-ink-soft">Tên phương án đánh giá<input value={name} disabled={!editable || busy} onChange={event => setName(event.target.value)} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label><label className="text-sm font-medium text-ink-soft">Kỳ đánh giá<select value={periodId} disabled={!editable || busy} onChange={event => setPeriodId(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas"><option value={0}>Chọn đợt đánh giá</option>{periods.map(item => <option key={item.id} value={item.id}>{item.name} · {displayLabel(item.status)}</option>)}</select></label><label className="text-sm font-medium text-ink-soft">Ngưỡng đạt (0–10)<input type="number" min="0" max="10" step="0.01" value={threshold} disabled={!editable || busy} onChange={event => setThreshold(event.target.value === '' ? '' : Number(event.target.value))} required className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink disabled:bg-canvas" /></label></div>
         <div className="workspace-note py-4 text-sm text-ink-soft">
           <strong>Kiểm tra trước khi lưu:</strong>
@@ -433,5 +528,61 @@ function EvaluationSchemeEditor({ projectId }: { projectId: number }) {
         {displayCanManage && (creating || selected?.status === 'DRAFT') && <div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={!editable || busy || loading} onClick={() => setComponents(current => [...current, component('COMMON')])} icon="add">Thêm thành phần</Button><Button type="submit" disabled={!editable || busy || loading}>{busy ? 'Đang lưu…' : 'Lưu bản nháp'}</Button>{creating && <Button variant="secondary" disabled={busy} onClick={() => setCreating(false)}>Hủy tạo mới</Button>}</div>}
       </form>}</section>
     </div>
+    {bulkOpen && (
+      <Modal open title="Áp dụng phương án đánh giá hàng loạt theo Track" busy={bulkBusy} onClose={() => setBulkOpen(false)}>
+        <div className="space-y-4">
+          <p className="text-xs text-ink-muted">
+            Áp dụng cấu hình phương án hiện tại (hoặc nạp từ AcademicBlueprint đã công bố) cho toàn bộ đồ án cùng Track đã khóa gói bàn giao cuối trong kỳ. Các đồ án đã có phương án PUBLISHED sẽ được bỏ qua an toàn.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium text-ink-soft">
+              Kỳ đánh giá
+              <select value={periodId} onChange={e => setPeriodId(Number(e.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                <option value={0}>Chọn kỳ đánh giá</option>
+                {periods.map(p => <option key={p.id} value={p.id}>{p.name} · {displayLabel(p.status)}</option>)}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-ink-soft">
+              Track mục tiêu
+              <select value={bulkTrack} onChange={e => setBulkTrack(e.target.value as 'IT_ONLY' | 'MKT_ONLY' | 'IT_MKT')} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink">
+                <option value="IT_ONLY">IT_ONLY (Đơn ngành IT)</option>
+                <option value="MKT_ONLY">MKT_ONLY (Đơn ngành MKT)</option>
+                <option value="IT_MKT">IT_MKT (Liên ngành IT + MKT)</option>
+              </select>
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={bulkUseBlueprint} onChange={e => setBulkUseBlueprint(e.target.checked)} />
+            Nạp cấu hình mẫu từ AcademicBlueprint đã công bố của kỳ/Track
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={bulkAutoPublish} onChange={e => setBulkAutoPublish(e.target.checked)} />
+            Tự động công bố (Publish) ngay sau khi tạo
+          </label>
+          {bulkError && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-3 text-xs text-status-error-text">{bulkError}</p>}
+          {bulkResult && (
+            <div className="rounded-lg border border-hairline bg-canvas p-3 text-xs space-y-2">
+              <p className="font-semibold text-ink">
+                Kết quả: Đã áp dụng {bulkResult.appliedCount} · Bỏ qua {bulkResult.skippedCount} · Lỗi {bulkResult.failedCount}
+              </p>
+              {bulkResult.outcomes.length > 0 && (
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {bulkResult.outcomes.map(o => (
+                    <li key={o.projectId} className="flex justify-between gap-2">
+                      <span>{o.projectCode}</span>
+                      <span className="font-mono">{o.status}{o.reason ? ` (${o.reason})` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 border-t border-hairline pt-3">
+            <Button variant="secondary" disabled={bulkBusy} onClick={() => setBulkOpen(false)}>Đóng</Button>
+            <Button disabled={bulkBusy || !periodId} onClick={() => void runBulkApply()}>{bulkBusy ? 'Đang áp dụng…' : 'Thực hiện áp dụng hàng loạt'}</Button>
+          </div>
+        </div>
+      </Modal>
+    )}
   </WorkspacePage>
 }

@@ -47,8 +47,16 @@ export function ProjectResultBreakdown({ breakdown, contributions, majorNames = 
             <TableBody>{breakdown.components.map(component => {
               const inactive = component.weightPercent === 0
               const pending = component.score == null
-              return <TableRow key={component.componentId}>
-                <TableCell label="Thành phần">{component.name}{component.majorId != null && majorNames[component.majorId] ? ` · ${majorNames[component.majorId]}` : ''}</TableCell>
+              const commonDefenseBelowFloor = component.scope === 'COMMON' && component.stage === 'DEFENSE' && component.score != null && component.score < 4
+              return <TableRow key={component.componentId} className={commonDefenseBelowFloor ? 'bg-status-warning-bg/40' : undefined}>
+                <TableCell label="Thành phần">
+                  <span>{component.name}{component.majorId != null && majorNames[component.majorId] ? ` · ${majorNames[component.majorId]}` : ''}</span>
+                  {commonDefenseBelowFloor && (
+                    <span className="ml-2 inline-flex rounded-full border border-status-warning-border bg-status-warning-bg px-2 py-0.5 text-xs font-semibold text-status-warning-text">
+                      Bảo vệ Chung &lt; 4.00 (Cần rà soát)
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell label="Điểm" numeric>{inactive ? 'Không áp dụng' : formatScore(component.score)}</TableCell>
                 <TableCell label="Trạng thái"><StatusBadge tone={inactive || pending ? 'warning' : 'success'} label={inactive ? 'Không tính vào tổng này' : pending ? 'Chưa có điểm' : 'Đã chấm'} /></TableCell>
               </TableRow>

@@ -35,8 +35,8 @@ describe('StudentFinalSubmissionPage', () => {
 
     expect(await screen.findByText('Bản nháp bàn giao')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Tạo bản nháp' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'Nộp và khóa gói' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText('Chưa đủ điều kiện nộp bản cuối')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Gửi duyệt khóa cho GVHD' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText('Chưa đủ điều kiện gửi duyệt khóa')).toBeTruthy()
     expect(screen.getByText('Đã hết thời gian bàn giao cuối')).toBeTruthy()
   })
 })

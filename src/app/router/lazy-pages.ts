@@ -14,6 +14,7 @@ export const SupervisorProfilePage = lazy(() => import('../../features/superviso
 export const SupervisorProjectWorkspacePage = lazy(() => import('../../features/supervisors/pages/SupervisorProjectWorkspacePage').then(m => ({ default: m.SupervisorProjectWorkspacePage })))
 export const SupervisorProgressReviewPage = lazy(() => import('../../features/supervisors/pages/SupervisorProgressReviewPage').then(m => ({ default: m.SupervisorProgressReviewPage })))
 export const SupervisorFinalSubmissionPage = lazy(() => import('../../features/supervisors/pages/SupervisorFinalSubmissionPage').then(m => ({ default: m.SupervisorFinalSubmissionPage })))
+export const SupervisorProjectResultPage = lazy(() => import('../../features/supervisors/pages/SupervisorProjectResultPage').then(m => ({ default: m.SupervisorProjectResultPage })))
 export const WeeklyAssessmentsPage = lazy(() => import('../../features/weekly-assessments/WeeklyAssessmentsPage').then(m => ({ default: m.WeeklyAssessmentsPage })))
 export const IndividualProcessScoringPage = lazy(() => import('../../features/evaluations/pages/IndividualProcessScoringPage').then(m => ({ default: m.IndividualProcessScoringPage })))
 export const MentorProjectWorkspacePage = lazy(() => import('../../features/mentors/pages/MentorWorkspacePage').then(m => ({ default: m.MentorProjectWorkspacePage })))

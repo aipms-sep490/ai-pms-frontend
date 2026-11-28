@@ -22,6 +22,7 @@ export const getStudentResultPreview = (projectId: number, studentId: number) =>
 export const publishStudentResult = (projectId: number, studentId: number, confirmationToken: string) => httpPost<StudentResult>(`/projects/${projectId}/students/${studentId}/result`, { confirmationToken })
 export async function getProjectResult(projectId: number, signal?: AbortSignal): Promise<ProjectResult | null> { try { return await httpGet<ProjectResult>(`/projects/${projectId}/result`, signal) } catch (reason) { if (isUnpublishedResultError(reason)) return null; throw reason } }
 export async function getStudentResult(projectId: number, studentId: number, signal?: AbortSignal): Promise<StudentResult | null> { try { return await httpGet<StudentResult>(`/projects/${projectId}/students/${studentId}/result`, signal) } catch (reason) { if (isUnpublishedResultError(reason)) return null; throw reason } }
+export async function getProjectStudentResults(projectId: number, signal?: AbortSignal): Promise<StudentResult[] | null> { try { return await httpGet<StudentResult[]>(`/projects/${projectId}/student-results`, signal) } catch (reason) { if (isUnpublishedResultError(reason)) return null; throw reason } }
 
 // BE result-history endpoints (ResultHistoryController) — read-only, published-version history.
 // Version 1 is always the original publication; a later version exists only after an accepted

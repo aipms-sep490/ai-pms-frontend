@@ -4,6 +4,9 @@ import { evaluationStageLabel, type EvaluationScheme } from './evaluation-types'
 const labels: Record<string, string> = {
   COMPONENT_WEIGHTS: 'Theo trọng số thành phần',
   DEMO_50_30_20: 'Tỷ lệ 50/30/20 — chỉ minh họa',
+  POL_SINGLE_30_50_20: 'POL-01 Đơn ngành: 30% Cold / 50% Defense / 20% GVHD G1–G3',
+  POL_INTER_40_40_20: 'POL-01 Liên ngành: 40% Chung (30/70) / 40% Chuyên ngành / 20% GVHD G1–G3',
+  POL_V4_DECIMAL: 'Chuẩn V4 POL-01 (Decimal chính xác, điểm liệt < 4.00)',
   DECIMAL_V2: 'Decimal v2', LEGACY_V1: 'Phiên bản v1 — giữ cách tính đã ghi nhận',
   AWAY_FROM_ZERO: 'Điểm giữa làm tròn ra xa 0', TO_EVEN: 'Điểm giữa làm tròn đến số chẵn',
   APPROVED: 'Đã chấp thuận', DEMO: 'Minh họa',
@@ -35,6 +38,10 @@ export function EvaluationSchemePolicySummary({ scheme }: { scheme: EvaluationSc
       <div className="min-w-0"><dt className="text-xs text-ink-muted">Phiên bản tính điểm</dt><dd className="mt-1 break-all">{label(policy?.calculationVersion)}</dd></div>
       <div className="min-w-0"><dt className="text-xs text-ink-muted">Làm tròn</dt><dd className="mt-1 break-all">{label(policy?.roundingMode)}</dd></div>
       <div><dt className="text-xs text-ink-muted">Số chữ số thập phân</dt><dd className="mt-1">{Number.isInteger(policy?.decimalPlaces) ? policy?.decimalPlaces : 'Chưa xác định'}</dd></div>
+      <div><dt className="text-xs text-ink-muted">Ngưỡng điểm liệt thành phần</dt><dd className="mt-1">{policy?.failingComponentThreshold != null ? `< ${policy.failingComponentThreshold.toFixed(2)}` : policy?.calculationVersion === 'POL_V4_DECIMAL' ? '< 4.00 (Mặc định POL-01)' : 'Không áp dụng'}</dd></div>
+      {policy?.individualGateWeights && policy.individualGateWeights.length > 0 && (
+        <div className="sm:col-span-2"><dt className="text-xs text-ink-muted">Tỷ trọng 20% GVHD G1–G3</dt><dd className="mt-1">{policy.individualGateWeights.map(w => `G${w.gateNumber}: ${w.weightPercent}%`).join(' · ')}</dd></div>
+      )}
     </dl>
     {!policy && <p>Phiên bản cũ thiếu nguồn chính sách. Giữ dữ liệu lịch sử; không tự gán công thức hoặc tính lại điểm.</p>}
     <div className="space-y-2 border-t border-hairline pt-3">

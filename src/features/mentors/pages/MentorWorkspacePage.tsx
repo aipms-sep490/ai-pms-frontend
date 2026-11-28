@@ -268,6 +268,7 @@ export function MentorWorkspacePage() {
                             <ButtonLink to={`${base}/tasks`}>Công việc</ButtonLink>
                             <ButtonLink to={`${base}/reports`}>Báo cáo tiến độ</ButtonLink>
                             <ButtonLink to={`${base}/meetings`}>Lịch họp</ButtonLink>
+                            <ButtonLink to={`${base}/final-submission`}>Gói bàn giao cuối</ButtonLink>
                             {env.gatesEnabled && <ButtonLink to={`${base}/checkpoints`}>Mốc kiểm soát</ButtonLink>}
                           </nav>
                         </div>
@@ -318,6 +319,7 @@ export function MentorProjectWorkspacePage() {
     ['reports', 'description', 'Báo cáo tiến độ', 'Theo dõi báo cáo định kỳ và phản hồi kết quả thực hiện của nhóm.'],
     ['meetings', 'groups', 'Cuộc họp & Phòng trực tuyến', 'Xem lịch trao đổi, tham gia phòng họp trực tuyến và biên bản.'],
     ['evidence', 'verified', 'Sổ minh chứng', 'Đối chiếu tài liệu và kết quả theo nguồn, chuyên ngành.'],
+    ['final-submission', 'inventory_2', 'Gói bàn giao cuối (theo phạm vi)', 'Xem và tải tài liệu Chung và tài liệu chuyên ngành của bạn trong bản bàn giao đã chốt.'],
     ...(env.gatesEnabled ? [['checkpoints', 'flag', 'Mốc kiểm soát tiến độ', 'Theo dõi kế hoạch và kết luận từng giai đoạn.'] as [string, string, string, string]] : []),
   ]
 

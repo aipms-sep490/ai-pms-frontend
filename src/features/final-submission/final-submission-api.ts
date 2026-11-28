@@ -6,6 +6,12 @@ export interface FinalDraftItem { deliverableVersionId: number; deliverableId: n
 export interface FinalDraft {
   id: number; projectId: number; projectPeriodId: number; status: string; isLocked: boolean; notes: string | null
   concurrencyToken: string; canEdit: boolean; editBlockers: string[]; items: FinalDraftItem[]
+  lockWorkflowStatus?: 'OPEN' | 'PENDING_SUPERVISOR_LOCK' | 'LOCKED'
+  lockRequestedBy?: number | null
+  lockRequestedAt?: string | null
+  lockedBySupervisorId?: number | null
+  forceLockedBy?: number | null
+  forceLockReason?: string | null
 }
 export interface FinalRequirements {
   projectId: number; concurrencyToken: string | null

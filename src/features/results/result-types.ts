@@ -64,11 +64,20 @@ export interface ResultBreakdown {
   publishedFeedback?: ResultFeedbackItem[] | null
 }
 
+export interface ResultWarning {
+  code: string
+  message: string
+  componentId?: number | null
+  score?: number | null
+  threshold?: number | null
+}
+
 export interface ResultPreview {
   projectId: number; canPublish: boolean; blockers: string[]; totalScore: number | null; passThreshold: number | null; outcome: string | null; confirmationToken: string
   contributions: ResultContribution[]
   breakdown?: ResultBreakdown | null
   outcomeDetail?: string | null
+  warnings?: ResultWarning[] | null
 }
 
 export interface ProjectResult {

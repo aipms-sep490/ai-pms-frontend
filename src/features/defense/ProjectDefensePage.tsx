@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
+import { env } from '../../app/config/env'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
 import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { Button } from '../../components/ui/Button'
@@ -526,12 +527,24 @@ export function DefenseManagementPanel({
             {creatingCommittee ? 'Đang tạo…' : 'Tạo hội đồng'}
           </button>
           <p className="text-xs text-ink-muted">Sau khi khóa hồ sơ nộp cuối, xác nhận hội đồng rồi phân công thành viên chấm nguội theo ngành. Hội đồng chỉ chấm điểm khi có phân công bộ tiêu chí tương ứng.</p>
+          {committees.some(c => c.status === 'CONFIRMED') && (
+            <div className="pt-1">
+              <Link
+                to={`/department/projects/${projectId}/evaluators`}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-primary bg-primary-subtle px-3 text-xs font-semibold text-primary hover:bg-primary/15"
+              >
+                <span>Chuyển sang Phân công người chấm</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Xếp lịch bảo vệ */}
+      {/* Xếp lịch bảo vệ (Tùy chọn theo POL-06) */}
+      {(env.roomPlannerEnabled || env.defenseScheduleEnabled || hasScheduledSession) ? (
       <section className="space-y-3 rounded-xl border border-hairline bg-card p-5 shadow-xs">
-        <h3 className="text-sm font-bold text-ink">Xếp lịch bảo vệ</h3>
+        <h3 className="text-sm font-bold text-ink">Xếp lịch phòng bảo vệ (Tùy chọn POL-06)</h3>
         {hasScheduledSession ? (
           <p className="text-xs text-ink-muted">
             Đồ án hiện đã có lịch bảo vệ được xếp. Hãy hủy lịch hiện tại nếu cần xếp lại lịch mới.
@@ -601,6 +614,14 @@ export function DefenseManagementPanel({
           </div>
         )}
       </section>
+      ) : (
+      <section className="space-y-2 rounded-xl border border-hairline bg-canvas p-5 text-sm text-ink-soft">
+        <h3 className="text-sm font-bold text-ink">Chia phòng bảo vệ đang tắt (Tùy chọn theo POL-06)</h3>
+        <p className="text-xs leading-5 text-ink-muted">
+          Chia phòng bảo vệ đang tắt (tùy chọn). Sau khi xác nhận Hội đồng, Khoa chuyển thẳng sang Phân công chấm nguội &amp; bảo vệ, Chốt điểm và Công bố kết quả mà không bị chặn bởi lịch phòng.
+        </p>
+      </section>
+      )}
       </div>
     </div>
   )
@@ -670,7 +691,7 @@ export function ProjectDefenseManagementPage() {
   const routeProjectId = useParams().projectId
   const pathname = useLocation().pathname
   const isDepartmentRoute = pathname.startsWith('/department/')
-  const projectId = Number(routeProjectId ?? pathname.match(/projects\/(\d+)\/defense/)?.[1])
+  const projectId = Number(routeProjectId ?? pathname.match(/projects\/(\d+)\/(?:defense|committee)/)?.[1])
   const [sessions, setSessions] = useState<DefenseSession[] | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)

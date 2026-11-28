@@ -315,6 +315,11 @@ export function EvaluatorAssignmentDetailPage() {
             livePreviewScore={livePreviewScore}
             failingFloor={failingFloor}
             isFailingFloorAlert={isFailingFloorAlert}
+            isInterdisciplinaryCommonDefense={
+              workbench?.calculationFormula === 'POL_INTER_40_40_20'
+              && assignment.scope === 'COMMON'
+              && (detail.stage ?? assignment.stage ?? evidence?.stage) === 'DEFENSE'
+            }
             autoSaveStatus={autoSaveStatus}
             dirty={dirty}
             busy={busy}

@@ -9,6 +9,7 @@ export interface EvaluationAssignment {
   /** Current BE EvaluationAssignmentDto includes the stage frozen on this assignment. */
   stage?: EvaluationStage | null
   advisory?: boolean
+  hasFinalizedEvaluation?: boolean
 }
 export type EvaluationScope = Exclude<EvaluationAssignment['scope'], 'UNKNOWN'>
 export type EvaluationStage = 'ON_GOING' | 'COLD' | 'DEFENSE' | (string & {})
