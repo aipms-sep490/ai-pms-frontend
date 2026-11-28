@@ -123,8 +123,9 @@ export async function apiJson<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
+  extraHeaders?: Record<string, string>,
 ): Promise<T> {
-  const headers: Record<string, string> = { Authorization: `Bearer ${session.accessToken}` }
+  const headers: Record<string, string> = { Authorization: `Bearer ${session.accessToken}`, ...extraHeaders }
   const response = await request.fetch(`${SMOKE_API_ROOT}${path}`, {
     method,
     headers,

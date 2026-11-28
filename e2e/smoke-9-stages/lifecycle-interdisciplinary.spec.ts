@@ -22,6 +22,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     const staffIt = await apiLogin(request, 'smoke.staff.it@e2e.invalid')
     const staffMkt = await apiLogin(request, 'smoke.staff.mkt@e2e.invalid')
     const supervisor = await apiLogin(request, 'smoke.sup.it@e2e.invalid')
+    const mentorIt = await apiLogin(request, 'smoke.mentor.it@e2e.invalid')
     const mentorMkt = await apiLogin(request, 'smoke.mentor.mkt@e2e.invalid')
     const gateRev1 = await apiLogin(request, 'smoke.gate.rev1@e2e.invalid')
     const gateRev2 = await apiLogin(request, 'smoke.gate.rev2@e2e.invalid')
@@ -36,12 +37,14 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     const members = [itLeader, itMember, mktLeader, mktMember]
 
     const blueprint = fixture.blueprints.find(b => b.trackCode === 'IT_MKT')
-    expect(blueprint, 'PUBLISHED IT_MKT blueprint required in fixture').toBeTruthy()
+    const mktBlueprint = fixture.blueprints.find(b => b.trackCode === 'MKT_ONLY')
+    expect(blueprint && mktBlueprint, 'PUBLISHED IT_MKT and MKT_ONLY blueprints required in fixture').toBeTruthy()
     const evalPeriod = fixture.periods.find(p => p.periodType === 'EVALUATION')!
     const finalPeriod = fixture.periods.find(p => p.periodType === 'FINAL_SUBMISSION')!
     const supProfile = fixture.supervisorProfiles?.find(sp => sp.userId === supervisor.user.id)
+    const mentorItProfile = fixture.supervisorProfiles?.find(sp => sp.userId === mentorIt.user.id)
     const mentorProfile = fixture.supervisorProfiles?.find(sp => sp.userId === mentorMkt.user.id)
-    expect(supProfile && mentorProfile, 'Both supervisor and mentor profiles required').toBeTruthy()
+    expect(supProfile && mentorItProfile && mentorProfile, 'Supervisor and IT/MKT mentor profiles required').toBeTruthy()
 
     // Stage 0: Blueprint readiness check
     const readiness = await apiJson<{ isReady?: boolean; missingTracks?: string[] }>(
@@ -58,9 +61,13 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
       academicScope: {
         projectMode: 'INTERDISCIPLINARY',
         primaryMajorId: null,
+        leadDepartmentId: fixture.itDepartmentId,
+        trackCode: 'IT_MKT',
+        hasIntegrationDeliverable: true,
+        mktAttributionLimitsNote: 'Pilot survey & controlled A/B sample without live paid media spend (POL-04).',
         requirements: [
-          { majorId: fixture.seMajorId, minMembers: 1, maxMembers: 3 },
-          { majorId: fixture.mktMajorId, minMembers: 1, maxMembers: 3 },
+          { majorId: fixture.seMajorId, minMembers: 1, maxMembers: 3, responsibility: 'Xây dựng hệ thống phần mềm và đo lường kỹ thuật' },
+          { majorId: fixture.mktMajorId, minMembers: 1, maxMembers: 3, responsibility: 'Nghiên cứu thị trường, chiến lược tăng trưởng và phễu chuyển đổi' },
         ],
       },
     })
@@ -78,9 +85,11 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
       await apiJson(request, mSession, 'POST', `/teams/invitations/${inv.id}/accept`)
     }
 
-    const elig = await apiJson<{ status: string }>(request, itLeader, 'POST', `/teams/${team.id}/eligibility/check`)
-    expect(['ELIGIBLE', 'PASS']).toContain(elig.status)
-    await apiJson(request, itLeader, 'POST', `/teams/${team.id}/eligibility/lock`)
+    const elig = await apiJson<{ result: string }>(request, itLeader, 'POST', `/teams/${team.id}/eligibility/check`)
+    expect(['ELIGIBLE', 'PASS']).toContain(elig.result)
+    // Negative TK-W1-11: Student manual team lock is disabled
+    const manualLock = await apiRaw(request, itLeader, 'POST', `/teams/${team.id}/eligibility/lock`)
+    await expectProblem(manualLock, [409], 'TEAM_MANUAL_LOCK_DISABLED')
 
     // Stage 2: Proposal dual-department review (Participating MKT + Lead IT) & negative non-lead guard
     let project = await apiJson<{ id: number; status: string; concurrencyToken: string }>(
@@ -96,22 +105,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
         keywords: ['smoke', 'interdisciplinary', 'it-mkt'],
       },
     )
-    project = await apiJson(request, itLeader, 'POST', `/projects/${project.id}/submit`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-
-    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/start-review`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-    // Both Lead IT and Participating MKT approve
-    project = await apiJson(request, staffMkt, 'POST', `/projects/${project.id}/approve`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/approve`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-
-    // Assign Primary Supervisor + MKT Discipline Mentor
+    // Assign Primary Supervisor + MKT Discipline Mentor before submission (SUPERVISOR_NOT_CONFIRMED / MENTOR_NOT_CONFIRMED)
     const supReq = await apiJson<{ id: number }>(request, itLeader, 'POST', `/projects/${project.id}/supervisor-requests`, {
       supervisorProfileId: supProfile!.profileId,
       message: 'Primary supervision for IT_MKT smoke',
@@ -120,6 +114,14 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     })
     await apiJson(request, supervisor, 'POST', `/supervisor-requests/${supReq.id}/accept`, { message: 'Accepted Primary' })
 
+    const mentorItReq = await apiJson<{ id: number }>(request, itLeader, 'POST', `/projects/${project.id}/supervisor-requests`, {
+      supervisorProfileId: mentorItProfile!.profileId,
+      message: 'Discipline mentoring for SE',
+      assignmentType: 'DISCIPLINE_MENTOR',
+      majorId: fixture.seMajorId,
+    })
+    await apiJson(request, mentorIt, 'POST', `/supervisor-requests/${mentorItReq.id}/accept`, { message: 'Accepted SE Discipline Mentor' })
+
     const mentorReq = await apiJson<{ id: number }>(request, itLeader, 'POST', `/projects/${project.id}/supervisor-requests`, {
       supervisorProfileId: mentorProfile!.profileId,
       message: 'Discipline mentoring for MKT',
@@ -127,6 +129,45 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
       majorId: fixture.mktMajorId,
     })
     await apiJson(request, mentorMkt, 'POST', `/supervisor-requests/${mentorReq.id}/accept`, { message: 'Accepted Discipline Mentor' })
+
+    // Run INITIAL_SUBMISSION eligibility snapshot bound to the created project draft
+    const submitElig = await apiJson<{ result: string }>(request, itLeader, 'POST', `/teams/${team.id}/eligibility/check`)
+    expect(submitElig.result).toBe('PASS')
+
+    project = await apiJson(request, itLeader, 'GET', `/projects/${project.id}`)
+    project = await apiJson(request, itLeader, 'POST', `/projects/${project.id}/submit`, {
+      concurrencyToken: project.concurrencyToken,
+    })
+
+    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/start-review`, {
+      concurrencyToken: project.concurrencyToken,
+    })
+    // Negative POL-02: Participating MKT cannot directly change Lead proposal state via /approve (403)
+    const nonLeadApprove = await apiRaw(request, staffMkt, 'POST', `/projects/${project.id}/approve`, {
+      concurrencyToken: project.concurrencyToken,
+    })
+    await expectProblem(nonLeadApprove, [403])
+
+    // Both Participating MKT and Lead IT record their department decisions, then Lead IT approves
+    let reviewState = await apiJson<{ latestSubmission: { id: number }; concurrencyToken: string }>(
+      request, staffMkt, 'GET', `/projects/${project.id}/academic-review`,
+    )
+    reviewState = await apiJson(request, staffMkt, 'POST', `/projects/${project.id}/department-decisions`, {
+      snapshotId: reviewState.latestSubmission.id,
+      concurrencyToken: reviewState.concurrencyToken,
+      decision: 'APPROVED',
+      reason: 'MKT scope & POL-04/POL-05 approved',
+    })
+    await apiJson(request, staffIt, 'POST', `/projects/${project.id}/department-decisions`, {
+      snapshotId: reviewState.latestSubmission.id,
+      concurrencyToken: reviewState.concurrencyToken,
+      decision: 'APPROVED',
+      reason: 'IT Lead scope approved',
+    })
+    project = await apiJson(request, staffIt, 'GET', `/projects/${project.id}`)
+    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/approve`, {
+      concurrencyToken: project.concurrencyToken,
+    })
 
     const activeProject = await apiJson<{ id: number; status: string }>(request, itLeader, 'GET', `/projects/${project.id}`)
     expect(activeProject.status).toBe('ACTIVE')
@@ -152,38 +193,52 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
 
     // Stage 4: Dual-department Review Gates G1-G3 + POL-05 INT-* + Mentor Note + Primary 20%
     let timeline = await apiJson<{
-      gates: Array<{ id: number; code: string; concurrencyToken: string; requirements: Array<{ id: number; code: string; scope: string }> }>
+      gates: Array<{ gateInstanceId: string; code: string; concurrencyToken: string; requirements: Array<{ id: string; code: string; scope: string; targetStudentId?: number | null }> }>
     }>(request, itLeader, 'GET', `/projects/${project.id}/review-gates/timeline`)
     expect(timeline.gates.some(g => g.requirements.some(r => r.code.startsWith('INT-')))).toBe(true)
 
     for (const gateCode of ['G1', 'G2', 'G3']) {
+      const uploadedReqIds = new Set<string>()
+      for (const stu of members) {
+        const stuTimeline = await apiJson<typeof timeline>(request, stu, 'GET', `/projects/${project.id}/review-gates/timeline`)
+        const stuGate = stuTimeline.gates.find(g => g.code === gateCode)!
+        for (const req of stuGate.requirements) {
+          if (uploadedReqIds.has(req.id)) continue
+          const isIndividual = req.scope === 'INDIVIDUAL' || req.targetStudentId != null
+          if (stu.user.id !== itLeader.user.id && !isIndividual) continue
+          const freshTl = await apiJson<typeof timeline>(request, stu, 'GET', `/projects/${project.id}/review-gates/timeline`)
+          const freshGate = freshTl.gates.find(g => g.code === gateCode)!
+          const upRes = await request.post(`${SMOKE_API_ROOT}/projects/${project.id}/review-gates/${gateCode}/evidence/file`, {
+            headers: { Authorization: `Bearer ${stu.accessToken}` },
+            multipart: {
+              file: { name: `${req.code}.pdf`, mimeType: 'application/pdf', buffer: minimalPdfBytes(`${gateCode}-${req.code}`) },
+              requirementId: String(req.id),
+              expectedVersion: '0',
+              concurrencyToken: freshGate.concurrencyToken,
+              notes: `IT_MKT evidence ${req.code}`,
+            },
+          })
+          expect(upRes.ok(), `Gate evidence upload ${req.code} by ${stu.user.email}: ${await upRes.text()}`).toBe(true)
+          uploadedReqIds.add(req.id)
+        }
+      }
       timeline = await apiJson(request, itLeader, 'GET', `/projects/${project.id}/review-gates/timeline`)
       const gate = timeline.gates.find(g => g.code === gateCode)!
-      for (const req of gate.requirements) {
-        const upRes = await request.post(`${SMOKE_API_ROOT}/projects/${project.id}/review-gates/${gateCode}/evidence/file`, {
-          headers: { Authorization: `Bearer ${itLeader.accessToken}` },
-          multipart: {
-            file: { name: `${req.code}.pdf`, mimeType: 'application/pdf', buffer: minimalPdfBytes(`${gateCode}-${req.code}`) },
-            requirementId: String(req.id),
-            expectedVersion: '0',
-            concurrencyToken: gate.concurrencyToken,
-            notes: `IT_MKT evidence ${req.code}`,
-          },
-        })
-        expect(upRes.ok(), await upRes.text()).toBe(true)
-        timeline = await apiJson(request, itLeader, 'GET', `/projects/${project.id}/review-gates/timeline`)
-        Object.assign(gate, timeline.gates.find(g => g.code === gateCode)!)
-      }
       await apiJson(request, itLeader, 'POST', `/projects/${project.id}/review-gates/${gateCode}/submit-for-review`, {
         concurrencyToken: gate.concurrencyToken,
-      })
-      for (const [rev, scope] of [[gateRev1, 'COMMON'], [gateRev2, 'PARTICIPATING_DEPARTMENT']] as const) {
+      }, { 'Idempotency-Key': `smk-im-${project.id}-${gateCode}-${suffix}` })
+      // QD-09: IT_MKT requires 1 reviewer per major (IT + MKT), assigned by respective department
+      for (const [assigner, rev, majorId] of [
+        [staffIt, gateRev1, fixture.seMajorId],
+        [staffMkt, gateRev2, fixture.mktMajorId],
+      ] as const) {
         let assigned = await apiJson<{ id: number; concurrencyToken: string; requirements: Array<{ id: number }> }>(
-          request, staffIt, 'POST', '/review-gates/assignments', {
+          request, assigner, 'POST', '/review-gates/assignments', {
             projectId: String(project.id),
             gateCode,
             reviewerId: rev.user.id,
-            scope,
+            scope: 'MAJOR_SPECIFIC',
+            majorId,
           },
         )
         for (const req of assigned.requirements) {
@@ -200,18 +255,33 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
         })
       }
 
-      // Mentor MKT reference note + Primary Supervisor finalized 20% score
-      for (const stu of members) {
-        await apiJson(request, mentorMkt, 'PUT', `/projects/${project.id}/gates/${gate.id}/individual-process-scores/${stu.user.id}/mentor-note`, {
-          mentorReferenceNotes: `MKT mentor feedback at ${gateCode}`,
-        })
-        const saved = await apiJson<{ concurrencyToken: string }>(
-          request, supervisor, 'PUT', `/projects/${project.id}/gates/${gate.id}/individual-process-scores/${stu.user.id}`, {
-            score: 8.2,
-            comments: `Gate ${gateCode} score`,
+      // Negative TK-W2-09: MKT Discipline Mentor cannot add reference notes for IT student (403 SCOPE_ACCESS_DENIED)
+      if (gateCode === 'G1') {
+        const crossMajorNote = await apiRaw(
+          request, mentorMkt, 'PUT', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${itLeader.user.id}/mentor-note`, {
+            mentorReferenceNotes: 'Cross-major attempt should fail',
           },
         )
-        await apiJson(request, supervisor, 'POST', `/projects/${project.id}/gates/${gate.id}/individual-process-scores/${stu.user.id}/finalize`, {
+        await expectProblem(crossMajorNote, [403], 'SCOPE_ACCESS_DENIED')
+      }
+
+      // Mentor MKT reference note for MKT students + Primary Supervisor finalized 20% score for all members
+      const noteTokens = new Map<number, string>()
+      for (const stu of [mktLeader, mktMember]) {
+        const noteSaved = await apiJson<{ concurrencyToken: string }>(request, mentorMkt, 'PUT', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${stu.user.id}/mentor-note`, {
+          mentorReferenceNotes: `MKT mentor feedback at ${gateCode}`,
+        })
+        noteTokens.set(stu.user.id, noteSaved.concurrencyToken)
+      }
+      for (const stu of members) {
+        const saved = await apiJson<{ concurrencyToken: string }>(
+          request, supervisor, 'PUT', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${stu.user.id}`, {
+            score: 8.2,
+            comments: `Gate ${gateCode} score`,
+            concurrencyToken: noteTokens.get(stu.user.id) ?? null,
+          },
+        )
+        await apiJson(request, supervisor, 'POST', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${stu.user.id}/finalize`, {
           concurrencyToken: saved.concurrencyToken,
         })
       }
@@ -221,8 +291,8 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     const coldTpl = await apiJson<{ id: number }>(request, staffIt, 'POST', '/cold-report-templates', {
       majorId: null,
       projectPeriodId: evalPeriod.id,
-      title: `Smoke Cold IT_MKT ${suffix}`,
-      reports: [{ code: 'INT_REPORT', title: 'Báo cáo tích hợp IT×MKT' }],
+      name: `Smoke Cold IT_MKT ${suffix}`,
+      reports: [{ code: 'INT_REPORT', name: 'Báo cáo tích hợp IT×MKT', required: true }],
       scope: 'COMMON',
     })
     let coldChecklist = await apiJson<{ concurrencyToken: string; items: Array<{ id: number }> }>(
@@ -269,7 +339,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     expect(delivVerRes.ok(), await delivVerRes.text()).toBe(true)
     const delivVer = (await delivVerRes.json()) as { id: number }
     await apiJson(request, supervisor, 'POST', `/deliverable-versions/${delivVer.id}/review`, {
-      decision: 'APPROVED',
+      decision: 'ACCEPTED',
       feedback: 'Ready for final lock',
     })
     await apiJson<{ concurrencyToken: string }>(
@@ -308,9 +378,9 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
         { name: 'Common Cold', scope: 'COMMON', majorId: null, rubricId: blueprint!.rubricId, projectWeightPercent: 15, studentWeightPercent: 12, requiredEvaluators: 1, stage: 'COLD', targetScope: 'PROJECT', isIntegration: false },
         { name: 'Common Defense Integrated (POL-05)', scope: 'COMMON', majorId: null, rubricId: blueprint!.rubricId, projectWeightPercent: 35, studentWeightPercent: 28, requiredEvaluators: 1, stage: 'DEFENSE', targetScope: 'PROJECT', isIntegration: true },
         { name: 'SE Defense', scope: 'MAJOR_SPECIFIC', majorId: fixture.seMajorId, rubricId: blueprint!.rubricId, projectWeightPercent: 25, studentWeightPercent: 40, requiredEvaluators: 1, stage: 'DEFENSE', targetScope: 'MAJOR' },
-        { name: 'MKT Defense', scope: 'MAJOR_SPECIFIC', majorId: fixture.mktMajorId, rubricId: blueprint!.rubricId, projectWeightPercent: 25, studentWeightPercent: 40, requiredEvaluators: 1, stage: 'DEFENSE', targetScope: 'MAJOR' },
+        { name: 'MKT Defense', scope: 'MAJOR_SPECIFIC', majorId: fixture.mktMajorId, rubricId: mktBlueprint!.rubricId, projectWeightPercent: 25, studentWeightPercent: 40, requiredEvaluators: 1, stage: 'DEFENSE', targetScope: 'MAJOR' },
         { name: 'SE GVHD 20%', scope: 'INDIVIDUAL', majorId: fixture.seMajorId, rubricId: blueprint!.rubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT' },
-        { name: 'MKT GVHD 20%', scope: 'INDIVIDUAL', majorId: fixture.mktMajorId, rubricId: blueprint!.rubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT' },
+        { name: 'MKT GVHD 20%', scope: 'INDIVIDUAL', majorId: fixture.mktMajorId, rubricId: mktBlueprint!.rubricId, projectWeightPercent: 0, studentWeightPercent: 20, requiredEvaluators: 1, stage: 'ON_GOING', targetScope: 'STUDENT' },
       ],
       policy: {
         isDemo: false,
@@ -330,6 +400,29 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     })
     scheme = await apiJson(request, staffIt, 'POST', `/evaluation-schemes/${scheme.id}/publish`, {
       concurrencyToken: scheme.concurrencyToken,
+    })
+
+    // Confirm Interdisciplinary Defense Committee (SE + MKT; no DefenseSession -> POL-06 non-blocking)
+    const coiMentorCommittee = await apiRaw(request, staffIt, 'POST', `/projects/${project.id}/defense-committees`, {
+      name: `Invalid Mentor COI Committee ${suffix}`,
+      members: [
+        { userId: evaluator1.user.id, majorId: fixture.seMajorId, role: 'CHAIR' },
+        { userId: mentorMkt.user.id, majorId: fixture.mktMajorId, role: 'MEMBER' },
+      ],
+    })
+    await expectProblem(coiMentorCommittee, [409], 'EVALUATOR_ROLE_CONFLICT')
+
+    let committee = await apiJson<{ id: number; concurrencyToken: string }>(
+      request, staffIt, 'POST', `/projects/${project.id}/defense-committees`, {
+        name: `Smoke IT_MKT Committee ${suffix}`,
+        members: [
+          { userId: evaluator1.user.id, majorId: fixture.seMajorId, role: 'CHAIR' },
+          { userId: evaluator2.user.id, majorId: fixture.mktMajorId, role: 'MEMBER' },
+        ],
+      },
+    )
+    committee = await apiJson(request, staffIt, 'POST', `/defense-committees/${committee.id}/confirm`, {
+      concurrencyToken: committee.concurrencyToken,
     })
 
     // Participating MKT Dept cannot publish batch (Lead Only) -> negative 403
@@ -385,7 +478,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
       expectedVersion: 0,
       approvalReference: `QD04-IM-${suffix}`,
     })
-    const appealWin = await apiJson<{ id: number }>(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows`, {
+    const appealWin = await apiJson<{ id: number; concurrencyToken: string }>(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows`, {
       policyId: policy.id,
       opensAt: new Date(Date.now() - 3600_000).toISOString(),
       closesAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
@@ -443,9 +536,12 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     const v2 = await apiJson<{ version: number }>(request, mktLeader, 'GET', `/projects/${project.id}/students/${mktLeader.user.id}/result`)
     expect(v2.version).toBe(2)
 
-    // Stage 9: Archive + Direct Chat READ_ONLY + 7-section Dossier UI & Mobile >=44px check
+    // Stage 9: Close appeal window -> Archive + Direct Chat READ_ONLY + 7-section Dossier UI & Mobile >=44px check
     const directChat = await apiJson<{ id: number }>(request, mentorMkt, 'POST', '/chat/conversations/direct', {
       recipientUserId: String(mktLeader.user.id),
+    })
+    await apiJson(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows/${appealWin.id}/close`, {
+      concurrencyToken: appealWin.concurrencyToken,
     })
     const latestProject = await apiJson<{ concurrencyToken: string }>(request, staffIt, 'GET', `/projects/${project.id}`)
     await apiJson(request, staffIt, 'POST', `/projects/${project.id}/archive`, {
@@ -462,8 +558,8 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 3: Interdisciplinary (IT_MKT
     try {
       const archivePage = await desktopCtx.newPage()
       await openUiAs(archivePage, staffIt, `/department/projects/${project.id}/archive-view`)
-      await expect(archivePage.getByText(/Hồ sơ lưu trữ/i)).toBeVisible()
-      await expect(archivePage.getByText(/6\. Hồ sơ bàn giao cuối kỳ/i)).toBeVisible()
+      await expect(archivePage.getByRole('heading', { name: /Hồ sơ lưu trữ/i })).toBeVisible()
+      await expect(archivePage.getByRole('heading', { name: /6\. Hồ sơ bàn giao cuối kỳ/i })).toBeVisible()
       await expectTapTargetAtLeast44(archivePage.getByRole('button', { name: 'Tải lại' }), 'Archive dossier refresh button')
     } finally {
       await desktopCtx.close()

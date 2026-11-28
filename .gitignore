@@ -9,6 +9,7 @@ dist-ssr/
 coverage/
 storybook-static/
 playwright-report/
+playwright-report-*/
 test-results/
 .impeccable/
 *.tsbuildinfo

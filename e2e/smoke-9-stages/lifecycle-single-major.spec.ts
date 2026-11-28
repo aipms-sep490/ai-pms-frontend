@@ -60,7 +60,20 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
       code: `SMK-IT-${suffix}`,
       name: `Smoke IT Only ${suffix}`,
       description: 'Live 9-stage smoke single major IT team',
-      academicScope: { projectMode: 'SINGLE_MAJOR', primaryMajorId: fixture.seMajorId, requirements: null },
+      academicScope: {
+        projectMode: 'SINGLE_MAJOR',
+        primaryMajorId: fixture.seMajorId,
+        leadDepartmentId: fixture.itDepartmentId,
+        requirements: [
+          {
+            majorId: fixture.seMajorId,
+            minMembers: 2,
+            maxMembers: 5,
+            responsibility: 'Thiết kế, lập trình, kiểm thử và triển khai hệ thống phần mềm',
+          },
+        ],
+        trackCode: 'IT_ONLY',
+      },
     })
 
     for (const mEmail of ['smoke.it.member@e2e.invalid', 'smoke.it.member2@e2e.invalid']) {
@@ -73,9 +86,11 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
       await apiJson(request, mSession, 'POST', `/teams/invitations/${inv.id}/accept`)
     }
 
-    const elig = await apiJson<{ status: string }>(request, leader, 'POST', `/teams/${team.id}/eligibility/check`)
-    expect(['ELIGIBLE', 'PASS']).toContain(elig.status)
-    await apiJson(request, leader, 'POST', `/teams/${team.id}/eligibility/lock`)
+    const elig = await apiJson<{ result: string }>(request, leader, 'POST', `/teams/${team.id}/eligibility/check`)
+    expect(['ELIGIBLE', 'PASS']).toContain(elig.result)
+    // Negative TK-W1-11: Student manual team lock is disabled (auto-locked at N1 window end)
+    const manualLock = await apiRaw(request, leader, 'POST', `/teams/${team.id}/eligibility/lock`)
+    await expectProblem(manualLock, [409], 'TEAM_MANUAL_LOCK_DISABLED')
 
     // Stage 2: Proposal, approval, negative D18 guard, supervisor assignment -> ACTIVE
     let project = await apiJson<{ id: number; status: string; concurrencyToken: string }>(
@@ -91,25 +106,18 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
         keywords: ['smoke', 'it-only'],
       },
     )
-    project = await apiJson(request, leader, 'POST', `/projects/${project.id}/submit`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-
-    // Negative D18: cannot create task before project is ACTIVE
-    const preActiveTask = await apiRaw(request, leader, 'POST', '/tasks', {
+    // Negative D18: cannot create execution milestone before project is ACTIVE
+    const preActiveMilestone = await apiRaw(request, leader, 'POST', '/milestones', {
       projectId: project.id,
-      title: 'Premature task',
-      priority: 'MEDIUM',
+      title: 'Premature milestone',
+      description: null,
+      startDate: null,
+      dueDate: null,
+      sortOrder: 1,
     })
-    await expectProblem(preActiveTask, [403, 409])
+    await expectProblem(preActiveMilestone, [403, 409], 'PROJECT_NOT_ACTIVE')
 
-    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/start-review`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/approve`, {
-      concurrencyToken: project.concurrencyToken,
-    })
-
+    // Primary Supervisor accepts invitation before proposal submission (SUPERVISOR_NOT_CONFIRMED guard)
     const supReq = await apiJson<{ id: number }>(request, leader, 'POST', `/projects/${project.id}/supervisor-requests`, {
       supervisorProfileId: supProfile!.profileId,
       message: 'Please supervise IT_ONLY smoke project',
@@ -118,6 +126,22 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     })
     await apiJson(request, supervisor, 'POST', `/supervisor-requests/${supReq.id}/accept`, {
       message: 'Accepted for IT_ONLY smoke',
+    })
+
+    // Run INITIAL_SUBMISSION eligibility snapshot bound to the created project draft
+    const submitElig = await apiJson<{ result: string }>(request, leader, 'POST', `/teams/${team.id}/eligibility/check`)
+    expect(submitElig.result).toBe('PASS')
+
+    project = await apiJson(request, leader, 'GET', `/projects/${project.id}`)
+    project = await apiJson(request, leader, 'POST', `/projects/${project.id}/submit`, {
+      concurrencyToken: project.concurrencyToken,
+    })
+
+    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/start-review`, {
+      concurrencyToken: project.concurrencyToken,
+    })
+    project = await apiJson(request, staffIt, 'POST', `/projects/${project.id}/approve`, {
+      concurrencyToken: project.concurrencyToken,
     })
 
     const activeProject = await apiJson<{ id: number; status: string; concurrencyToken: string }>(
@@ -146,7 +170,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
 
     // Stage 4: Review Gates G1-G3 + POL-03 20% Individual Process + Negative D17 COI check
     let timeline = await apiJson<{
-      gates: Array<{ id: number; code: string; status: string; concurrencyToken: string; requirements: Array<{ id: number; code: string; targetCardinality?: string }> }>
+      gates: Array<{ gateInstanceId: string; code: string; status: string; concurrencyToken: string; requirements: Array<{ id: string; code: string; scope?: string; targetStudentId?: number | null }> }>
     }>(request, leader, 'GET', `/projects/${project.id}/review-gates/timeline`)
     expect(timeline.gates.length).toBeGreaterThanOrEqual(3)
 
@@ -159,60 +183,73 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     })
     await expectProblem(coiGate, [403, 409])
 
+    const teamSessions = [leader, member1, member2]
     for (const gateCode of ['G1', 'G2', 'G3']) {
+      // Upload team-level requirements as leader, then each student's INDIVIDUAL requirement from their own timeline
+      const uploadedReqIds = new Set<string>()
+      for (const stu of teamSessions) {
+        const stuTimeline = await apiJson<typeof timeline>(request, stu, 'GET', `/projects/${project.id}/review-gates/timeline`)
+        const stuGate = stuTimeline.gates.find(g => g.code === gateCode)!
+        for (const req of stuGate.requirements) {
+          if (uploadedReqIds.has(req.id)) continue
+          const isIndividual = req.targetStudentId != null || req.scope === 'INDIVIDUAL'
+          if (stu.user.id !== leader.user.id && !isIndividual) continue
+          const freshTl = await apiJson<typeof timeline>(request, stu, 'GET', `/projects/${project.id}/review-gates/timeline`)
+          const freshGate = freshTl.gates.find(g => g.code === gateCode)!
+          const upRes = await request.post(`${SMOKE_API_ROOT}/projects/${project.id}/review-gates/${gateCode}/evidence/file`, {
+            headers: { Authorization: `Bearer ${stu.accessToken}` },
+            multipart: {
+              file: { name: `${req.code}.pdf`, mimeType: 'application/pdf', buffer: minimalPdfBytes(req.code) },
+              requirementId: String(req.id),
+              expectedVersion: '0',
+              concurrencyToken: freshGate.concurrencyToken,
+              notes: `Live smoke upload ${req.code}`,
+            },
+          })
+          expect(upRes.ok(), `Gate evidence upload ${req.code} by ${stu.user.email}: ${await upRes.text()}`).toBe(true)
+          uploadedReqIds.add(req.id)
+        }
+      }
       timeline = await apiJson(request, leader, 'GET', `/projects/${project.id}/review-gates/timeline`)
       const gate = timeline.gates.find(g => g.code === gateCode)!
-      for (const req of gate.requirements) {
-        const upRes = await request.post(`${SMOKE_API_ROOT}/projects/${project.id}/review-gates/${gateCode}/evidence/file`, {
-          headers: { Authorization: `Bearer ${leader.accessToken}` },
-          multipart: {
-            file: { name: `${req.code}.pdf`, mimeType: 'application/pdf', buffer: minimalPdfBytes(req.code) },
-            requirementId: String(req.id),
-            expectedVersion: '0',
-            concurrencyToken: gate.concurrencyToken,
-            notes: `Live smoke upload ${req.code}`,
-          },
-        })
-        expect(upRes.ok(), `Gate evidence upload ${req.code}: ${await upRes.text()}`).toBe(true)
-        timeline = await apiJson(request, leader, 'GET', `/projects/${project.id}/review-gates/timeline`)
-        Object.assign(gate, timeline.gates.find(g => g.code === gateCode)!)
-      }
 
       await apiJson(request, leader, 'POST', `/projects/${project.id}/review-gates/${gateCode}/submit-for-review`, {
         concurrencyToken: gate.concurrencyToken,
-      })
-      const assigned = await apiJson<{ id: number; concurrencyToken: string; requirements: Array<{ id: number }> }>(
-        request, staffIt, 'POST', '/review-gates/assignments', {
-          projectId: String(project.id),
-          gateCode,
-          reviewerId: gateReviewer.user.id,
-          scope: 'COMMON',
-        },
-      )
-      let currentAssign = assigned
-      for (const req of assigned.requirements) {
-        currentAssign = await apiJson(request, gateReviewer, 'POST', `/review-gates/assignments/${currentAssign.id}/evidence/${req.id}/verify`, {
-          requirementId: String(req.id),
-          decision: 'ACCEPTED',
+      }, { 'Idempotency-Key': `smk-it-${project.id}-${gateCode}-${suffix}` })
+      // QD-09: Single-major gate requires 2 independent reviewers
+      for (const rev of [gateReviewer, evaluator]) {
+        let currentAssign = await apiJson<{ id: number; concurrencyToken: string; requirements: Array<{ id: number }> }>(
+          request, staffIt, 'POST', '/review-gates/assignments', {
+            projectId: String(project.id),
+            gateCode,
+            reviewerId: rev.user.id,
+            scope: 'COMMON',
+          },
+        )
+        for (const req of currentAssign.requirements) {
+          currentAssign = await apiJson(request, rev, 'POST', `/review-gates/assignments/${currentAssign.id}/evidence/${req.id}/verify`, {
+            requirementId: String(req.id),
+            decision: 'ACCEPTED',
+            concurrencyToken: currentAssign.concurrencyToken,
+          })
+        }
+        await apiJson(request, rev, 'POST', `/review-gates/assignments/${currentAssign.id}/decision`, {
+          decision: 'PASSED',
+          notes: `${gateCode} passed live smoke`,
           concurrencyToken: currentAssign.concurrencyToken,
         })
       }
-      await apiJson(request, gateReviewer, 'POST', `/review-gates/assignments/${currentAssign.id}/decision`, {
-        decision: 'PASSED',
-        notes: `${gateCode} passed live smoke`,
-        concurrencyToken: currentAssign.concurrencyToken,
-      })
 
       // Primary Supervisor finalizes 20% POL-03 score for each member at each gate
       for (const stu of [leader, member1, member2]) {
         const saved = await apiJson<{ concurrencyToken: string }>(
-          request, supervisor, 'PUT', `/projects/${project.id}/gates/${gate.id}/individual-process-scores/${stu.user.id}`, {
+          request, supervisor, 'PUT', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${stu.user.id}`, {
             score: 8.5,
             comments: `Gate ${gateCode} solid`,
           },
         )
         await apiJson(
-          request, supervisor, 'POST', `/projects/${project.id}/gates/${gate.id}/individual-process-scores/${stu.user.id}/finalize`, {
+          request, supervisor, 'POST', `/projects/${project.id}/gates/${gate.gateInstanceId}/individual-process-scores/${stu.user.id}/finalize`, {
             concurrencyToken: saved.concurrencyToken,
           },
         )
@@ -221,10 +258,10 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
 
     // Stage 5: Final Submission & Cold Package Lock (2-step lock)
     const coldTpl = await apiJson<{ id: number }>(request, staffIt, 'POST', '/cold-report-templates', {
-      majorId: fixture.seMajorId,
+      majorId: null,
       projectPeriodId: evalPeriod.id,
-      title: `Smoke Cold IT ${suffix}`,
-      reports: [{ code: 'FINAL_PDF', title: 'Báo cáo tổng kết IT' }],
+      name: `Smoke Cold IT ${suffix}`,
+      reports: [{ code: 'FINAL_PDF', name: 'Báo cáo tổng kết IT', required: true }],
       scope: 'COMMON',
     })
     let coldChecklist = await apiJson<{ concurrencyToken: string; items: Array<{ id: number }> }>(
@@ -275,7 +312,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     expect(delivVerRes.ok(), await delivVerRes.text()).toBe(true)
     const delivVer = (await delivVerRes.json()) as { id: number }
     await apiJson(request, supervisor, 'POST', `/deliverable-versions/${delivVer.id}/review`, {
-      decision: 'APPROVED',
+      decision: 'ACCEPTED',
       feedback: 'Approved for Final Lock',
     })
 
@@ -339,6 +376,23 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     const coldComp = scheme.components.find(c => c.stage === 'COLD')!
     const defenseComp = scheme.components.find(c => c.stage === 'DEFENSE')!
 
+    // Confirm Defense Committee (no DefenseSession created -> proves POL-06 non-blocking room scheduling)
+    const coiCommittee = await apiRaw(request, staffIt, 'POST', `/projects/${project.id}/defense-committees`, {
+      name: `Invalid COI Committee ${suffix}`,
+      members: [{ userId: supervisor.user.id, majorId: fixture.seMajorId, role: 'CHAIR' }],
+    })
+    await expectProblem(coiCommittee, [409], 'EVALUATOR_ROLE_CONFLICT')
+
+    let committee = await apiJson<{ id: number; concurrencyToken: string }>(
+      request, staffIt, 'POST', `/projects/${project.id}/defense-committees`, {
+        name: `Smoke IT Defense Committee ${suffix}`,
+        members: [{ userId: evaluator.user.id, majorId: fixture.seMajorId, role: 'CHAIR' }],
+      },
+    )
+    committee = await apiJson(request, staffIt, 'POST', `/defense-committees/${committee.id}/confirm`, {
+      concurrencyToken: committee.concurrencyToken,
+    })
+
     // Negative D17 COI: Primary Supervisor blocked from EvaluationAssignment
     const coiEval = await apiRaw(request, staffIt, 'POST', `/projects/${project.id}/evaluation-assignments`, {
       evaluatorId: supervisor.user.id,
@@ -389,8 +443,8 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     try {
       const resultPage = await studentCtx.newPage()
       await openUiAs(resultPage, leader, '/project/result')
-      await expect(resultPage.getByText(/Điểm cá nhân/i)).toBeVisible()
-      await expect(resultPage.getByText('8.10').or(resultPage.getByText('8,10'))).toBeVisible()
+      await expect(resultPage.getByText('Điểm cá nhân', { exact: true })).toBeVisible()
+      await expect(resultPage.getByText(/^8[.,]10?$/).first()).toBeVisible()
     } finally {
       await studentCtx.close()
     }
@@ -406,7 +460,7 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
       expectedVersion: 0,
       approvalReference: `QD04-SMK-${suffix}`,
     })
-    const appealWin = await apiJson<{ id: number }>(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows`, {
+    const appealWin = await apiJson<{ id: number; concurrencyToken: string }>(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows`, {
       policyId: policy.id,
       opensAt: new Date(Date.now() - 3600_000).toISOString(),
       closesAt: new Date(Date.now() + 7 * 86400_000).toISOString(),
@@ -459,11 +513,21 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     )
     expect(v2Result.version).toBe(2)
 
-    // Stage 9: Archive + 7-section Dossier UI + Direct Chat READ_ONLY check
+    // Stage 9: Archive guard (open appeal window -> 409 ARCHIVE_NOT_ALLOWED) -> close window -> Archive + 7-section Dossier UI + Direct Chat READ_ONLY
     const directChat = await apiJson<{ id: number }>(request, supervisor, 'POST', '/chat/conversations/direct', {
       recipientUserId: String(leader.user.id),
     })
-    const latestProject = await apiJson<{ concurrencyToken: string }>(request, staffIt, 'GET', `/projects/${project.id}`)
+    let latestProject = await apiJson<{ concurrencyToken: string }>(request, staffIt, 'GET', `/projects/${project.id}`)
+    const blockedArchive = await apiRaw(request, staffIt, 'POST', `/projects/${project.id}/archive`, {
+      concurrencyToken: latestProject.concurrencyToken,
+      reason: 'Attempt archive while appeal window still open',
+    })
+    await expectProblem(blockedArchive, [409], 'ARCHIVE_NOT_ALLOWED')
+
+    await apiJson(request, staffIt, 'POST', `/projects/${project.id}/result/appeal-windows/${appealWin.id}/close`, {
+      concurrencyToken: appealWin.concurrencyToken,
+    })
+    latestProject = await apiJson<{ concurrencyToken: string }>(request, staffIt, 'GET', `/projects/${project.id}`)
     await apiJson(request, staffIt, 'POST', `/projects/${project.id}/archive`, {
       concurrencyToken: latestProject.concurrencyToken,
       reason: 'Hoàn tất nghiệm thu toàn bộ học kỳ thí điểm.',
@@ -486,8 +550,8 @@ test.describe('Go-Live 9-Stage Live Smoke — Track 1: Single Major (IT_ONLY)', 
     try {
       const archivePage = await staffCtx.newPage()
       await openUiAs(archivePage, staffIt, `/department/projects/${project.id}/archive-view`)
-      await expect(archivePage.getByText(/Hồ sơ lưu trữ/i)).toBeVisible()
-      await expect(archivePage.getByText(/7\. Tổng hợp Phúc khảo/i)).toBeVisible()
+      await expect(archivePage.getByRole('heading', { name: /Hồ sơ lưu trữ/i })).toBeVisible()
+      await expect(archivePage.getByRole('heading', { name: /7\. Tổng hợp Phúc khảo/i })).toBeVisible()
       await expectTapTargetAtLeast44(
         archivePage.getByRole('button', { name: 'Khôi phục về Hoàn thành' }),
         'Unarchive button',

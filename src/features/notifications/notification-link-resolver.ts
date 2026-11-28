@@ -46,6 +46,13 @@ const finalSubmission: Rule = { entities: ['PROJECT'], targets: {
 const result: Rule = { entities: ['PROJECT', 'STUDENT_RESULT'], targets: {
   student: { url: '/project/result', label: 'Xem kết quả đồ án hiện tại' },
 } }
+const projectResultPublished: Rule = { entities: ['PROJECT'], targets: {
+  student: { url: '/project/result', label: 'Xem kết quả đồ án hiện tại' },
+  lecturer: id => ({ url: `/supervisor/projects/${id}/result`, label: 'Xem kết quả đồ án hướng dẫn' }),
+} }
+const mentorReferenceNote: Rule = { entities: ['PROJECT'], targets: {
+  lecturer: id => ({ url: `/supervisor/projects/${id}/individual-process`, label: 'Xem nhận xét tham khảo của Mentor (20%)' }),
+} }
 const risk: Rule = { entities: ['PROJECT'], targets: {
   student: { url: '/project/overview', label: 'Xem tiến độ đồ án hiện tại' }, lecturer: ownProjects,
   department: { url: '/department/portfolio', label: 'Xem danh mục đồ án của bộ môn' },
@@ -138,6 +145,7 @@ const rules: Record<string, Rule | null> = {
   SLA_REMINDER_48H: gateSla, SLA_ESCALATION_72H: gateSla,
   CHECKLIST_PUBLISHED: gates, GATE_DEADLINE_CHANGE_REQUESTED: gates, GATE_DEADLINE_CHANGE_DECIDED: gates,
   CRITICAL_ANCHORED_COMMENT_ADDED: gates,
+  MENTOR_REFERENCE_NOTE_SAVED: mentorReferenceNote,
 }
 
 export function resolveNotificationLink(
@@ -150,9 +158,11 @@ export function resolveNotificationLink(
   // Feedback IDs are remapped to their actual parent by the recipient inbox endpoint.
   const rule = item.notificationType === 'SUPERVISOR_FEEDBACK_ADDED'
     ? ({ PROGRESS_REPORT: report, DELIVERABLE_VERSION: deliverable, DELIVERABLE: deliverable, MEETING: meeting, TASK: task, PROJECT: risk } as Record<string, Rule>)[entity]
-    : (item.notificationType === 'SLA_REMINDER_48H' || item.notificationType === 'SLA_ESCALATION_72H') && entity === 'PROJECT_REVIEW'
-      ? projectReviewSla
-      : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
+    : item.notificationType === 'PROJECT_RESULT_PUBLISHED' && entity === 'PROJECT'
+      ? projectResultPublished
+      : (item.notificationType === 'SLA_REMINDER_48H' || item.notificationType === 'SLA_ESCALATION_72H') && entity === 'PROJECT_REVIEW'
+        ? projectReviewSla
+        : Object.hasOwn(rules, item.notificationType) ? rules[item.notificationType] : null
   if (!rule || !rule.entities.includes(entity) || (rule.feature && !env[rule.feature])) return null
   const mine = new Set(roles.map(role => role.toUpperCase()))
   for (const role of rule.rolePriority ?? defaultPriority) {

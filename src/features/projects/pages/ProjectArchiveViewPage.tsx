@@ -97,11 +97,11 @@ export function ProjectArchiveViewPage() {
       action={
         <div className="flex flex-wrap items-center gap-2">
           {dossier?.canUnarchive && (
-            <Button variant="secondary" size="sm" icon="unarchive" disabled={loading || unarchiveBusy} onClick={() => setUnarchiveOpen(true)}>
+            <Button variant="secondary" size="sm" icon="unarchive" className="min-h-[44px] min-w-[44px]" disabled={loading || unarchiveBusy} onClick={() => setUnarchiveOpen(true)}>
               Khôi phục về Hoàn thành
             </Button>
           )}
-          <Button variant="secondary" size="sm" icon="refresh" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />
+          <Button variant="secondary" size="sm" icon="refresh" className="min-h-[44px] min-w-[44px]" aria-label="Tải lại" disabled={loading} onClick={() => void load()} />
         </div>
       }
     >
