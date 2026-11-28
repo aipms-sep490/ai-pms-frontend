@@ -39,6 +39,7 @@ const WORKFLOW_REASON_LABELS: Record<string, string> = {
   PUBLISHED_SCHEME_REQUIRED: 'Cần phương án chấm đã công bố phù hợp cho học kỳ.',
   EVALUATION_WINDOW_CLOSED: 'Hiện chưa có đợt chấm đang mở phù hợp.',
   MISSING_EVALUATOR: 'Còn cấu phần chấm chưa được phân công giảng viên chấm.',
+  MISSING_FINAL_EVALUATION: 'Chưa có đủ phiếu đánh giá đã chốt để công bố kết quả.',
   RESULT_NOT_READY: 'Kết quả đánh giá chưa đủ điều kiện để công bố.',
   RESULT_PUBLICATION_FORBIDDEN: 'Tài khoản hiện tại không có quyền công bố kết quả.',
   ARCHIVE_NOT_ALLOWED: 'Đồ án chưa đáp ứng đủ điều kiện để lưu trữ.',

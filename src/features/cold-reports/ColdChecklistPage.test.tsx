@@ -59,7 +59,7 @@ describe('COLD checklist page', () => {
   it('shows lock blockers and an explicit empty checklist state for leader', async () => {
     mount(checklistWith([], ['WINDOW_CLOSED']))
     expect(await screen.findByText('Chưa đủ điều kiện khóa gói')).toBeTruthy()
-    expect(screen.getByText('WINDOW_CLOSED')).toBeTruthy()
+    expect(screen.getByText('Đợt thực hiện đã hết hạn.')).toBeTruthy()
     expect(screen.getByText('Chưa có checklist báo cáo')).toBeTruthy()
   })
 

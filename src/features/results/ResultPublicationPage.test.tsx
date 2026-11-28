@@ -42,7 +42,7 @@ it('shows the two publication steps and explains preview blockers before enablin
   await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
   expect(screen.getByText(/Bước 1.*Đã chốt điểm/)).toBeTruthy()
   expect(screen.getByText(/Bước 2.*Xem trước/)).toBeTruthy()
-  expect(screen.getByText('MISSING_FINAL_EVALUATION')).toBeTruthy()
+  expect(screen.getByText('Chưa có đủ phiếu đánh giá đã chốt để công bố kết quả.')).toBeTruthy()
   expect((screen.getByRole('button', { name: 'Công bố kết quả đồ án' }) as HTMLButtonElement).disabled).toBe(true)
 })
 it('preserves the backend-scoped roster for a lead department across participating departments', async () => {

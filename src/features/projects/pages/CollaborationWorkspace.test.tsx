@@ -171,7 +171,7 @@ describe('collaboration workspace API integration', () => {
     fireEvent.change(within(form).getByLabelText(/Hạn hoàn thành/), { target: { value: '2099-10-01T15:00' } })
     fireEvent.click(within(form).getByRole('checkbox', { name: names[1] }))
     fireEvent.click(within(form).getAllByRole('button', { name: 'Tạo công việc' }).at(-1)!)
-    expect(await screen.findByText('Bạn chưa có quyền tạo công việc cho nhóm.')).toBeTruthy()
+    expect(await screen.findByText('Bạn chưa có quyền thực hiện thao tác này.')).toBeTruthy()
     expect((within(form).getByRole('textbox', { name: 'Tên công việc' }) as HTMLInputElement).value).toBe('  Hoàn thiện đăng nhập  ')
     const creation = calls.find(call => call.init?.method === 'POST')!
     expect(JSON.parse(String(creation.init?.body))).toEqual({ milestoneId: 3, title: 'Hoàn thiện đăng nhập', description: null,

@@ -27,7 +27,7 @@ it('explains backend blockers before enabling a student publication', async () =
   api.getStudentResultPreview.mockResolvedValue({ canPublish: false, confirmationToken: 'blocked', blockers: ['MISSING_FINAL_EVALUATION'], totalScore: null, passThreshold: 5, outcome: null })
   render(<StudentResultPublicationPanel projectId={2} studentNames={{ 9: 'Nguyễn An' }} />)
   await preview()
-  expect(screen.getByText('MISSING_FINAL_EVALUATION')).toBeTruthy()
+  expect(screen.getByText('Chưa có đủ phiếu đánh giá đã chốt để công bố kết quả.')).toBeTruthy()
   expect(screen.getByText('Chưa đủ điều kiện công bố')).toBeTruthy()
   expect((screen.getByRole('button', { name: 'Công bố kết quả sinh viên' }) as HTMLButtonElement).disabled).toBe(true)
 })
