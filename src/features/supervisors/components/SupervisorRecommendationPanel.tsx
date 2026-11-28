@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Avatar } from '../../../components/ui/Avatar'
+import { humanizeWorkflowReason } from '../../../components/ui/workflow-action-gate'
 import { displayLabel } from '../../../components/ui/display-label'
 import { Pagination } from '../../../components/ui/Pagination'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
@@ -230,6 +231,27 @@ export function SupervisorRecommendationPanel({ projectId, assignmentType = 'PRI
   </section>
 }
 
+const RECOMMENDATION_REASON_LABELS: Record<string, string> = {
+  ELIGIBLE_AT_GENERATION: 'Đủ điều kiện lúc gợi ý',
+  EXPERTISE_MATCHED: 'Chuyên môn phù hợp',
+  EXPERTISE_NO_MATCH: 'Chuyên môn chưa khớp',
+  EXPERTISE_UNKNOWN: 'Chưa khai báo chuyên môn',
+  CAPACITY_AVAILABLE: 'Còn suất hướng dẫn',
+  ADVISORY_ONLY: 'Gợi ý tham khảo',
+  ELIGIBILITY_CHANGED: 'Điều kiện tiếp nhận đã thay đổi',
+  SELECTION_NOT_AVAILABLE: 'Đợt chọn giảng viên hiện không mở',
+  CAPACITY_EXCEEDED: 'Đã đạt giới hạn nhóm hướng dẫn',
+  SUPERVISOR_ROLE_CONFLICT: 'Đã có vai trò hướng dẫn khác trong đồ án này',
+}
+
+function recommendationReasonLabel(code: string): string {
+  const key = code.trim().toUpperCase()
+  if (Object.hasOwn(RECOMMENDATION_REASON_LABELS, key)) {
+    return RECOMMENDATION_REASON_LABELS[key]
+  }
+  return humanizeWorkflowReason(code)
+}
+
 function RecommendationRow({ item, rank, selectable, onPick }: {
   item: SupervisorRecommendationItem; rank: number; selectable: boolean; onPick?: (supervisorId: number) => void
 }) {
@@ -260,7 +282,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
       <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
         <span className="font-semibold text-ink-soft">Tiêu chí:</span>
         {item.reasons.map((r) => (
-          <span key={r} className="rounded bg-canvas px-1.5 py-0.5 border border-hairline">{r}</span>
+          <span key={r} className="rounded bg-canvas px-1.5 py-0.5 border border-hairline">{recommendationReasonLabel(r)}</span>
         ))}
       </div>
     )}
@@ -270,7 +292,7 @@ function RecommendationRow({ item, rank, selectable, onPick }: {
       <div className="mt-2 rounded-md border border-status-error-border bg-status-error-bg p-2 text-xs text-status-error-text">
         <span className="inline-flex items-center gap-1 font-semibold"><span className="material-symbols-outlined text-[15px]" aria-hidden="true">warning</span>Cảnh báo:</span> Giảng viên này hiện không còn đủ điều kiện tiếp nhận (đã thay đổi sau thời điểm gợi ý).
         {item.currentReasons.length > 0 && (
-          <span className="block mt-0.5">Lý do: {item.currentReasons.join(', ')}</span>
+          <span className="block mt-0.5">Lý do: {item.currentReasons.map(recommendationReasonLabel).join(', ')}</span>
         )}
       </div>
     )}

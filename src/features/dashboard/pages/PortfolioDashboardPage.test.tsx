@@ -118,3 +118,12 @@ it('does not archive a project when the confirmation is cancelled', async () => 
   fireEvent.click(within(dialog).getByRole('button', { name: 'Hủy' }))
   expect(api.archiveProject).not.toHaveBeenCalled()
 })
+
+it('translates raw archive blocker codes into Vietnamese', async () => {
+  api.getReviewActions.mockResolvedValue({ actions: [{ code: 'archive_project', allowed: false, reasons: ['FINAL_RESULT_NOT_PUBLISHED'] }] })
+  render(<MemoryRouter><PortfolioDashboardPage /></MemoryRouter>)
+  fireEvent.click(await screen.findByRole('button', { name: 'Lưu trữ' }))
+  const alert = await screen.findByRole('alert')
+  expect(alert.textContent).toContain('Cần công bố kết quả chính thức trước khi lưu trữ đồ án.')
+  expect(alert.textContent).not.toContain('FINAL_RESULT_NOT_PUBLISHED')
+})

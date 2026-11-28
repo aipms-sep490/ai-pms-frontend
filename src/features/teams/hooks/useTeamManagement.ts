@@ -42,7 +42,7 @@ const TEAM_CONFLICT_MESSAGES: Record<string, string> = {
   TEAM_MAX_MEMBERS_EXCEEDED: 'Nhóm đã đạt số lượng thành viên tối đa theo quy định học kỳ.',
 }
 
-function resolveTeamProblemMessage(reason: unknown): string | null {
+export function resolveTeamProblemMessage(reason: unknown): string | null {
   if (!(reason instanceof HttpError)) return null
   const code = reason.problem?.code?.trim().toUpperCase()
   if (code && Object.hasOwn(TEAM_CONFLICT_MESSAGES, code)) return TEAM_CONFLICT_MESSAGES[code]

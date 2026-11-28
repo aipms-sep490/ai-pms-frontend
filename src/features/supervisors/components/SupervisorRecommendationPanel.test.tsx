@@ -51,6 +51,8 @@ describe('SupervisorRecommendationPanel', () => {
     expect(screen.getByText('Phù hợp 92%')).toBeTruthy()
     expect(screen.getByText('AI')).toBeTruthy()
     expect(screen.getByText('Còn nhận 2 nhóm')).toBeTruthy()
+    expect(screen.getByText('Đủ điều kiện lúc gợi ý')).toBeTruthy()
+    expect(screen.queryByText('ELIGIBLE_AT_GENERATION')).toBeNull()
   })
 
   it('requests the slot being filled (assignmentType + majorId), not always PRIMARY', async () => {
@@ -128,7 +130,8 @@ describe('SupervisorRecommendationPanel', () => {
     ]))
     render(<SupervisorRecommendationPanel projectId={9} />)
     expect(await screen.findByText(/Giảng viên này hiện không còn đủ điều kiện/)).toBeTruthy()
-    expect(screen.getByText(/CAPACITY_EXCEEDED/)).toBeTruthy()
+    expect(screen.getByText(/Đã đạt giới hạn nhóm hướng dẫn/)).toBeTruthy()
+    expect(screen.queryByText(/CAPACITY_EXCEEDED/)).toBeNull()
   })
 
   it('allows saving current recommendation run and viewing history runs', async () => {

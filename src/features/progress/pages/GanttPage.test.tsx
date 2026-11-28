@@ -53,4 +53,22 @@ describe('GanttPage', () => {
     expect(await screen.findByText('Đã cập nhật lịch trình mốc đồ án.')).toBeTruthy()
     expect(api.updateMilestone).toHaveBeenCalledWith(3, expect.objectContaining({ dueDate: '2026-10-03', concurrencyToken: 'tok-1' }))
   })
+
+  it('shows execution window in the milestone schedule drawer and blocks out-of-window dates', async () => {
+    const milestoneSvc = (await import('../../../services/service-gateway')).services.milestone as unknown as Record<string, ReturnType<typeof vi.fn>>
+    milestoneSvc.getProjectExecutionWindow = vi.fn().mockResolvedValue({
+      projectPeriodId: 10, code: 'DST-EXEC-20261024', name: 'Đợt thực hiện', startDate: '2026-10-23', endDate: '2026-11-30',
+    })
+    api.getMilestone.mockResolvedValue({ ...m, startDate: '2026-10-25', dueDate: '2026-11-10', description: null, concurrencyToken: 'tok-1' })
+    renderPage(true)
+    await screen.findByRole('link', { name: 'Khởi động' })
+    fireEvent.click(screen.getByRole('img', { name: /Khởi động:.*50% hoàn thành/ }))
+    expect(await screen.findByText(/23\/10\/2026 – 30\/11\/2026/)).toBeTruthy()
+    const dueInput = screen.getByLabelText('Hạn hoàn thành')
+    fireEvent.change(dueInput, { target: { value: '2026-12-17' } })
+    fireEvent.submit(dueInput.closest('form')!)
+    expect((await screen.findByRole('alert')).textContent).toContain('23/10/2026 – 30/11/2026')
+    expect(api.updateMilestone).not.toHaveBeenCalled()
+    delete milestoneSvc.getProjectExecutionWindow
+  })
 })

@@ -167,8 +167,21 @@ function TaskDetail({ id }: { id: number }) {
   </ExecutionPage>
 }
 
+function formatCalendarIsoVn(isoDate?: string | null): string | null {
+  if (!isoDate) return null
+  const parts = isoDate.slice(0, 10).split('-')
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : null
+}
+
 export function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: { task: TaskDto; timeline: ProjectTimelineDataDto | null; busy: boolean; onCancel: () => void; onSubmit: (payload: import('../../../services/api/tasks.api').UpdateTaskPayload) => Promise<boolean> }) {
   const [validation, setValidation] = useState('')
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number>(task.milestoneId)
+  const selectedMilestone = timeline?.milestones.find(item => item.id === selectedMilestoneId)
+  const minDate = selectedMilestone?.startDate?.slice(0, 10)
+  const maxDate = selectedMilestone?.dueDate?.slice(0, 10)
+  const startVn = formatCalendarIsoVn(minDate)
+  const dueVn = formatCalendarIsoVn(maxDate)
+  const rangeText = startVn && dueVn ? `${startVn} – ${dueVn}` : startVn ? `từ ${startVn}` : dueVn ? `đến ${dueVn}` : null
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget)
     const title = String(form.get('title') ?? '').trim(); const start = String(form.get('startAt') ?? ''); const due = String(form.get('dueAt') ?? '')
@@ -178,9 +191,9 @@ export function TaskContentEditor({ task, timeline, busy, onCancel, onSubmit }: 
   }
   return <section className="ex-panel" aria-label="Chỉnh sửa công việc"><div className="ex-panel-heading"><h2>Chỉnh sửa công việc</h2></div><form className="ex-form" onSubmit={submit}><fieldset disabled={busy}><div className="ex-fields">
     <label className="ex-full">Tên công việc<input autoFocus name="title" defaultValue={task.title} required maxLength={255} /></label><label className="ex-full">Mô tả<textarea name="description" defaultValue={task.description ?? ''} rows={3} maxLength={10000} /></label>
-    <label>Mốc đồ án<select name="milestoneId" defaultValue={task.milestoneId}>{timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select name="priority" defaultValue={task.priority ?? 'MEDIUM'}>{Object.entries(priorityLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-    <label>Bắt đầu dự kiến<input type="datetime-local" name="startAt" defaultValue={localDateTime(task.startAt)} /></label><label>Hạn hoàn thành<input type="datetime-local" name="dueAt" defaultValue={localDateTime(task.dueAt)} /></label>
-  </div><p className="ex-muted mt-3">Thời gian tính theo giờ Việt Nam (UTC+7).</p>{validation && <p role="alert" className="ex-notice ex-notice-error mt-3">{validation}</p>}<div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu nội dung'}</button></div></fieldset></form></section>
+    <label>Mốc đồ án<select name="milestoneId" value={selectedMilestoneId} onChange={event => setSelectedMilestoneId(Number(event.target.value))}>{timeline?.milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label><label>Mức ưu tiên<select name="priority" defaultValue={task.priority ?? 'MEDIUM'}>{Object.entries(priorityLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <label>Bắt đầu dự kiến<input type="datetime-local" name="startAt" min={minDate ? `${minDate}T00:00` : undefined} max={maxDate ? `${maxDate}T23:59` : undefined} defaultValue={localDateTime(task.startAt)} /></label><label>Hạn hoàn thành<input type="datetime-local" name="dueAt" min={minDate ? `${minDate}T00:00` : undefined} max={maxDate ? `${maxDate}T23:59` : undefined} defaultValue={localDateTime(task.dueAt)} /></label>
+  </div><p className="ex-muted mt-3">Thời gian tính theo giờ Việt Nam (UTC+7).{rangeText ? ` Khung thời gian của mốc: ${rangeText}.` : ''}</p>{validation && <p role="alert" className="ex-notice ex-notice-error mt-3">{validation}</p>}<div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">{busy ? 'Đang lưu…' : 'Lưu nội dung'}</button></div></fieldset></form></section>
 }
 export function AssigneeEditor({ task, candidates, busy, onCancel, onSubmit }: { task: TaskDto; candidates: { userId: number; fullName: string }[]; busy: boolean; onCancel: () => void; onSubmit: (ids: number[]) => Promise<boolean> }) {
   return <form onSubmit={event => { event.preventDefault(); void onSubmit(new FormData(event.currentTarget).getAll('assignee').map(Number)) }}><fieldset disabled={busy}><legend className="ex-muted">Chọn người cùng phụ trách công việc</legend><div className="ex-checks">{candidates.map(person => <label key={person.userId}><input name="assignee" type="checkbox" value={person.userId} defaultChecked={task.assignees.some(item => item.userId === person.userId)} />{person.fullName}</label>)}</div><div className="ex-form-footer"><button className="ex-button" type="button" onClick={onCancel}>Hủy</button><button className="ex-button ex-button-primary">Lưu phân công</button></div></fieldset></form>

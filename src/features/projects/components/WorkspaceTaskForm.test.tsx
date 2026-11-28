@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { WorkspaceTaskForm } from './WorkspaceTaskForm'
+import { HttpError } from '../../../services/http/http-client'
 import type { ProjectDto } from '../../../types/backend'
 const api = vi.hoisted(() => ({ createTask: vi.fn(), getProjectMajorRequirements: vi.fn() }))
 vi.mock('../../../services/service-gateway', () => ({ services: { task: { createTask: api.createTask } } }))
@@ -50,4 +51,26 @@ it('prefills only uniquely matched project options and sends nothing until save'
   expect(api.createTask).not.toHaveBeenCalled()
   fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
   await vi.waitFor(() => expect(api.createTask).toHaveBeenCalledWith(expect.objectContaining({ milestoneId: 2, priority: 'HIGH', dueAt: '2026-11-06T05:00:00.000Z', assigneeUserIds: [1], disciplines: [{ majorId: 3, role: 'PRIMARY' }] })))
+})
+
+it('shows milestone date bounds and surfaces exact Vietnamese execution window errors on 409', async () => {
+  api.getProjectMajorRequirements.mockResolvedValue({ requirements: [{ majorId: 3 }, { majorId: 12 }] })
+  api.createTask.mockRejectedValue(new HttpError('Conflict', 409, {
+    code: 'TASK_OUTSIDE_EXECUTION_WINDOW',
+    detail: 'Hạn hoàn thành công việc (17/12/2026) phải nằm trong đợt thực hiện (23/10/2026 – 30/11/2026).',
+  }))
+  render(<WorkspaceTaskForm
+    project={project}
+    milestones={[{ id: 2, title: 'Mốc 1', startDate: '2026-10-24', dueDate: '2026-11-15' }]}
+    members={[]}
+    onCancel={vi.fn()}
+    onCreated={vi.fn()}
+  />)
+  await screen.findByRole('combobox', { name: 'Ngành chính' })
+  fireEvent.change(screen.getByLabelText('Tên công việc'), { target: { value: 'Triển khai API' } })
+  fireEvent.change(screen.getByLabelText('Mốc đồ án'), { target: { value: '2' } })
+  expect(screen.getByText(/Khung thời gian mốc: 24\/10\/2026 – 15\/11\/2026/)).toBeTruthy()
+  fireEvent.change(screen.getByLabelText('Ngành chính'), { target: { value: '3' } })
+  fireEvent.submit(screen.getByRole('button', { name: 'Tạo công việc' }).closest('form')!)
+  expect((await screen.findByRole('alert')).textContent).toContain('23/10/2026 – 30/11/2026')
 })

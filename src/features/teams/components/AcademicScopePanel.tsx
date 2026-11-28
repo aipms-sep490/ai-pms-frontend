@@ -6,6 +6,8 @@ import type {
   UserWorkflowContextDto,
 } from '../../../types/backend'
 import { services } from '../../../services/service-gateway'
+import { humanizeHttpError } from '../../../services/http/humanize-http-error'
+import { resolveTeamProblemMessage } from '../hooks/useTeamManagement'
 
 interface AcademicScopePanelProps {
   teamId: number
@@ -31,8 +33,13 @@ export function AcademicScopePanel({
 
   const organizationId = workflowContext?.academic.organization?.id ?? fallbackOrganizationId
   const myMajorId = workflowContext?.academic.major?.id ?? fallbackMajorId
-  const departmentId = workflowContext?.academic.department?.id
+  const ownMajor = myMajorId ? majors.find((major) => major.id === myMajorId) : undefined
+  const ownMajorName = ownMajor?.name ?? workflowContext?.academic.major?.name
+  const departmentId = (myMajorId && selectedIds.includes(myMajorId)
+    ? (ownMajor?.departmentId ?? workflowContext?.academic.department?.id)
+    : null)
     ?? majors.find((major) => selectedIds.includes(major.id))?.departmentId
+    ?? workflowContext?.academic.department?.id
 
   useEffect(() => {
     if (!organizationId) return
@@ -41,10 +48,11 @@ export function AcademicScopePanel({
         setMajors(items)
         setSelectedIds((current) => current.length > 0 ? current : myMajorId ? [myMajorId] : [])
       })
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không thể tải danh sách ngành.'))
+      .catch((reason: unknown) => setError(humanizeHttpError(reason, 'Không thể tải danh sách ngành.')))
   }, [organizationId, myMajorId])
 
   const toggleMajor = (majorId: number) => {
+    setError(null)
     if (mode === 'SINGLE_MAJOR') {
       setSelectedIds([majorId])
       return
@@ -56,20 +64,48 @@ export function AcademicScopePanel({
 
   const save = async () => {
     const requiredCount = mode === 'INTERDISCIPLINARY' ? Math.max(2, period?.minDistinctMajors ?? 2) : 1
-    if (!departmentId || selectedIds.length < requiredCount) {
-      setError(mode === 'INTERDISCIPLINARY'
-        ? `Vui lòng chọn ít nhất ${requiredCount} ngành.`
-        : 'Không xác định được ngành hoặc bộ môn chủ trì.')
+    if (mode === 'SINGLE_MAJOR') {
+      if (selectedIds.length !== 1) {
+        setError(ownMajorName
+          ? `Nhóm Đơn ngành cần chọn đúng chuyên ngành của bạn (${ownMajorName}).`
+          : 'Vui lòng chọn đúng 1 chuyên ngành trước khi lưu.')
+        return
+      }
+      if (myMajorId && selectedIds[0] !== myMajorId) {
+        setError(ownMajorName
+          ? `Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn (${ownMajorName}). Nếu muốn ghép cùng ngành khác, hãy chuyển sang chế độ "Liên ngành".`
+          : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn. Nếu muốn ghép cùng ngành khác, hãy chuyển sang chế độ "Liên ngành".')
+        return
+      }
+    } else {
+      if (myMajorId && !selectedIds.includes(myMajorId)) {
+        setError(ownMajorName
+          ? `Nhóm Liên ngành bắt buộc phải bao gồm chuyên ngành của bạn (${ownMajorName}). Hãy tích chọn thêm "${ownMajorName}".`
+          : 'Nhóm Liên ngành bắt buộc phải bao gồm chuyên ngành của bạn.')
+        return
+      }
+      if (selectedIds.length < requiredCount) {
+        setError(ownMajorName
+          ? `Nhóm Liên ngành cần chọn tối thiểu ${requiredCount} chuyên ngành (bao gồm ngành của bạn: ${ownMajorName}).`
+          : `Vui lòng chọn tối thiểu ${requiredCount} chuyên ngành khác nhau.`)
+        return
+      }
+    }
+    if (!departmentId) {
+      setError('Không xác định được bộ môn chủ trì hợp lệ cho chuyên ngành đã chọn.')
       return
     }
+    const orderedIds = myMajorId && selectedIds.includes(myMajorId)
+      ? [myMajorId, ...selectedIds.filter((id) => id !== myMajorId)]
+      : selectedIds
     setIsSaving(true)
     setError(null)
     try {
       await services.team.setAcademicScope(teamId, {
         projectMode: mode,
-        primaryMajorId: mode === 'SINGLE_MAJOR' ? selectedIds[0] : null,
+        primaryMajorId: mode === 'SINGLE_MAJOR' ? orderedIds[0] : null,
         leadDepartmentId: departmentId,
-        requirements: selectedIds.map((majorId, index) => ({
+        requirements: orderedIds.map((majorId, index) => ({
           majorId,
           minMembers: mode === 'SINGLE_MAJOR' ? period?.minTeamSize ?? 1 : 1,
           maxMembers: period?.maxTeamSize ?? 5,
@@ -79,7 +115,7 @@ export function AcademicScopePanel({
       })
       await onSaved()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Không thể lưu phạm vi học thuật.')
+      setError(resolveTeamProblemMessage(reason) ?? humanizeHttpError(reason, 'Không thể lưu phạm vi học thuật.'))
     } finally {
       setIsSaving(false)
     }
@@ -101,22 +137,42 @@ export function AcademicScopePanel({
             {(['SINGLE_MAJOR', 'INTERDISCIPLINARY'] as const).map((value) => (
               <button key={value} type="button" onClick={() => {
                 setMode(value)
-                if (value === 'SINGLE_MAJOR') setSelectedIds(myMajorId ? [myMajorId] : selectedIds.slice(0, 1))
+                setError(null)
+                if (value === 'SINGLE_MAJOR') {
+                  setSelectedIds(myMajorId ? [myMajorId] : selectedIds.slice(0, 1))
+                } else if (myMajorId && !selectedIds.includes(myMajorId)) {
+                  setSelectedIds([myMajorId, ...selectedIds])
+                }
               }} className={`min-h-11 rounded-lg px-3.5 py-2 text-xs font-bold transition-colors ${mode === value ? 'bg-primary text-white shadow-primary' : 'border border-hairline bg-canvas text-ink-soft hover:border-primary hover:bg-primary-subtle hover:text-primary'}`}>
                 {value === 'SINGLE_MAJOR' ? 'Đơn ngành' : 'Liên ngành'}
               </button>
             ))}
           </div>
+          <p className="text-xs text-ink-muted">
+            {mode === 'SINGLE_MAJOR'
+              ? (ownMajorName ? `Nhóm Đơn ngành phải thuộc chuyên ngành của bạn (${ownMajorName}).` : 'Nhóm Đơn ngành phải thuộc đúng chuyên ngành của bạn.')
+              : (ownMajorName ? `Chọn tối thiểu ${Math.max(2, period?.minDistinctMajors ?? 2)} chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn (${ownMajorName}).` : `Chọn tối thiểu ${Math.max(2, period?.minDistinctMajors ?? 2)} chuyên ngành, bắt buộc bao gồm chuyên ngành của bạn.`)}
+          </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {majors.map((major) => (
-              <label key={major.id} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-card p-3 text-xs text-ink-soft hover:bg-canvas">
-                <input type={mode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="academic-major"
-                  checked={selectedIds.includes(major.id)} onChange={() => toggleMajor(major.id)} className="accent-primary" />
-                <span><strong className="text-ink">{major.code}</strong> — {major.name}</span>
-              </label>
-            ))}
+            {majors.map((major) => {
+              const isOwn = myMajorId != null && major.id === myMajorId
+              return (
+                <label key={major.id} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-hairline bg-card p-3 text-xs text-ink-soft hover:bg-canvas">
+                  <input type={mode === 'SINGLE_MAJOR' ? 'radio' : 'checkbox'} name="academic-major"
+                    checked={selectedIds.includes(major.id)} onChange={() => toggleMajor(major.id)} className="accent-primary" />
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span><strong className="text-ink">{major.code}</strong> — {major.name}</span>
+                    {isOwn && (
+                      <span className="rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-semibold text-primary">
+                        Ngành của bạn
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )
+            })}
           </div>
-          {error && <p className="text-xs font-medium text-status-error-text">{error}</p>}
+          {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg px-3 py-2 text-xs font-medium text-status-error-text">{error}</p>}
           <button type="button" onClick={save} disabled={isSaving || majors.length === 0}
             className="min-h-11 self-start rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
             {isSaving ? 'Đang lưu...' : 'Lưu phạm vi ngành'}

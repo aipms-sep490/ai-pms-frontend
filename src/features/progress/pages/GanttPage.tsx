@@ -9,6 +9,7 @@ import { canUseProjectExecutionAction } from '../../execution/execution-authorit
 import { ExecutionPage, ExIcon, ExState } from '../../execution/execution-ui'
 import { executionError, milestoneLabels } from '../../execution/execution-utils'
 import { services } from '../../../services/service-gateway'
+import type { ProjectExecutionWindowDto } from '../../../services/api/milestones.api'
 import type { ProjectProgressSummaryDto, ProjectTimelineDataDto, TimelineMilestoneDto, TimelineTaskDto } from '../../../types/backend'
 import { isOverdue, taskStatusLabel } from '../../projects/utils/collaboration-workspace'
 import { WorkspaceTaskForm } from '../../projects/components/WorkspaceTaskForm'
@@ -77,6 +78,7 @@ export function GanttPage() {
   const canCreateTask = canUseProjectExecutionAction(access, 'create_task')
   const [timeline, setTimeline] = useState<ProjectTimelineDataDto | null>(null)
   const [summary, setSummary] = useState<ProjectProgressSummaryDto | null>(null)
+  const [executionWindow, setExecutionWindow] = useState<ProjectExecutionWindowDto | null>(null)
   const [error, setError] = useState('')
   const [summaryError, setSummaryError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -122,6 +124,15 @@ export function GanttPage() {
     }).catch(reason => {
       if (!controller.signal.aborted) setSummaryError(executionError(reason, 'tải tiến độ đồ án'))
     })
+    if (typeof services.milestone.getProjectExecutionWindow === 'function') {
+      services.milestone.getProjectExecutionWindow(project.id, controller.signal).then(next => {
+        if (!controller.signal.aborted) setExecutionWindow(next ?? null)
+      }).catch(() => {
+        if (!controller.signal.aborted) setExecutionWindow(null)
+      })
+    } else {
+      setExecutionWindow(null)
+    }
     return () => controller.abort()
   }, [project.id, revision])
 
@@ -556,6 +567,7 @@ export function GanttPage() {
       {activeMilestone && (
         <MilestoneScheduleDrawer
           milestone={activeMilestone}
+          executionWindow={executionWindow}
           routeBase={routeBase}
           canEdit={canManageStructure}
           canCreateTask={canCreateTask}

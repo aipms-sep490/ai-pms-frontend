@@ -38,7 +38,14 @@ export function AssignmentManagementPanel({ projectId, projectStatus = 'ACTIVE' 
       if (current === version.current) { await load(); setNotice('Đã cập nhật phân công hướng dẫn.') }
     } catch (reason) {
       if (current !== version.current) return
-      if (reason instanceof HttpError && reason.status === 409) { await load(); setError('Phân công hoặc sức chứa đã thay đổi. Kiểm tra lại ứng viên; quyết định chưa được gửi lại.') }
+      if (reason instanceof HttpError && reason.status === 409) {
+        await load()
+        if (reason.problem?.code === 'SUPERVISOR_ROLE_CONFLICT' && reason.problem.detail?.trim()) {
+          setError(reason.problem.detail.trim())
+        } else {
+          setError('Phân công hoặc sức chứa đã thay đổi. Kiểm tra lại ứng viên; quyết định chưa được gửi lại.')
+        }
+      }
       else setError(departmentError(reason).message)
     } finally { lock.current = false; setBusy(false) }
   }
