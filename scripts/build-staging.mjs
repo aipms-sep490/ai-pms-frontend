@@ -19,6 +19,7 @@ const buildEnv = {
   // Runtime APIs and schema are deployed. User authorized these modules on
   // staging; backend permissions, policy references and windows still apply.
   VITE_ENABLE_ROOM_PLANNER: 'true',
+  VITE_ENABLE_SUPERVISOR_RECOMMENDATION: 'true',
   VITE_ENABLE_PEER_EVAL: 'true',
   VITE_ENABLE_RESULT_CORRECTION: 'true',
   VITE_ENABLE_WORKFLOW_PREVIEW: 'false',
