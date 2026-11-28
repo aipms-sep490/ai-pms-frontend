@@ -171,7 +171,7 @@ function PreviewStage({
           } catch {
             if (!alive || abort.signal.aborted) return
           }
-          if (/\.(docx|xlsx)$/i.test(file.fileName)) {
+          if (/\.(docx|xlsx|pptx)$/i.test(file.fileName)) {
             const result = await previewOfficeFile(blob, file.fileName, abort.signal)
             if (alive) { setOffice(result); setStatus('ready') }
             return
@@ -186,7 +186,7 @@ function PreviewStage({
       })
       .catch(() => { if (alive) setStatus('error') })
     return () => { alive = false; abort.abort(); if (objectUrl.current) { URL.revokeObjectURL(objectUrl.current); objectUrl.current = null } }
-  }, [assignmentId, file.id, kind])
+  }, [assignmentId, file.fileName, file.id, kind])
 
   return (
     <div className={`report-preview-stage ${isFullscreen ? 'h-full m-0 border-0 rounded-none' : ''}`}>
@@ -238,6 +238,9 @@ function PreviewStage({
           {office.truncated && <p role="status" className="mb-3 text-xs text-ink-muted">Chỉ hiển thị phần đầu tài liệu.</p>}
           {office.kind === 'DOCX_TEXT' && <div className="space-y-2 whitespace-pre-wrap">
             {office.paragraphs.length ? office.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>) : <p>Không có đoạn văn bản để hiển thị.</p>}
+          </div>}
+          {office.kind === 'PPTX_SLIDES' && <div className="space-y-2 whitespace-pre-wrap">
+            {office.paragraphs.length ? office.paragraphs.map((slide, index) => <p key={index}>{slide}</p>) : <p>Không có trang trình chiếu để hiển thị.</p>}
           </div>}
           {office.kind === 'XLSX_GRID' && office.sheets.map((sheet, index) => <section key={`${sheet.name}-${index}`} className="mb-4">
             <h3 className="mb-2 font-semibold">{sheet.name}</h3>

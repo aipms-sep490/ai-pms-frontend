@@ -22,7 +22,15 @@ import { env } from '../../app/config/env'
 import { ResultHistoryPanel } from './ResultHistoryPanel'
 import { ScoreCalibrationPanel } from '../ai-suite/EvaluationAiPanels'
 
-const outcome = (value: string | null) => ({ PASS: 'Đạt', FAIL: 'Chưa đạt', PASSED: 'Đạt', FAILED: 'Chưa đạt' }[value ?? ''] ?? value ?? 'Chưa có kết luận')
+const outcome = (value: string | null) => ({
+  PASS: 'Đạt',
+  FAIL: 'Chưa đạt',
+  PASSED: 'Đạt',
+  FAILED: 'Chưa đạt',
+  FAILED_TOTAL: 'Chưa đạt (Tổng điểm < ngưỡng)',
+  FAILED_COMPONENT_FLOOR: 'Chưa đạt (Điểm thành phần < sàn)',
+  DEFENSE_ABSENT: 'Vắng bảo vệ (0.00 Defense)',
+}[value ?? ''] ?? value ?? 'Chưa có kết luận')
 const calculationRuleLabel = (rule: string | null | undefined) => {
   if (!rule) return ''
   const map: Record<string, string> = {

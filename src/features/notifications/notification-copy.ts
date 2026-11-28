@@ -98,6 +98,36 @@ const copyByType: Record<string, { title: string; content: string; label: string
     label: 'Thẩm định đề cương',
     icon: 'task_alt',
   },
+  PROJECT_SUBMITTED_FOR_REVIEW: {
+    title: 'Có hồ sơ đề xuất đồ án mới chờ thẩm định',
+    content: 'Một nhóm sinh viên vừa nộp hoặc cập nhật hồ sơ đề xuất đồ án. Hãy kiểm tra và phân công thẩm định theo quy định.',
+    label: 'Thẩm định đề cương',
+    icon: 'assignment_turned_in',
+  },
+  PROJECT_ACTIVATED: {
+    title: 'Đồ án đã chính thức kích hoạt',
+    content: 'Đồ án đã hoàn tất điều kiện hướng dẫn và chuyển sang trạng thái đang thực hiện (ACTIVE).',
+    label: 'Kích hoạt đồ án',
+    icon: 'rocket_launch',
+  },
+  PROJECT_FORCE_ACTIVATED: {
+    title: 'Khoa đã kích hoạt đồ án',
+    content: 'Khoa chủ trì đã kích hoạt đồ án sang trạng thái ACTIVE. Vui lòng kiểm tra kế hoạch và các mốc thực hiện.',
+    label: 'Kích hoạt đồ án',
+    icon: 'rocket_launch',
+  },
+  SUPERVISOR_SLOT_RELEASED: {
+    title: 'Giải phóng định mức hướng dẫn đồ án',
+    content: 'Đề xuất đồ án đã bị từ chối và định mức hướng dẫn liên quan đã được giải phóng tự động.',
+    label: 'Định mức hướng dẫn',
+    icon: 'event_available',
+  },
+  SUPERVISOR_DIRECTLY_ASSIGNED: {
+    title: 'Khoa đã phân công giảng viên hướng dẫn',
+    content: 'Khoa/Bộ môn đã thực hiện phân công giảng viên hướng dẫn cho đồ án. Vui lòng kiểm tra không gian đồ án.',
+    label: 'Phân công hướng dẫn',
+    icon: 'school',
+  },
   PROJECT_REJECTED: {
     title: 'Đề cương đồ án chưa được chấp thuận',
     content: 'Đề cương đồ án chưa được chấp thuận. Hãy xem kết quả thẩm định và hướng dẫn trong hồ sơ.',
@@ -427,6 +457,42 @@ const copyByType: Record<string, { title: string; content: string; label: string
     content: 'Giảng viên vừa gắn nhận xét mức độ nghiêm trọng trên tài liệu minh chứng của nhóm. Hãy mở hồ sơ để khắc phục.',
     label: 'Nhận xét nghiêm trọng',
     icon: 'priority_high',
+  },
+  EVALUATOR_REVOKED: {
+    title: 'Phân công chấm đánh giá đã được thu hồi',
+    content: 'Khoa/Bộ môn đã thu hồi một phân công chấm đánh giá đồ án trước khi khóa điểm.',
+    label: 'Phân công đánh giá',
+    icon: 'person_remove',
+  },
+  REVIEW_GATE_ASSIGNED: {
+    title: 'Bạn được phân công thẩm định cổng kiểm duyệt',
+    content: 'Khoa đã phân công bạn thẩm định hồ sơ cổng kiểm duyệt (Gate). Vui lòng mở hàng đợi thẩm định để xử lý.',
+    label: 'Cổng kiểm duyệt',
+    icon: 'assignment_ind',
+  },
+  REVIEW_GATE_REVOKED: {
+    title: 'Phân công thẩm định cổng kiểm duyệt đã thu hồi',
+    content: 'Một phân công thẩm định cổng kiểm duyệt đã được Khoa thu hồi hoặc điều chỉnh.',
+    label: 'Cổng kiểm duyệt',
+    icon: 'assignment_late',
+  },
+  APPEAL_WINDOW_OPENED: {
+    title: 'Cửa sổ phúc khảo kết quả đã mở',
+    content: 'Khoa chủ trì đã mở cửa sổ phúc khảo cho đồ án của bạn. Nếu có khiếu nại điểm hoặc đính chính, hãy gửi trước khi hết hạn.',
+    label: 'Phúc khảo kết quả',
+    icon: 'campaign',
+  },
+  APPEAL_SUPERVISOR_ERRATA: {
+    title: 'GVHD Chính đã phản hồi đính chính điểm 20%',
+    content: 'Giảng viên hướng dẫn chính đã phản hồi yêu cầu đính chính điểm quá trình 20%. Khoa có thể xem trước và phê duyệt.',
+    label: 'Đính chính quá trình 20%',
+    icon: 'fact_check',
+  },
+  DEPARTMENT_DAILY_DIGEST: {
+    title: 'Tổng hợp vận hành hằng ngày của Khoa',
+    content: 'Hệ thống đã tổng hợp danh sách đề xuất chờ duyệt, cổng kiểm duyệt và đơn phúc khảo cần xử lý trong ngày.',
+    label: 'Báo cáo hằng ngày',
+    icon: 'summarize',
   },
 }
 

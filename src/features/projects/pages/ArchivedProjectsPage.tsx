@@ -1,5 +1,5 @@
 import { displayLabel } from '../../../components/ui/display-label'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getWorkspaceRole } from '../../auth/utils/role-access'
 import { useAuthSession } from '../../auth/context/useAuthSession'
@@ -12,7 +12,6 @@ import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { buttonClassName } from '../../../components/ui/button-styles'
-import { useClientPagination } from '../../../components/ui/useClientPagination'
 
 type SortKey = 'code' | 'title'
 
@@ -23,24 +22,45 @@ export function ArchivedProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [deptFilter, setDeptFilter] = useState('ALL')
   const [sortBy, setSortBy] = useState<SortKey>('code')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const reqSeq = useRef(0)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim())
+      setPage(1)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [search])
 
   const load = useCallback(async () => {
+    const seq = ++reqSeq.current
     setLoading(true)
     try {
-      setData(await getPortfolioDashboard(scope, { status: 'ARCHIVED', page: 1, pageSize: 100 }))
+      const result = await getPortfolioDashboard(scope, {
+        status: 'ARCHIVED',
+        search: debouncedSearch || undefined,
+        page,
+        pageSize,
+      })
+      if (seq !== reqSeq.current) return
+      setData(result)
       setError(null)
     } catch (reason) {
+      if (seq !== reqSeq.current) return
       setError(
         reason instanceof HttpError && reason.status === 403
           ? 'Bạn chưa có quyền xem kho lưu trữ này.'
-          : 'Không thể tải danh sách lưu trữ. Vui lòng thử lại.'
+          : 'Không thể tải danh sách lưu trữ. Vui lòng thử lại.',
       )
     } finally {
-      setLoading(false)
+      if (seq === reqSeq.current) setLoading(false)
     }
-  }, [scope])
+  }, [scope, debouncedSearch, page, pageSize])
 
   useEffect(() => {
     void load()
@@ -54,26 +74,31 @@ export function ArchivedProjectsPage() {
     return [...names].sort((a, b) => a.localeCompare(b, 'vi'))
   }, [data?.projects.items])
 
-  const filteredItems = useMemo(() => {
-    const q = search.trim().toLowerCase()
+  const visibleItems = useMemo(() => {
     const list = (data?.projects.items ?? []).filter((p) => {
       if (deptFilter !== 'ALL' && p.departmentName !== deptFilter) return false
-      if (!q) return true
-      return p.code.toLowerCase().includes(q)
-        || p.title.toLowerCase().includes(q)
-        || (p.supervisor?.name ?? '').toLowerCase().includes(q)
+      return true
     })
-    return [...list].sort((a, b) => sortBy === 'title' ? a.title.localeCompare(b.title, 'vi') : a.code.localeCompare(b.code, 'vi'))
-  }, [data?.projects.items, deptFilter, search, sortBy])
-
-  const pagination = useClientPagination(filteredItems, 10)
+    return [...list].sort((a, b) =>
+      sortBy === 'title' ? a.title.localeCompare(b.title, 'vi') : a.code.localeCompare(b.code, 'vi'),
+    )
+  }, [data?.projects.items, deptFilter, sortBy])
 
   const activeChips = [
     ...(search.trim() ? [{ id: 'search', label: 'Từ khóa', value: search.trim() }] : []),
     ...(deptFilter !== 'ALL' ? [{ id: 'dept', label: 'Bộ môn', value: deptFilter }] : []),
   ]
 
-  const clearFilters = () => { setSearch(''); setDeptFilter('ALL'); setSortBy('code') }
+  const clearFilters = () => {
+    setSearch('')
+    setDebouncedSearch('')
+    setDeptFilter('ALL')
+    setSortBy('code')
+    setPage(1)
+  }
+
+  const totalCount = data?.projects.totalCount ?? 0
+  const totalPages = Math.max(1, data?.projects.totalPages ?? Math.ceil(totalCount / pageSize))
 
   return (
     <WorkspacePage
@@ -105,94 +130,98 @@ export function ArchivedProjectsPage() {
         <>
           <StatTileRow
             tiles={[
-              { icon: 'inventory_2', label: 'Đồ án đã lưu trữ', value: data.projects.totalCount, hero: true, caption: 'Hồ sơ chỉ đọc trong phạm vi hiện tại.' },
-              { icon: 'filter_alt', label: 'Khớp bộ lọc', value: filteredItems.length, tone: 'info', caption: 'Hiển thị theo từ khóa và bộ môn đã chọn.' },
-              { icon: 'apartment', label: 'Bộ môn liên quan', value: departments.length, tone: 'neutral', caption: 'Các bộ môn có hồ sơ lưu trữ.' },
+              { icon: 'inventory_2', label: 'Đồ án đã lưu trữ', value: totalCount, hero: true, caption: 'Hồ sơ chỉ đọc theo phân trang máy chủ.' },
+              { icon: 'filter_alt', label: 'Trang hiện tại', value: visibleItems.length, tone: 'info', caption: `Trang ${page} / ${totalPages}.` },
+              { icon: 'apartment', label: 'Bộ môn trong trang', value: departments.length, tone: 'neutral', caption: 'Các bộ môn có hồ sơ lưu trữ.' },
             ]}
           />
           <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs">
-          <div className="border-b border-hairline px-5 py-4">
-            <p className="text-sm font-semibold text-ink-soft">{data.projects.totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
-          </div>
-          {data.projects.items.length > 0 && (
-            <FilterToolbar
-              embedded
-              search={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Tìm mã đồ án, tên đề tài hoặc GVHD…"
-              searchLabel="Tìm đồ án lưu trữ"
-              controls={
-                departments.length > 1 ? (
-                  <label className="ft-select-wrap">
-                    <span className="sr-only">Bộ môn</span>
-                    <select aria-label="Bộ môn" value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="ft-select">
-                      <option value="ALL">Tất cả bộ môn</option>
-                      {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </label>
-                ) : undefined
-              }
-              sort={{
-                value: sortBy,
-                onChange: (val) => setSortBy(val as SortKey),
-                options: [
-                  { value: 'code', label: 'Mã đồ án A–Z' },
-                  { value: 'title', label: 'Tên đề tài A–Z' },
-                ],
-              }}
-              activeChips={activeChips}
-              onRemoveChip={(id) => { if (id === 'search') setSearch(''); if (id === 'dept') setDeptFilter('ALL') }}
-              onClearAll={clearFilters}
-              hasActiveFilters={activeChips.length > 0}
-              resultSummary={activeChips.length > 0 ? `Hiển thị ${filteredItems.length} / ${data.projects.items.length} đồ án` : undefined}
-              pagination={pagination.showPagination ? { page: pagination.page, pages: pagination.pages, total: pagination.total, pageSize: pagination.pageSize, onPage: pagination.setPage } : undefined}
-            />
-          )}
-          <div className="p-5">
-            {data.projects.items.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ink-muted">
-                Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.
-              </p>
-            ) : filteredItems.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ink-muted">
-                <p>Không có đồ án lưu trữ nào khớp bộ lọc.</p>
-                <Button variant="secondary" className="mt-3" onClick={clearFilters}>Xóa bộ lọc</Button>
-              </div>
-            ) : (
-              <>
-                <ul className="divide-y divide-hairline">
-                  {pagination.paginatedItems.map((project) => (
-                    <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-ink">{project.code} · {project.title}</p>
-                          <StatusBadge tone="neutral" label={displayLabel(project.status)} />
-                        </div>
-                        <p className="mt-1 text-xs text-ink-muted">
-                          {[project.departmentName, project.supervisor?.name ? `GVHD: ${project.supervisor.name}` : null].filter(Boolean).join(' · ') || 'Hồ sơ lưu trữ chỉ xem'}
-                        </p>
-                      </div>
-                      <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm', className: 'min-h-11' })}>
-                        <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                {pagination.showPagination && (
-                  <Pagination
-                    page={pagination.page}
-                    pages={pagination.pages}
-                    total={pagination.total}
-                    pageSize={pagination.pageSize}
-                    onPage={pagination.setPage}
-                    onPageSizeChange={pagination.setPageSize}
-                    className="mt-4"
-                  />
-                )}
-              </>
+            <div className="border-b border-hairline px-5 py-4">
+              <p className="text-sm font-semibold text-ink-soft">{totalCount} đồ án đã lưu trữ trong phạm vi hiện tại.</p>
+            </div>
+            {(totalCount > 0 || search.trim() !== '' || deptFilter !== 'ALL') && (
+              <FilterToolbar
+                embedded
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Tìm mã đồ án, tên đề tài hoặc GVHD…"
+                searchLabel="Tìm đồ án lưu trữ"
+                controls={
+                  departments.length > 1 ? (
+                    <label className="ft-select-wrap">
+                      <span className="sr-only">Bộ môn</span>
+                      <select aria-label="Bộ môn" value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="ft-select">
+                        <option value="ALL">Tất cả bộ môn</option>
+                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </label>
+                  ) : undefined
+                }
+                sort={{
+                  value: sortBy,
+                  onChange: (val) => setSortBy(val as SortKey),
+                  options: [
+                    { value: 'code', label: 'Mã đồ án A–Z' },
+                    { value: 'title', label: 'Tên đề tài A–Z' },
+                  ],
+                }}
+                activeChips={activeChips}
+                onRemoveChip={(id) => {
+                  if (id === 'search') { setSearch(''); setDebouncedSearch(''); setPage(1) }
+                  if (id === 'dept') setDeptFilter('ALL')
+                }}
+                onClearAll={clearFilters}
+                hasActiveFilters={activeChips.length > 0}
+                resultSummary={activeChips.length > 0 ? `Hiển thị ${visibleItems.length} / ${totalCount} đồ án` : undefined}
+                pagination={totalPages > 1 ? { page, pages: totalPages, total: totalCount, pageSize, busy: loading, onPage: setPage } : undefined}
+              />
             )}
-          </div>
-        </section>
+            <div className="p-5">
+              {totalCount === 0 && !search.trim() ? (
+                <p className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ink-muted">
+                  Chưa có đồ án nào được chuyển vào kho lưu trữ trong phạm vi của bạn.
+                </p>
+              ) : visibleItems.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-hairline bg-canvas p-6 text-center text-sm text-ink-muted">
+                  <p>Không có đồ án lưu trữ nào khớp bộ lọc.</p>
+                  <Button variant="secondary" className="mt-3" onClick={clearFilters}>Xóa bộ lọc</Button>
+                </div>
+              ) : (
+                <>
+                  <ul className="divide-y divide-hairline">
+                    {visibleItems.map((project) => (
+                      <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-ink">{project.code} · {project.title}</p>
+                            <StatusBadge tone="neutral" label={displayLabel(project.status)} />
+                          </div>
+                          <p className="mt-1 text-xs text-ink-muted">
+                            {[project.departmentName, project.supervisor?.name ? `GVHD: ${project.supervisor.name}` : null].filter(Boolean).join(' · ') || 'Hồ sơ lưu trữ chỉ xem'}
+                          </p>
+                        </div>
+                        <Link to={`/department/projects/${project.id}/archive-view`} className={buttonClassName({ variant: 'secondary', size: 'sm', className: 'min-h-11' })}>
+                          <span className="material-symbols-outlined text-[16px]" aria-hidden="true">visibility</span>Xem chi tiết
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {totalCount > pageSize || totalPages > 1 ? (
+                    <Pagination
+                      page={page}
+                      pages={totalPages}
+                      total={totalCount}
+                      pageSize={pageSize}
+                      busy={loading}
+                      onPage={setPage}
+                      onPageSizeChange={(next) => { setPageSize(next); setPage(1) }}
+                      className="mt-4"
+                    />
+                  ) : null}
+                </>
+              )}
+            </div>
+          </section>
         </>
       )}
     </WorkspacePage>

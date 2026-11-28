@@ -37,3 +37,57 @@ it('treats unavailable appeal routes as unavailable, not an empty writable featu
 it('uses server counts to request the next page', async () => {
   mocks.getResultCorrectionRequests.mockResolvedValue({ ...page, totalCount: 21 }); renderPanel(); await screen.findByText('Chưa có yêu cầu phúc khảo.'); fireEvent.click(screen.getByRole('button', { name: 'Trang sau' })); await waitFor(() => expect(mocks.getResultCorrectionRequests).toHaveBeenCalledWith(9, 2, expect.any(AbortSignal)))
 })
+it('combines COLD and DEFENSE components into componentIds on INDEPENDENT_80 submission', async () => {
+  mocks.getStudentResult.mockResolvedValue({
+    projectId: 9,
+    studentId: 88,
+    version: 2,
+    outcomeDetail: 'PASSED',
+    breakdown: {
+      components: [
+        { componentId: 6, name: 'Chấm nguội', scope: 'COMMON', stage: 'COLD', weightPercent: 30 },
+        { componentId: 7, name: 'Bảo vệ', scope: 'COMMON', stage: 'DEFENSE', weightPercent: 50 },
+        { componentId: 8, name: 'Quá trình', scope: 'INDIVIDUAL', stage: 'ON_GOING', weightPercent: 20 },
+      ],
+    },
+  })
+  mocks.submitResultCorrectionRequest.mockResolvedValue({ id: 12 })
+  renderPanel()
+  await screen.findByText('Chưa có yêu cầu phúc khảo.')
+  expect(screen.queryByRole('option', { name: 'Khiếu nại trạng thái Vắng bảo vệ' })).toBeNull()
+  fireEvent.change(screen.getByLabelText('Đợt phúc khảo'), { target: { value: '5' } })
+  fireEvent.change(screen.getByLabelText('Thành phần kết quả'), { target: { value: '6' } })
+  fireEvent.click(screen.getByRole('checkbox', { name: /Bảo vệ/ }))
+  fireEvent.change(screen.getByLabelText('Lý do phúc khảo'), { target: { value: 'Gộp Cold và Defense trong cùng đơn.' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }))
+  await waitFor(() => expect(mocks.submitResultCorrectionRequest).toHaveBeenCalledWith(9, expect.objectContaining({
+    source: 'STUDENT_APPEAL',
+    componentId: 6,
+    componentIds: [6, 7],
+  })))
+})
+it('offers and submits DEFENSE_ABSENT_CONTEST only when outcomeDetail is DEFENSE_ABSENT', async () => {
+  mocks.getStudentResult.mockResolvedValue({
+    projectId: 9,
+    studentId: 88,
+    version: 2,
+    outcomeDetail: 'DEFENSE_ABSENT',
+    breakdown: {
+      components: [
+        { componentId: 7, name: 'Bảo vệ', scope: 'COMMON', stage: 'DEFENSE', weightPercent: 50 },
+      ],
+    },
+  })
+  mocks.submitResultCorrectionRequest.mockResolvedValue({ id: 15 })
+  renderPanel()
+  await screen.findByText('Chưa có yêu cầu phúc khảo.')
+  fireEvent.change(screen.getByLabelText('Đợt phúc khảo'), { target: { value: '5' } })
+  fireEvent.change(screen.getByLabelText('Phạm vi yêu cầu'), { target: { value: 'DEFENSE_ABSENT_CONTEST' } })
+  fireEvent.change(screen.getByLabelText('Thành phần kết quả'), { target: { value: '7' } })
+  fireEvent.change(screen.getByLabelText('Lý do phúc khảo'), { target: { value: 'Có giấy xác nhận nhập viện đúng giờ bảo vệ.' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi yêu cầu phúc khảo' }))
+  await waitFor(() => expect(mocks.submitResultCorrectionRequest).toHaveBeenCalledWith(9, expect.objectContaining({
+    appealKind: 'DEFENSE_ABSENT_CONTEST',
+    componentId: 7,
+  })))
+})

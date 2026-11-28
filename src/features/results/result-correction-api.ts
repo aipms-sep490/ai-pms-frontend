@@ -3,28 +3,42 @@ import type { PagedResult } from '../../types/backend'
 import type { EvaluationScore } from '../evaluations/evaluation-types'
 import type { ResultRevisionSummary } from './result-types'
 
-export type CorrectionStatus = 'PENDING' | 'UNDER_REVIEW' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | (string & {})
+export type AppealKind = 'INDEPENDENT_80' | 'PROCESS_20_ERRATA' | 'DEFENSE_ABSENT_CONTEST' | (string & {})
+export type CorrectionStatus = 'PENDING' | 'SUPERVISOR_RESPONDED' | 'UNDER_REVIEW' | 'REVIEWED' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | (string & {})
 export interface AppealTarget { targetType: 'PROJECT' | 'STUDENT'; studentId: number | null; resultVersion: number }
 export interface AppealPolicy { id: number; projectId: number; version: number; approvalReference: string; recordedBy: number; recordedAt: string }
 export interface AppealWindow { id: number; policyId: number; status: string; opensAt: string; closesAt: string; concurrencyToken: string; targets: AppealTarget[] }
 export interface AppealFile { fileId: number; fileName: string; contentType: string; sizeBytes: number; sha256: string; downloadUrl: string }
 export interface ResultCorrectionRequest extends AppealTarget {
-  id: number; projectId: number; source: string; componentId: number; componentName?: string | null; scope: string; majorId: number | null; majorName?: string | null; studentName?: string | null
+  id: number; projectId: number; source: string; appealKind?: AppealKind; componentId: number; componentName?: string | null; componentIds?: number[] | null; componentNames?: string[] | null
+  scope: string; majorId: number | null; majorName?: string | null; studentName?: string | null
   status: CorrectionStatus; requestedBy: number; requestedByName?: string | null; reviewerId: number | null; reviewerName?: string | null; reason: string
-  proposal: string | null; reviewReason: string | null; decisionReason: string | null; concurrencyToken: string
+  proposal: string | null; reviewReason: string | null; supervisorNote?: string | null; supervisorRespondedAt?: string | null
+  decisionReason: string | null; concurrencyToken: string
   allowedActions: string[]; blockers: string[]; files: AppealFile[]
 }
-export interface CreateCorrectionRequest extends AppealTarget { source: 'STUDENT_APPEAL' | 'STAFF_CORRECTION'; policyId: number; windowId: number | null; componentId: number; reason: string }
+export interface CreateCorrectionRequest extends AppealTarget { source: 'STUDENT_APPEAL' | 'STAFF_CORRECTION'; policyId: number; windowId: number | null; componentId: number; appealKind?: AppealKind; componentIds?: number[] | null; reason: string }
+export interface GateProcessAmendment { gateScoreId: number; gateNumber: number; score: number; reason: string }
+export interface AppealReviewGateScore { gateScoreId: number; gateNumber: number; score: number; gateWeightPercent: number }
+export interface DefenseRecoveredScoreInput { componentId: number; score: number }
 export interface ScoreAmendment { evaluationId: number; criterionId: number; criterionName?: string | null; score: number; reason: string }
 export interface AppealEvent { id: number; action: string; actorId: number; actorName?: string | null; at: string; reason: string | null; bundleId: number | null; amendments: ScoreAmendment[] }
 export interface AppealPreview { confirmationToken: string; affectedResults: ResultRevisionSummary[] }
 export interface AppealReviewContext {
-  requestId: number; componentId: number; scope: string; majorId: number | null; studentId: number | null; calculationVersion: string
+  requestId: number; appealKind?: AppealKind; componentId: number; componentIds?: number[] | null; scope: string; majorId: number | null; studentId: number | null; calculationVersion: string
   evaluations: Array<{ id: number; assignmentId: number; evaluatorId: number; evaluatorName?: string | null; rubricId: number; rubricName: string; rubricVersion: number; totalScore: number | null; scores: EvaluationScore[] }>
   amendments: ScoreAmendment[]
+  gateScores?: AppealReviewGateScore[] | null
+  gateAmendments?: GateProcessAmendment[] | null
 }
-export interface EligibleAppealReviewer { id: number; userId: number; fullName: string; departmentName?: string | null }
-export const getEligibleAppealReviewers = (signal?: AbortSignal) => httpGet<PagedResult<EligibleAppealReviewer>>('/supervisors?page=1&pageSize=100', signal)
+export interface EligibleAppealReviewer { id?: number; userId: number; fullName: string; email?: string | null; departmentId?: number; departmentName?: string | null }
+export function getEligibleAppealReviewers(projectIdOrSignal?: number | AbortSignal, requestId?: number, signal?: AbortSignal) {
+  if (typeof projectIdOrSignal === 'number' && typeof requestId === 'number') {
+    return httpGet<EligibleAppealReviewer[]>(`/projects/${projectIdOrSignal}/result/correction-requests/${requestId}/eligible-reviewers`, signal)
+  }
+  const abortSignal = projectIdOrSignal instanceof AbortSignal ? projectIdOrSignal : signal
+  return httpGet<PagedResult<EligibleAppealReviewer>>('/supervisors?page=1&pageSize=100', abortSignal)
+}
 const root = (p: number) => `/projects/${p}/result`
 const request = (p: number, id: number) => `${root(p)}/correction-requests/${id}`
 export const getAppealPolicy = (p: number, signal?: AbortSignal) => httpGet<AppealPolicy | null>(`${root(p)}/appeal-policy`, signal)
@@ -38,8 +52,9 @@ export const getCorrectionRequest = (p: number, id: number, signal?: AbortSignal
 export const assignAppealReviewer = (p: number, id: number, concurrencyToken: string, reviewerId: number) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/reviewer`, { concurrencyToken, reviewerId })
 export const getAppealReviewContext = (p: number, id: number, signal?: AbortSignal) => httpGet<AppealReviewContext>(`${request(p, id)}/review`, signal)
 export const reviewAppeal = (p: number, id: number, body: { concurrencyToken: string; proposal: 'KEEP' | 'AMEND'; reason: string; amendments: ScoreAmendment[] }) => httpPut<ResultCorrectionRequest>(`${request(p, id)}/review`, body)
+export const submitSupervisorErrata = (p: number, id: number, body: { concurrencyToken: string; proposal: 'KEEP' | 'AMEND'; reason: string; gateAmendments: GateProcessAmendment[] }) => httpPut<ResultCorrectionRequest>(`${request(p, id)}/supervisor-errata`, body)
 export const previewAppeal = (p: number, id: number) => httpGet<AppealPreview>(`${request(p, id)}/preview`)
-export const decideAppeal = (p: number, id: number, body: { concurrencyToken: string; decision: 'ACCEPTED' | 'REJECTED'; reason: string; confirmationToken: string | null }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/decision`, body)
+export const decideAppeal = (p: number, id: number, body: { concurrencyToken: string; decision: 'ACCEPTED' | 'REJECTED'; reason: string; confirmationToken: string | null; recoveredDefenseScores?: DefenseRecoveredScoreInput[] | null }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/decision`, body)
 export const withdrawCorrectionRequest = (p: number, id: number, body: { concurrencyToken: string; reason?: string }) => httpPost<ResultCorrectionRequest>(`${request(p, id)}/withdraw`, body)
 export const getAppealHistory = (p: number, id: number, page = 1, signal?: AbortSignal) => httpGet<PagedResult<AppealEvent>>(`${request(p, id)}/history?page=${page}&pageSize=10`, signal)
 export const getAppealEvidence = (p: number, id: number, signal?: AbortSignal) => httpGet<AppealFile[]>(`${request(p, id)}/evidence`, signal)

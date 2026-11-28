@@ -24,6 +24,7 @@ import { CurriculumImportDialog } from '../../users/components/CurriculumImportD
 import { RosterExportDialog } from '../../users/components/RosterExportDialog'
 import {
   exportDepartmentStudents,
+  exportEmergencyContacts,
   listDepartmentStudents,
   listSpecializations,
   type DepartmentSpecialization,
@@ -222,6 +223,35 @@ export function DepartmentStudentsPage() {
     }
   }
 
+  async function handleExportEmergencyContacts() {
+    if (!session?.accessToken || exporting || exportAbortRef.current) return
+    const controller = new AbortController()
+    exportAbortRef.current = controller
+    setExporting(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const blob = await exportEmergencyContacts(queryFilters, session.accessToken, controller.signal)
+      if (controller.signal.aborted) return
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      try {
+        anchor.href = url
+        anchor.download = 'department-emergency-contacts.xlsx'
+        document.body.appendChild(anchor)
+        anchor.click()
+      } finally {
+        anchor.remove()
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      }
+      setNotice('Đã xuất bảng liên hệ khẩn cấp (SV + GVHD) theo bộ lọc hiện tại.')
+    } catch (reason) {
+      if (!controller.signal.aborted) setError(errorMessage(reason))
+    } finally {
+      if (exportAbortRef.current === controller) { exportAbortRef.current = null; setExporting(false) }
+    }
+  }
+
   const clearAllFilters = useCallback(() => {
     setSortBy('default')
     setFilter({
@@ -321,6 +351,9 @@ export function DepartmentStudentsPage() {
             </Button>
             <Button variant="outline" size="sm" icon="download" disabled={exporting} onClick={() => void handleExportStudents()}>
               {exporting ? 'Đang xuất…' : 'Xuất DS SV Khoa'}
+            </Button>
+            <Button variant="outline" size="sm" icon="contact_phone" disabled={exporting} onClick={() => void handleExportEmergencyContacts()}>
+              Xuất Liên hệ Khẩn cấp
             </Button>
             <Button variant="outline" size="sm" icon="groups" onClick={() => setRosterExportOpen(true)}>
               Xuất DS Nhóm Khoa

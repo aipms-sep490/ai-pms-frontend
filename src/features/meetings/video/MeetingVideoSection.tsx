@@ -155,6 +155,21 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
           {actionError}
         </p>
       )}
+      {(state.status === 'error' || denialMessages.length > 0 || actionError) && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+          <span>Phòng họp video chưa khả dụng — nhóm có thể dùng liên kết ngoài (Google Meet/Zoom) hoặc ghi biên bản trực tiếp bên dưới.</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {meeting.onlineUrl && /^https?:\/\//i.test(meeting.onlineUrl) && (
+              <a href={meeting.onlineUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+                Mở liên kết họp ngoài
+              </a>
+            )}
+            <a href="#meeting-notes-section" className="font-semibold underline underline-offset-2">
+              Ghi biên bản cuộc họp
+            </a>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

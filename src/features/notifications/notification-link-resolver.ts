@@ -69,12 +69,26 @@ const appeal: Rule = { entities: ['PROJECT'], feature: 'resultCorrectionEnabled'
   lecturer: id => ({ url: `/review/projects/${id}/corrections`, label: 'Xem yêu cầu phúc khảo' }),
   department: id => ({ url: `/review/projects/${id}/corrections`, label: 'Xem yêu cầu phúc khảo' }),
 } }
+const projectActivated: Rule = { entities: ['PROJECT'], targets: {
+  student: { url: '/project/overview', label: 'Mở không gian đồ án' },
+  lecturer: ownProjects,
+  department: id => ({ url: `/department/projects/review/${id}`, label: 'Xem hồ sơ đồ án' }),
+} }
+const slotReleased: Rule = { entities: ['PROJECT', 'PROJECT_STATUS_HISTORY'], targets: {
+  lecturer: ownProjects,
+} }
+const evaluatorRevoked: Rule = { entities: ['EVALUATION_ASSIGNMENT', 'PROJECT'], targets: {
+  lecturer: { url: '/evaluator/workspace', label: 'Xem không gian chấm điểm' },
+} }
+const dailyDigest: Rule = { entities: ['DEPARTMENT'], targets: {
+  department: { url: '/department/portfolio', label: 'Mở danh mục đồ án Bộ môn' },
+} }
 // Core Review Gates is always routed; VITE_ENABLE_GATES only controls legacy checkpoints.
 const gates: Rule = { entities: ['PROJECT_GATE', 'PROJECT', 'REVIEW_GATE', 'GATE_REVIEW', 'EVIDENCE'], targets: {
   student: { url: '/project/timeline', label: 'Mở tiến trình thẩm định hiện tại' }, lecturer: ownProjects,
   department: { url: '/department/projects/progress-matrix', label: 'Mở ma trận tiến trình' },
 } }
-const gateQueue: Rule = { ...gates, targets: { ...gates.targets,
+const gateQueue: Rule = { ...gates, entities: [...gates.entities, 'REVIEW_GATE_ASSIGNMENT'], targets: { ...gates.targets,
   lecturer: { url: '/review/gate-assignments', label: 'Mở hàng đợi thẩm định' },
 } }
 const gateSla: Rule = { entities: ['PROJECT_GATE', 'REVIEW_GATE', 'PROJECT'], targets: {
@@ -92,6 +106,8 @@ const rules: Record<string, Rule | null> = {
   SUPERVISOR_REQUEST_SENT: supervision, SUPERVISOR_REQUEST_ACCEPTED: supervision, SUPERVISOR_REQUEST_REJECTED: supervision,
   SUPERVISOR_REQUEST_CANCELLED: supervision, SUPERVISOR_REPLACED: supervision,
   PROJECT_APPROVED: proposal, PROJECT_REJECTED: proposal, PROJECT_REVISION_REQUESTED: proposal, PROJECT_UPDATED: proposal,
+  PROJECT_SUBMITTED_FOR_REVIEW: proposal, PROJECT_ACTIVATED: projectActivated, PROJECT_FORCE_ACTIVATED: projectActivated,
+  SUPERVISOR_SLOT_RELEASED: slotReleased, SUPERVISOR_DIRECTLY_ASSIGNED: supervision,
   PROGRESS_REPORT_SUBMITTED: report,
   TASK_DEADLINE_REMINDER: task, TASK_OVERDUE: task, TASK_DEPENDENCY_IMPACT: task,
   DELIVERABLE_DEADLINE_REMINDER: deliverable, DELIVERABLE_OVERDUE: deliverable,
@@ -110,10 +126,13 @@ const rules: Record<string, Rule | null> = {
   COLD_EVALUATOR_ASSIGNED: { entities: ['EVALUATION_ASSIGNMENT'], targets: {
     lecturer: id => ({ url: `/evaluator/assignments/${id}`, label: 'Chấm nguội được phân công' }),
   } },
+  EVALUATOR_REVOKED: evaluatorRevoked,
   EVALUATION_FINALIZED: { entities: ['EVALUATION'], targets: { department: risk.targets.department } },
-  APPEAL_REQUESTED: appeal, APPEAL_REVIEWER_ASSIGNED: appeal, APPEAL_REVIEWED: appeal, APPEAL_DECIDED: appeal,
+  APPEAL_WINDOW_OPENED: appeal, APPEAL_REQUESTED: appeal, APPEAL_REVIEWER_ASSIGNED: appeal, APPEAL_REVIEWED: appeal, APPEAL_SUPERVISOR_ERRATA: appeal, APPEAL_DECIDED: appeal,
   REVIEW_GATE_UPDATED: gates, REVIEW_POLICY_PUBLISHED: gatePolicy, REVIEW_DEADLINE_APPROACHING: gates,
+  REVIEW_GATE_ASSIGNED: gateQueue, REVIEW_GATE_REVOKED: gateQueue,
   GATE_REVIEW_ASSIGNED: gateQueue, GATE_REVIEW_SUBMITTED: gateQueue, GATE_REVISION_SUBMITTED: gateQueue,
+  DEPARTMENT_DAILY_DIGEST: dailyDigest,
   GATE_REVISION_REQUIRED: gates, EVIDENCE_VERIFIED: gates, GATE_DECISION_RECORDED: gates,
   DISCIPLINE_REVIEW_PENDING: gates, DISCIPLINE_DECISION_RECORDED: gates, DEFENSE_READINESS_CHANGED: gates,
   SLA_REMINDER_48H: gateSla, SLA_ESCALATION_72H: gateSla,

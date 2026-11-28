@@ -537,7 +537,7 @@ function MeetingDetailView({ id }: { id: number }) {
                 </section>
 
                 {/* 2. Minutes & Attendance Card */}
-                <section className="mtg-schedule-card">
+                <section id="meeting-notes-section" className="mtg-schedule-card">
                   <div className="mtg-schedule-card__head">
                     <div className="mtg-schedule-card__title-group">
                       <span className="mtg-schedule-card__icon" aria-hidden="true">

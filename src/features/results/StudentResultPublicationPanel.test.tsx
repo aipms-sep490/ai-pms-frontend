@@ -5,7 +5,7 @@ import { HttpError } from '../../services/http/http-client'
 const namesApi = vi.hoisted(() => ({ getReviewDetail: vi.fn() }))
 vi.mock('../projects/api/project-review-api', () => namesApi)
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { accessToken: 'fixture-token' } }) }))
-const api = vi.hoisted(() => ({ getStudentResult: vi.fn(), getStudentResultPreview: vi.fn(), publishStudentResult: vi.fn(), getEvaluationSchemes: vi.fn() }))
+const api = vi.hoisted(() => ({ getStudentResult: vi.fn(), getStudentResultPreview: vi.fn(), publishStudentResult: vi.fn(), getEvaluationSchemes: vi.fn(), recordStudentDefenseAbsence: vi.fn() }))
 vi.mock('../../services/api/project-results.api', () => api)
 vi.mock('../../services/api/evaluations.api', () => api)
 beforeEach(() => { api.getEvaluationSchemes.mockResolvedValue([{ status: 'PUBLISHED', students: [{ studentId: 9 }, { studentId: 10 }] }]); api.getStudentResult.mockResolvedValue(null); api.getStudentResultPreview.mockResolvedValue({ canPublish: true, confirmationToken: 'preview-9', blockers: [], totalScore: 8, passThreshold: 5, outcome: 'PASS' }); api.publishStudentResult.mockResolvedValue({ totalScore: 8, outcome: 'PASS' }) })
@@ -77,4 +77,30 @@ it('ignores a previous project name response after the target project changes', 
   await act(async () => old({ latestSubmission: { evidence: { members: [{ userId: 9, fullName: 'Tên đồ án cũ' }] } } }))
   expect(screen.queryByRole('option', { name: /Tên đồ án cũ/ })).toBeNull()
   expect(screen.getByRole('option', { name: /Tên đồ án mới/ })).toBeDefined()
+})
+
+it('records DEFENSE_ABSENT for an unpublished student and refreshes the server preview', async () => {
+  api.recordStudentDefenseAbsence.mockResolvedValue({ studentId: 9 })
+  api.getStudentResultPreview.mockResolvedValue({ canPublish: true, confirmationToken: 'absent-preview', blockers: [], totalScore: 3.85, passThreshold: 5, outcome: 'DEFENSE_ABSENT' })
+  render(<StudentResultPublicationPanel projectId={2} studentNames={{ 9: 'Nguyễn An' }} />)
+  fireEvent.change(await screen.findByRole('combobox'), { target: { value: '9' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận vắng bảo vệ' }))
+  fireEvent.change(screen.getByLabelText(/Lý do vắng mặt/), { target: { value: 'Vắng không phép theo biên bản' } })
+  fireEvent.change(screen.getByLabelText(/Số biên bản/), { target: { value: 'BB-HD-09' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Xác nhận vắng bảo vệ' }))
+  await waitFor(() => expect(api.recordStudentDefenseAbsence).toHaveBeenCalledWith(2, 9, {
+    reason: 'Vắng không phép theo biên bản',
+    minutesReference: 'BB-HD-09',
+  }))
+  await screen.findByText(/Đã ghi nhận vắng bảo vệ/)
+  await waitFor(() => expect(api.getStudentResultPreview).toHaveBeenCalledWith(2, 9))
+})
+
+it('hides DEFENSE_ABSENT action when student result is already published', async () => {
+  api.getStudentResult.mockResolvedValue({ projectId: 2, studentId: 9, version: 1, totalScore: 8, outcome: 'PASSED', outcomeDetail: 'PASSED' })
+  render(<StudentResultPublicationPanel projectId={2} studentNames={{ 9: 'Nguyễn An' }} />)
+  fireEvent.change(await screen.findByRole('combobox'), { target: { value: '9' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Xem trước kết quả' }))
+  await screen.findByText(/Đã công bố/)
+  expect(screen.queryByRole('button', { name: 'Ghi nhận vắng bảo vệ' })).toBeNull()
 })

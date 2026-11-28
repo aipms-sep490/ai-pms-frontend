@@ -43,4 +43,14 @@ describe('MeetingVideoSection', () => {
     expect(screen.getByText('Phòng họp đang được chuẩn bị.')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Kiểm tra trước khi tham gia' }).getAttribute('href')).toBe('/project/meetings/42/video')
   })
+
+  it('shows LiveKit incident fallback with #meeting-notes-section anchor and safe external link on denial/error', () => {
+    ;(access.state.resource as { denialReasons: string[] }).denialReasons = ['VIDEO_PROVIDER_UNAVAILABLE']
+    const meetingWithUrl: MeetingDetail = { ...meeting, onlineUrl: 'https://meet.google.com/abc-defg-hij' }
+    render(<MemoryRouter><MeetingVideoSection meeting={meetingWithUrl} routeBase="/project" /></MemoryRouter>)
+    expect(screen.getByText(/Phòng họp video chưa khả dụng/)).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Ghi biên bản cuộc họp' }).getAttribute('href')).toBe('#meeting-notes-section')
+    expect(screen.getByRole('link', { name: 'Mở liên kết họp ngoài' }).getAttribute('href')).toBe('https://meet.google.com/abc-defg-hij')
+    ;(access.state.resource as { denialReasons: string[] }).denialReasons = []
+  })
 })
