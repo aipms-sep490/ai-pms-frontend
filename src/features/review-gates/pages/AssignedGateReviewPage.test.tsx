@@ -4,9 +4,17 @@ import { MemoryRouter } from 'react-router-dom'
 import { AssignedGateReviewPage } from './AssignedGateReviewPage'
 import { reviewGatesMockAdapter } from '../api/review-gates-mock-adapter'
 
-vi.mock('../../../app/config/env', async importOriginal => {
-  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
-  return { env: { ...env, reviewGatesMockEnabled: true } }
+vi.mock('../api/review-gates-api', async () => {
+  const { reviewGatesMockAdapter: adapter } = await import('../api/review-gates-mock-adapter')
+  return {
+    getAssignedReviewPage: async (page = 1, pageSize = 10) => {
+      const items = await adapter.getAssignedReviews()
+      return { items, totalCount: items.length, totalPages: 1, page, pageSize }
+    },
+    getAssignedReviews: () => adapter.getAssignedReviews(),
+    verifyEvidence: (req: Parameters<typeof adapter.verifyEvidence>[0]) => adapter.verifyEvidence(req),
+    submitGateDecision: (req: Parameters<typeof adapter.submitGateDecision>[0]) => adapter.submitGateDecision(req),
+  }
 })
 
 describe('AssignedGateReviewPage (Cross-Role RV-01)', () => {

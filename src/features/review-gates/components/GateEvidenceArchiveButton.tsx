@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { env } from '../../../app/config/env'
 import { downloadReviewGateEvidenceArchive } from '../api/review-gates-api'
 
 export function GateEvidenceArchiveButton({ projectId, gateCode, disabled = false }: {
@@ -32,7 +31,7 @@ export function GateEvidenceArchiveButton({ projectId, gateCode, disabled = fals
     <div className="inline-flex flex-col items-start">
       <button
         type="button"
-        disabled={busy || disabled || env.reviewGatesMockEnabled}
+        disabled={busy || disabled}
         onClick={() => void downloadArchive()}
         className="inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
       >

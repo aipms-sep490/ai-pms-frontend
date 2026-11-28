@@ -51,7 +51,9 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
   if (!env.videoMeetingEnabled || !isInApp) return null
 
   const resource = state.status === 'ready' ? state.resource : null
-  const denialMessages = resource?.denialReasons.map(meetingVideoErrorCode) ?? []
+  const softWindowCodes = new Set(['VIDEO_JOIN_TOO_EARLY', 'VIDEO_JOIN_WINDOW_CLOSED'])
+  const windowWarningMessages = (resource?.denialReasons ?? []).filter(code => softWindowCodes.has(code)).map(meetingVideoErrorCode)
+  const denialMessages = (resource?.denialReasons ?? []).filter(code => !softWindowCodes.has(code)).map(meetingVideoErrorCode)
   const roomPath = `${routeBase}/meetings/${meeting.id}/video`
   const badge = sessionBadge(resource?.session ?? null)
   const hasActions = Boolean(resource && (resource.capabilities.canStart || resource.capabilities.canJoin))
@@ -124,6 +126,17 @@ export function MeetingVideoSection({ meeting, routeBase }: { meeting: MeetingDe
             Tải lại quyền Video
           </button>
         </div>
+      )}
+
+      {windowWarningMessages.length > 0 && (
+        <ul className="mtg-notice mtg-video-banner__alert rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-sm text-status-warning-text" role="status">
+          {windowWarningMessages.map((message, index) => (
+            <li key={`warn-${index}`} className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
+              <span>Cảnh báo khung giờ (không chặn vào phòng): {message}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {denialMessages.length > 0 && (

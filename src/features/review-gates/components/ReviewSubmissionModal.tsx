@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
-import { env } from '../../../app/config/env'
 import { HttpError } from '../../../services/http/http-client'
 import type { StudentGateRequirement } from '../types/review-gates.types'
 import { safeEvidenceLink } from '../utils/evidence-link'
@@ -61,7 +60,6 @@ export function ReviewSubmissionModal({
 
   useEffect(() => {
     if (!open || externalLinkRequired) return
-    if (env.reviewGatesMockEnabled) { setPolicyState('unavailable'); return }
     let active = true
     setPolicyState('loading')
     void getUploadPolicy('REVIEW_GATE_EVIDENCE').then(policy => {
@@ -118,7 +116,7 @@ export function ReviewSubmissionModal({
       setError('Vui lòng chọn tệp tải lên hoặc nhập tên/liên kết minh chứng.')
       return
     }
-    if (!env.reviewGatesMockEnabled && submissionMode === 'file' && !selectedFile) {
+    if (submissionMode === 'file' && !selectedFile) {
       setError('Vui lòng chọn tệp minh chứng thực tế.')
       return
     }
@@ -332,7 +330,7 @@ export function ReviewSubmissionModal({
                 className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-xs text-ink focus:border-primary focus:outline-hidden disabled:bg-canvas"
               />
               <p className="mt-1 text-xs text-ink-muted">
-                {env.reviewGatesMockEnabled ? 'Mô phỏng: có thể nhập tên minh chứng để thử giao diện.' : 'Chọn tệp ở trên. Tên file tải lên được lưu theo tệp đã chọn.'}
+                Chọn tệp ở trên. Tên file tải lên được lưu theo tệp đã chọn.
               </p>
             </div>
           </div>

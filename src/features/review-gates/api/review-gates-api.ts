@@ -1,16 +1,21 @@
-import { env } from '../../../app/config/env'
 import { httpDelete, httpGet, httpGetBlob, httpPost, httpPostForm, httpPut } from '../../../services/http/http-client'
 import type { PagedResult } from '../../../types/backend/common.backend.types'
 import { requireGateToken, toTemplateRequest } from './review-gates-contract'
-import { reviewGatesMockAdapter } from './review-gates-mock-adapter'
 import { safeEvidenceLink } from '../utils/evidence-link'
 import type { GateSessionScript } from '../types/gate-session-script.types'
 import type {
   AssignedReviewItem,
+  CreateReviewGateAssignmentRequest,
   DefenseReadinessSummary,
+  GateAssignmentSummary,
   GateDecisionRequest,
+  GateReviewerCandidate,
+  GateRoundConsensus,
   ProjectReviewMatrixRow,
+  RecordRoundScopeDecisionRequest,
+  ReopenReviewGateRequest,
   ReviewGateTemplate,
+  RevokeReviewGateAssignmentRequest,
   StudentReviewTimelineDto,
   SubmitGatePackageRequest,
   SubmitRevisionRequest,
@@ -18,14 +23,12 @@ import type {
   VerifyEvidenceRequest,
 } from '../types/review-gates.types'
 
-/** Real routes/DTOs checked against BE acc6f04 and subsequent origin/develop. */
+/** Real routes/DTOs checked against BE ReviewGatesController. */
 export async function getReviewGateTemplates(): Promise<ReviewGateTemplate[]> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getTemplates()
   return httpGet<ReviewGateTemplate[]>('/academic/gate-templates')
 }
 
 export async function getReviewGateTemplate(id: string): Promise<ReviewGateTemplate | null> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getTemplateById(id)
   return httpGet<ReviewGateTemplate>(`/academic/gate-templates/${id}`)
 }
 
@@ -43,7 +46,6 @@ export const commitGateWorkbook = (id: string, draft: Record<string, unknown>) =
   httpPut<ReviewGateTemplate>(`/academic/gate-templates/${id}`, draft)
 
 export async function saveReviewGateTemplate(template: ReviewGateTemplate): Promise<ReviewGateTemplate> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.saveTemplate(template)
   if (template.id && !template.id.startsWith('tmpl-temp') && !template.id.startsWith('tmpl-draft')) {
     return httpPut<ReviewGateTemplate>(`/academic/gate-templates/${template.id}`, toTemplateRequest(template))
   }
@@ -51,17 +53,14 @@ export async function saveReviewGateTemplate(template: ReviewGateTemplate): Prom
 }
 
 export async function publishReviewGateTemplate(id: string, concurrencyToken?: string): Promise<ReviewGateTemplate> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.publishTemplate(id, concurrencyToken)
   return httpPost<ReviewGateTemplate>(`/academic/gate-templates/${id}/publish`, { concurrencyToken: requireGateToken(concurrencyToken) })
 }
 
 export async function deleteReviewGateTemplate(id: string): Promise<void> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.deleteTemplate(id)
   await httpDelete(`/academic/gate-templates/${encodeURIComponent(id)}`)
 }
 
 export async function getProjectReviewMatrix(filterMode?: string): Promise<ProjectReviewMatrixRow[]> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getMonitoringMatrix(filterMode)
   const query = filterMode && filterMode !== 'ALL' ? `?mode=${filterMode}` : ''
   return httpGet<ProjectReviewMatrixRow[]>(`/departments/review-gates/matrix${query}`)
 }
@@ -71,7 +70,6 @@ export async function updateGateDecision(
   gateCode: string,
   newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
 ): Promise<ProjectReviewMatrixRow> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.updateProjectGateDecision(projectId, gateCode, newStatus)
   return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/${gateCode}/decision`, { newStatus })
 }
 
@@ -81,28 +79,23 @@ export async function updateHybridScopeDecision(
   newStatus: 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW',
   concurrencyToken?: string | null,
 ): Promise<ProjectReviewMatrixRow> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.updateHybridScopeDecision(projectId, scope, newStatus)
   return httpPost<ProjectReviewMatrixRow>(`/projects/${projectId}/review-gates/scopes/${encodeURIComponent(scope)}`, { newStatus, ...(concurrencyToken ? { concurrencyToken } : {}) })
 }
 
 export async function getDefenseReadiness(projectId: string): Promise<DefenseReadinessSummary> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getDefenseReadiness(projectId)
   return httpGet<DefenseReadinessSummary>(`/projects/${projectId}/defense-readiness`)
 }
 
-export async function getStudentReviewTimeline(projectId?: string): Promise<StudentReviewTimelineDto> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.getStudentReviewTimeline(projectId)
+export async function getStudentReviewTimeline(projectId?: string, signal?: AbortSignal): Promise<StudentReviewTimelineDto> {
   const path = projectId ? `/projects/${projectId}/review-gates/timeline` : '/students/me/review-gates/timeline'
-  return httpGet<StudentReviewTimelineDto>(path)
+  return httpGet<StudentReviewTimelineDto>(path, signal)
 }
 
 export async function submitRevision(
   req: SubmitRevisionRequest,
-  isLeader: boolean,
+  canUpload: boolean,
 ): Promise<StudentReviewTimelineDto> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitRevision(req, isLeader)
-
-  if (!isLeader) throw new Error('Bạn không có quyền nộp minh chứng.')
+  if (!canUpload) throw new Error('Bạn không có quyền nộp minh chứng cho yêu cầu này.')
   if (req.mode === 'link') {
     const linkUrl = req.linkUrl?.trim()
     if (!safeEvidenceLink(linkUrl)) throw new Error('Vui lòng nhập liên kết HTTPS tuyệt đối, có tên miền hợp lệ và không chứa thông tin đăng nhập.')
@@ -122,10 +115,6 @@ export async function submitRevision(
 }
 
 export async function getAssignedReviewPage(page = 1, pageSize = 10): Promise<PagedResult<AssignedReviewItem>> {
-  if (env.reviewGatesMockEnabled) {
-    const items = await reviewGatesMockAdapter.getAssignedReviews()
-    return { items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize, totalCount: items.length, totalPages: Math.ceil(items.length / pageSize) }
-  }
   return httpGet<PagedResult<AssignedReviewItem>>(`/reviewers/me/gate-assignments?page=${page}&pageSize=${pageSize}`)
 }
 
@@ -135,28 +124,25 @@ export async function getAssignedReviews(): Promise<AssignedReviewItem[]> {
 }
 
 export async function downloadReviewGateEvidence(projectId: string, gateCode: string, requirementId: string, version: number): Promise<Blob> {
-  if (env.reviewGatesMockEnabled) throw new Error('Bản mô phỏng không chứa tệp minh chứng thực tế.')
   return httpGetBlob(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/requirements/${encodeURIComponent(requirementId)}/evidence/${version}/download`)
 }
 
 export async function verifyEvidence(req: VerifyEvidenceRequest): Promise<AssignedReviewItem> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.verifyEvidence(req)
   return httpPost<AssignedReviewItem>(`/review-gates/assignments/${req.assignmentId}/evidence/${req.requirementId}/verify`, req)
 }
 
 export async function submitGateDecision(req: GateDecisionRequest): Promise<AssignedReviewItem> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateDecision(req)
   return httpPost<AssignedReviewItem>(`/review-gates/assignments/${req.assignmentId}/decision`, req)
 }
 
 export async function submitGateForReview(
   req: SubmitGatePackageRequest,
 ): Promise<StudentReviewTimelineDto> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitGateForReview(req)
-  const idempotencyKey = req.idempotencyKey?.trim() || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `gate-${req.projectId}-${req.gateCode}-${Date.now()}`)
+  const token = requireGateToken(req.concurrencyToken)
+  const idempotencyKey = req.idempotencyKey?.trim() || `gate-${req.projectId}-${req.gateCode}-${token}`
   return httpPost<StudentReviewTimelineDto>(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/submit-for-review`, {
     notes: req.notes,
-    concurrencyToken: requireGateToken(req.concurrencyToken),
+    concurrencyToken: token,
     idempotencyKey,
   })
 }
@@ -178,17 +164,15 @@ export async function issueEvidencePreviewToken(projectId: string, gateCode: str
 export async function submitSupervisorFeedback(
   req: SupervisorFeedbackRequest,
 ): Promise<void> {
-  if (env.reviewGatesMockEnabled) return reviewGatesMockAdapter.submitSupervisorFeedback(req)
   await httpPost(`/projects/${req.projectId}/review-gates/${encodeURIComponent(req.gateCode)}/feedback`, { feedback: req.feedback })
 }
 
 // Gate Evidence Archive (BE-16-05)
 export async function downloadReviewGateEvidenceArchive(projectId: string | number, gateCode: string): Promise<Blob> {
-  if (env.reviewGatesMockEnabled) throw new Error('Bản mô phỏng không chứa tệp nén minh chứng thực tế.')
   return httpGetBlob(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/evidence/archive`)
 }
 
-// Gate Override (BE-16-03)
+// Gate Override & Reopen (BE-16-03 / TK-W2-07 / TK-W2-08)
 export interface OverrideReviewGateRequest {
   decision: 'PASSED' | 'REVISION_REQUIRED' | 'FAILED'
   reason: string
@@ -214,8 +198,72 @@ export async function overrideReviewGate(
   return httpPost<OverrideReviewGateDto>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/override`, body)
 }
 
+export async function reopenReviewGate(
+  projectId: string | number,
+  gateCode: string,
+  body: ReopenReviewGateRequest,
+): Promise<StudentReviewTimelineDto> {
+  return httpPost<StudentReviewTimelineDto>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/reopen`, body)
+}
+
+interface ReviewGateUserCapabilitiesResponse {
+  projectId?: number
+  canOverrideGate?: boolean
+  actions?: Array<{ code: string; allowed: boolean; reasons?: string[] }>
+}
+
 export async function getReviewGateOverrideCapability(projectId: string | number): Promise<{ canOverrideGate: boolean }> {
-  return httpGet<{ canOverrideGate: boolean }>(`/users/me/capabilities?projectId=${encodeURIComponent(projectId)}`)
+  const res = await httpGet<ReviewGateUserCapabilitiesResponse>(`/users/me/capabilities?projectId=${encodeURIComponent(projectId)}`)
+  if (typeof res?.canOverrideGate === 'boolean') return { canOverrideGate: res.canOverrideGate }
+  const action = res?.actions?.find(a => a.code === 'CAN_OVERRIDE_GATE')
+  return { canOverrideGate: Boolean(action?.allowed) }
+}
+
+// Gate Reviewer Assignments & D17-Filtered Candidates (TK-W2-07 / TK-W2-08)
+export async function getGateAssignments(projectId: string | number, gateCode: string): Promise<GateAssignmentSummary[]> {
+  return httpGet<GateAssignmentSummary[]>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/assignments`)
+}
+
+export async function getGateReviewerCandidates(
+  projectId: string | number,
+  gateCode: string,
+  params?: { majorId?: number | null; search?: string; page?: number; pageSize?: number },
+): Promise<PagedResult<GateReviewerCandidate>> {
+  const query = new URLSearchParams()
+  if (params?.majorId != null) query.set('majorId', String(params.majorId))
+  if (params?.search?.trim()) query.set('search', params.search.trim())
+  if (params?.page != null) query.set('page', String(params.page))
+  if (params?.pageSize != null) query.set('pageSize', String(params.pageSize))
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return httpGet<PagedResult<GateReviewerCandidate>>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/reviewer-candidates${suffix}`)
+}
+
+export async function assignGateReviewer(body: CreateReviewGateAssignmentRequest): Promise<AssignedReviewItem> {
+  return httpPost<AssignedReviewItem>('/review-gates/assignments', body)
+}
+
+export async function revokeGateReviewer(
+  assignmentId: string | number,
+  body: RevokeReviewGateAssignmentRequest,
+): Promise<AssignedReviewItem> {
+  return httpPost<AssignedReviewItem>(`/review-gates/assignments/${encodeURIComponent(assignmentId)}/revoke`, body)
+}
+
+export async function getGateRoundScopeConsensus(
+  projectId: string | number,
+  gateCode: string,
+  roundNumber?: number,
+): Promise<GateRoundConsensus> {
+  const suffix = roundNumber != null ? `?roundNumber=${roundNumber}` : ''
+  return httpGet<GateRoundConsensus>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/round-scope-decisions${suffix}`)
+}
+
+export async function recordGateRoundScopeDecision(
+  projectId: string | number,
+  gateCode: string,
+  body: RecordRoundScopeDecisionRequest,
+): Promise<GateRoundConsensus> {
+  return httpPost<GateRoundConsensus>(`/projects/${encodeURIComponent(projectId)}/review-gates/${encodeURIComponent(gateCode)}/round-scope-decisions`, body)
 }
 
 // Gate Session Scripts (BE-16-07)

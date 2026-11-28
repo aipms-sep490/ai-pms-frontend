@@ -20,9 +20,21 @@ const resolveReviewGateNotificationLink = (notificationType: string, roles: stri
 }, roles)
 import type { ReviewGateTemplate } from '../types/review-gates.types'
 
-vi.mock('../../../app/config/env', async importOriginal => {
-  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
-  return { env: { ...env, reviewGatesMockEnabled: true } }
+vi.mock('../api/review-gates-api', async () => {
+  const { reviewGatesMockAdapter: adapter } = await import('../api/review-gates-mock-adapter')
+  return {
+    getStudentReviewTimeline: (projectId?: string) => adapter.getStudentReviewTimeline(projectId),
+    submitRevision: (req: Parameters<typeof adapter.submitRevision>[0], isLeader: boolean) => adapter.submitRevision(req, isLeader),
+    getAssignedReviews: () => adapter.getAssignedReviews(),
+    verifyEvidence: (req: Parameters<typeof adapter.verifyEvidence>[0]) => adapter.verifyEvidence(req),
+    submitGateDecision: (req: Parameters<typeof adapter.submitGateDecision>[0]) => adapter.submitGateDecision(req),
+    publishReviewGateTemplate: (id: string) => adapter.publishTemplate(id),
+    saveReviewGateTemplate: (template: Parameters<typeof adapter.saveTemplate>[0]) => adapter.saveTemplate(template),
+    getProjectReviewMatrix: (mode?: string) => adapter.getMonitoringMatrix(mode),
+    getDefenseReadiness: (projectId: string) => adapter.getDefenseReadiness(projectId),
+    updateHybridScopeDecision: (projectId: string, scope: string, newStatus: Parameters<typeof adapter.updateHybridScopeDecision>[2]) =>
+      adapter.updateHybridScopeDecision(projectId, scope, newStatus),
+  }
 })
 
 describe('Cross-Role QA & Contract Reconciliation (PROMPT 3 E2E Scenario)', () => {

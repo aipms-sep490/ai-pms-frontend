@@ -1,38 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetModules() })
-describe('Review Gates data-source boundary', () => {
-  it.each(['true', 'false', undefined])('always disables mocks in production with flag %s', async flag => {
-    vi.stubEnv('PROD', true)
-    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', flag)
-    vi.resetModules()
-    expect((await import('./env')).env.reviewGatesMockEnabled).toBe(false)
-  })
-  it.each(['true', ' TRUE '])('retains explicit development mocks with flag %s', async flag => {
+describe('Review Gates data-source boundary (TK-W2-08)', () => {
+  it('completely removes reviewGatesMockEnabled from runtime env config', async () => {
     vi.stubEnv('PROD', false)
-    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', flag)
+    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', 'true')
     vi.resetModules()
-    expect((await import('./env')).env.reviewGatesMockEnabled).toBe(true)
+    const { env } = await import('./env')
+    expect('reviewGatesMockEnabled' in env).toBe(false)
   })
-  it.each([undefined, '', 'false', '0', 'sample'])('uses the real API by default in development with flag %s', async flag => {
-    vi.stubEnv('PROD', false)
-    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', flag)
-    vi.resetModules()
-    expect((await import('./env')).env.reviewGatesMockEnabled).toBe(false)
-  })
-  it('calls the actual timeline transport in development when the mock flag is unset', async () => {
-    vi.stubEnv('PROD', false)
-    vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', undefined)
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ projectId: 'server-project', gates: [] }))
-    vi.stubGlobal('fetch', fetchMock)
-    vi.resetModules()
-    const api = await import('../../features/review-gates/api/review-gates-api')
-    expect(await api.getStudentReviewTimeline()).toMatchObject({ projectId: 'server-project' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(fetchMock.mock.calls[0][0]).toContain('/students/me/review-gates/timeline')
-  })
-  it('calls the actual timeline transport in production even with the mock flag true', async () => {
-    vi.stubEnv('PROD', true)
+
+  it.each([false, true])('always calls the live backend API regardless of PROD=%s or VITE_USE_MOCK_REVIEW_GATES', async (isProd) => {
+    vi.stubEnv('PROD', isProd)
     vi.stubEnv('VITE_USE_MOCK_REVIEW_GATES', 'true')
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ projectId: 'server-project', gates: [] }))
     vi.stubGlobal('fetch', fetchMock)

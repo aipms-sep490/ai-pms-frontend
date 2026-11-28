@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { ExecutionAccessProvider } from '../execution/context/ExecutionAccessProvider'
 import type { ExecutionAccess } from '../execution/context/ExecutionAccessContext'
 import type { MilestoneDto, TaskDto } from '../../types/backend'
-import type { MeetingActionItem, MeetingCandidate, MeetingDetail } from './meeting-types'
+import type { MeetingCandidate, MeetingDetail } from './meeting-types'
 import { MeetingGovernancePanel } from './MeetingGovernancePanel'
 
 const api = vi.hoisted(() => ({
@@ -24,7 +24,15 @@ const milestonesApi = vi.hoisted(() => ({
   getProjectMilestones: vi.fn(),
 }))
 
+const governanceApi = vi.hoisted(() => ({
+  getProjectActionItems: vi.fn(),
+  createProjectActionItem: vi.fn(),
+  updateProjectActionItem: vi.fn(),
+  updateProjectActionItemStatus: vi.fn(),
+}))
+
 vi.mock('../../services/api/meetings.api', () => api)
+vi.mock('../projects/api/project-governance-api', () => governanceApi)
 vi.mock('../../services/api/tasks.api', () => tasksApi)
 vi.mock('../../services/api/milestones.api', () => milestonesApi)
 
@@ -146,6 +154,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   api.getMeetingDecisions.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   api.getMeetingActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
+  governanceApi.getProjectActionItems.mockResolvedValue({ items: [], page: 1, pageSize: 100, totalCount: 0 })
   milestonesApi.getProjectMilestones.mockResolvedValue(sampleMilestones)
 })
 
@@ -207,14 +216,18 @@ describe('MeetingGovernancePanel: Deadline Validation (ISSUE-02)', () => {
   })
 
   it('clears error and enables submit when selecting a future date and time', async () => {
-    api.createMeetingActionItem.mockResolvedValue({
+    governanceApi.createProjectActionItem.mockResolvedValue({
       id: 101,
+      projectId: 90005,
+      sourceType: 'MEETING',
       meetingId: 70007,
       title: 'Hoàn thiện tài liệu kiến trúc',
       description: null,
-      assigneeUserId: null,
+      ownerId: null,
+      taskId: null,
+      milestoneId: null,
       dueAt: '2026-11-19T03:00:00.000Z',
-      status: 'OPEN',
+      status: 'TODO',
       concurrencyToken: 'token-act-1',
       createdBy: 10,
       createdAt: '2026-11-18T10:00:00Z',
@@ -244,50 +257,53 @@ describe('MeetingGovernancePanel: Deadline Validation (ISSUE-02)', () => {
     fireEvent.submit(submitBtn.closest('form')!)
 
     await waitFor(() => {
-      expect(api.createMeetingActionItem).toHaveBeenCalledWith(
-        70007,
+      expect(governanceApi.createProjectActionItem).toHaveBeenCalledWith(
+        90005,
         expect.objectContaining({
+          sourceType: 'MEETING',
+          meetingId: 70007,
           title: 'Hoàn thiện tài liệu kiến trúc',
           dueAt: '2026-11-19T03:00:00.000Z',
-          status: 'OPEN',
         })
       )
     })
   })
 
   it('allows historical action items with past deadlines to change status without blocking', async () => {
-    const historicalItem: MeetingActionItem = {
+    const historicalItem = {
       id: 55,
+      projectId: 90005,
+      sourceType: 'MEETING',
       meetingId: 70007,
       title: 'Nhiệm vụ tuần trước đã quá hạn',
       description: 'Cần xác nhận hoàn tất',
-      assigneeUserId: 10,
+      ownerId: 10,
+      taskId: null,
+      milestoneId: null,
       dueAt: '2026-11-10T10:00:00.000Z', // past date
-      status: 'OPEN',
+      status: 'TODO' as const,
       concurrencyToken: 'token-55',
       createdBy: 10,
       createdAt: '2026-11-09T08:00:00Z',
       updatedAt: '2026-11-09T08:00:00Z',
     }
 
-    api.getMeetingActionItems.mockResolvedValue({ items: [historicalItem], page: 1, pageSize: 100, totalCount: 1 })
-    api.updateMeetingActionItem.mockResolvedValue({ ...historicalItem, status: 'IN_PROGRESS' })
+    governanceApi.getProjectActionItems.mockResolvedValue({ items: [historicalItem], page: 1, pageSize: 100, totalCount: 1 })
+    governanceApi.updateProjectActionItemStatus.mockResolvedValue({ ...historicalItem, status: 'IN_PROGRESS', concurrencyToken: 'token-55-v2' })
 
     renderPanel()
     await screen.findByText('Nhiệm vụ tuần trước đã quá hạn')
 
     // Find the status select
-    const statusSelect = screen.getByDisplayValue('Mở')
+    const statusSelect = screen.getByDisplayValue('Chưa bắt đầu')
     fireEvent.change(statusSelect, { target: { value: 'IN_PROGRESS' } })
 
     await waitFor(() => {
-      expect(api.updateMeetingActionItem).toHaveBeenCalledWith(
-        70007,
+      expect(governanceApi.updateProjectActionItemStatus).toHaveBeenCalledWith(
+        90005,
         55,
-        expect.objectContaining({
-          dueAt: '2026-11-10T10:00:00.000Z', // past deadline preserved
-          status: 'IN_PROGRESS',
-        })
+        'IN_PROGRESS',
+        'token-55',
       )
     })
 
@@ -297,7 +313,7 @@ describe('MeetingGovernancePanel: Deadline Validation (ISSUE-02)', () => {
 })
 
 describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
-  it('simultaneously creates a Task and links it to the Action Item', async () => {
+  it('simultaneously creates a Task and links it to the Action Item via project_action_items FK', async () => {
     const createdTask: TaskDto = {
       id: 888,
       milestoneId: 301,
@@ -314,14 +330,18 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
       updatedAt: '2026-11-18T10:00:00Z',
     }
 
-    const createdActionItem: MeetingActionItem = {
+    const createdActionItem = {
       id: 201,
+      projectId: 90005,
+      sourceType: 'MEETING',
       meetingId: 70007,
       title: 'Viết tài liệu API Gateway',
-      description: '[Task #888] Mô tả chi tiết',
-      assigneeUserId: 20,
+      description: 'Mô tả chi tiết',
+      ownerId: 20,
+      taskId: 888,
+      milestoneId: 301,
       dueAt: '2026-11-20T03:00:00.000Z',
-      status: 'OPEN',
+      status: 'TODO' as const,
       concurrencyToken: 'token-201',
       createdBy: 10,
       createdAt: '2026-11-18T10:00:00Z',
@@ -329,7 +349,7 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     }
 
     tasksApi.createTask.mockResolvedValue(createdTask)
-    api.createMeetingActionItem.mockResolvedValue(createdActionItem)
+    governanceApi.createProjectActionItem.mockResolvedValue(createdActionItem)
 
     renderPanel()
     await screen.findByRole('heading', { name: 'Kết luận và công việc sau họp' })
@@ -365,15 +385,18 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
         })
       )
 
-      // 2. Action item created with [Task #888] tag
-      expect(api.createMeetingActionItem).toHaveBeenCalledWith(
-        70007,
+      // 2. Action item created with real FK taskId & milestoneId
+      expect(governanceApi.createProjectActionItem).toHaveBeenCalledWith(
+        90005,
         expect.objectContaining({
+          sourceType: 'MEETING',
+          meetingId: 70007,
           title: 'Viết tài liệu API Gateway',
-          description: '[Task #888] Mô tả chi tiết',
-          assigneeUserId: 20,
+          description: 'Mô tả chi tiết',
+          ownerId: 20,
+          taskId: 888,
+          milestoneId: 301,
           dueAt: '2026-11-20T03:00:00.000Z',
-          status: 'OPEN',
         })
       )
     })
@@ -381,7 +404,7 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     // 3. UI displays linked task badge and details
     const badge = await screen.findByText(/Công việc liên kết/)
     expect(badge).toBeTruthy()
-    expect(screen.getByText('Chưa bắt đầu')).toBeTruthy() // TODO label
+    expect(screen.getAllByText('Chưa bắt đầu').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/Giai đoạn 1: Thiết kế kiến trúc/).length).toBeGreaterThanOrEqual(1)
 
     // 4. View Task link points to routeBase/tasks/888
@@ -392,15 +415,19 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     expect(screen.queryByRole('button', { name: /Tạo Task trên bảng Công việc/ })).toBeNull()
   })
 
-  it('displays linked task when loading existing action item with [Task #ID]', async () => {
-    const existingAction: MeetingActionItem = {
+  it('displays linked task when loading existing action item with FK taskId', async () => {
+    const existingAction = {
       id: 303,
+      projectId: 90005,
+      sourceType: 'MEETING',
       meetingId: 70007,
       title: 'Phát triển module xác thực',
-      description: '[Task #999] Cần viết unit test đầy đủ',
-      assigneeUserId: 10,
+      description: 'Cần viết unit test đầy đủ',
+      ownerId: 10,
+      taskId: 999,
+      milestoneId: 301,
       dueAt: '2026-11-25T10:00:00.000Z',
-      status: 'OPEN',
+      status: 'TODO' as const,
       concurrencyToken: 'token-303',
       createdBy: 10,
       createdAt: '2026-11-18T08:00:00Z',
@@ -423,20 +450,19 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
       updatedAt: '2026-11-18T08:00:00Z',
     }
 
-    api.getMeetingActionItems.mockResolvedValue({ items: [existingAction], page: 1, pageSize: 100, totalCount: 1 })
+    governanceApi.getProjectActionItems.mockResolvedValue({ items: [existingAction], page: 1, pageSize: 100, totalCount: 1 })
     tasksApi.getTask.mockResolvedValue(linkedTaskDto)
 
     renderPanel()
 
-    // Title and clean description (without [Task #999])
+    // Title and clean description
     await screen.findByText('Phát triển module xác thực')
     expect(screen.getByText('Cần viết unit test đầy đủ')).toBeTruthy()
-    expect(screen.queryByText(/\[Task #999\]/)).toBeNull()
 
     // Linked task badge and status
     const badge = await screen.findByText(/Công việc liên kết/)
     expect(badge).toBeTruthy()
-    expect(screen.getByText('Đang thực hiện')).toBeTruthy()
+    expect(screen.getAllByText('Đang thực hiện').length).toBeGreaterThanOrEqual(1)
 
     // Navigation link
     const link = screen.getByRole('link', { name: /Mở công việc/ })
@@ -444,21 +470,25 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
   })
 
   it('allows creating a Task from an existing unlinked action item', async () => {
-    const unlinkedAction: MeetingActionItem = {
+    const unlinkedAction = {
       id: 404,
+      projectId: 90005,
+      sourceType: 'MEETING',
       meetingId: 70007,
       title: 'Khảo sát giải pháp database',
       description: 'Tìm hiểu MongoDB vs PostgreSQL',
-      assigneeUserId: 20,
+      ownerId: 20,
+      taskId: null,
+      milestoneId: null,
       dueAt: '2026-11-22T10:00:00.000Z',
-      status: 'OPEN',
+      status: 'TODO' as const,
       concurrencyToken: 'token-404',
       createdBy: 10,
       createdAt: '2026-11-18T08:00:00Z',
       updatedAt: '2026-11-18T08:00:00Z',
     }
 
-    api.getMeetingActionItems.mockResolvedValue({ items: [unlinkedAction], page: 1, pageSize: 100, totalCount: 1 })
+    governanceApi.getProjectActionItems.mockResolvedValue({ items: [unlinkedAction], page: 1, pageSize: 100, totalCount: 1 })
 
     const createdTask: TaskDto = {
       id: 777,
@@ -475,9 +505,11 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
     }
 
     tasksApi.createTask.mockResolvedValue(createdTask)
-    api.updateMeetingActionItem.mockResolvedValue({
+    governanceApi.updateProjectActionItem.mockResolvedValue({
       ...unlinkedAction,
-      description: '[Task #777] Tìm hiểu MongoDB vs PostgreSQL',
+      taskId: 777,
+      milestoneId: 301,
+      concurrencyToken: 'token-404-v2',
     })
 
     renderPanel()
@@ -503,11 +535,13 @@ describe('MeetingGovernancePanel: Task Creation and Linking (ISSUE-01)', () => {
         })
       )
 
-      expect(api.updateMeetingActionItem).toHaveBeenCalledWith(
-        70007,
+      expect(governanceApi.updateProjectActionItem).toHaveBeenCalledWith(
+        90005,
         404,
         expect.objectContaining({
-          description: '[Task #777] Tìm hiểu MongoDB vs PostgreSQL',
+          taskId: 777,
+          milestoneId: 301,
+          concurrencyToken: 'token-404',
         })
       )
     })

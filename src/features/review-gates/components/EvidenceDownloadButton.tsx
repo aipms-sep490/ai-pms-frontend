@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { env } from '../../../app/config/env'
 import { DocumentPreviewModal } from '../../../components/ui/DocumentPreviewModal'
 import { downloadReviewGateEvidence } from '../api/review-gates-api'
 import type { StudentGateRequirement } from '../types/review-gates.types'
@@ -47,7 +46,7 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
     }
   }
 
-  const canAccessFile = !env.reviewGatesMockEnabled && Boolean(artifact.downloadUrl)
+  const canAccessFile = Boolean(artifact.downloadUrl)
 
   return <div className="mt-2 space-y-1.5">
     <div className="flex flex-wrap items-center gap-2">
@@ -72,8 +71,7 @@ export function EvidenceDownloadButton({ projectId, gateCode, requirement }: {
         <span>{busy ? 'Đang tải...' : `Tải tệp v${artifact.version}`}</span>
       </button>
     </div>
-    {env.reviewGatesMockEnabled && <p className="text-xs text-ink-muted">Mô phỏng: chưa có nội dung tệp thực tế.</p>}
-    {!env.reviewGatesMockEnabled && !artifact.downloadUrl && <p className="text-xs text-ink-muted">Chưa có tệp được lưu để tải.</p>}
+    {!artifact.downloadUrl && <p className="text-xs text-ink-muted">Chưa có tệp được lưu để tải.</p>}
     {error && <p role="alert" className="text-xs text-status-error-text">{error}</p>}
     {previewOpen && canAccessFile && (
       <DocumentPreviewModal

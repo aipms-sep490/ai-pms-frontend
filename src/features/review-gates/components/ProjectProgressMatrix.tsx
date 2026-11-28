@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { env } from '../../../app/config/env'
 import type { GateStatus, ProjectReviewMatrixRow } from '../types/review-gates.types'
 import { Table, TableHead } from '../../../components/ui/Table'
 import { FilterToolbar, type ActiveFilterChip } from '../../../components/ui/FilterToolbar'
@@ -7,6 +6,7 @@ import { Modal } from '../../../components/ui/Modal'
 import { Pagination } from '../../../components/ui/Pagination'
 import { useClientPagination } from '../../../components/ui/useClientPagination'
 import { WorkspaceEmptyState } from '../../../components/ui/WorkspaceState'
+import { GateCoordinationDrawer } from './GateCoordinationDrawer'
 
 interface ProjectProgressMatrixProps {
   projects: ProjectReviewMatrixRow[]
@@ -17,11 +17,13 @@ interface ProjectProgressMatrixProps {
   ) => Promise<void> | void
   onSelectHybridProject?: (projectId: string) => void
   onSelectProject?: (projectId: string) => void
+  onRefreshMatrix?: () => Promise<void> | void
 }
 
 const statusPillClasses: Record<GateStatus, string> = {
   PASSED: 'bg-status-success-bg text-status-success-text border-status-success-border',
   REVISION_REQUIRED: 'bg-status-error-bg text-status-error-text border-status-error-border font-bold',
+  FAILED: 'bg-status-error-bg text-status-error-text border-status-error-border font-bold',
   IN_REVIEW: 'bg-primary-subtle text-primary border-primary/20',
   PLANNED: 'bg-status-warning-bg text-status-warning-text border-status-warning-border',
   LOCKED: 'bg-canvas text-ink-muted border-hairline',
@@ -30,6 +32,7 @@ const statusPillClasses: Record<GateStatus, string> = {
 const statusLabels: Record<GateStatus, string> = {
   PASSED: 'Đạt',
   REVISION_REQUIRED: 'Cần chỉnh sửa',
+  FAILED: 'Không đạt',
   IN_REVIEW: 'Đang xét',
   PLANNED: 'Kế hoạch',
   LOCKED: 'Chưa mở',
@@ -39,18 +42,14 @@ type MatrixStatusFilter = 'ALL' | 'REVISION_REQUIRED' | 'IN_REVIEW' | 'ALL_PASSE
 
 export function ProjectProgressMatrix({
   projects,
-  onUpdateDecision,
   onSelectHybridProject,
   onSelectProject,
+  onRefreshMatrix,
 }: ProjectProgressMatrixProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<MatrixStatusFilter>('ALL')
   const [filterMode, setFilterMode] = useState<string>('ALL')
   const [inspectingProject, setInspectingProject] = useState<ProjectReviewMatrixRow | null>(null)
-  const [selectedGateToDecide, setSelectedGateToDecide] = useState<string>('R2')
-  const [decisionChoice, setDecisionChoice] = useState<'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW'>('PASSED')
-  const [updatingDecision, setUpdatingDecision] = useState(false)
-  const [decisionError, setDecisionError] = useState<string | null>(null)
 
   const revisionCount = useMemo(
     () => projects.filter(p => Object.values(p.gateStatuses).includes('REVISION_REQUIRED')).length,
@@ -206,15 +205,12 @@ export function ProjectProgressMatrix({
             </TableHead>
             <tbody className="divide-y divide-hairline text-ink-soft">
               {matrixPager.paginatedItems.map(proj => {
-                const keys = Object.keys(proj.gateStatuses)
                 const projectDisplayCode = proj.projectCode ?? proj.projectId
                 return (
                   <tr
                     key={proj.projectId}
                     onClick={() => {
                       setInspectingProject(proj)
-                      setSelectedGateToDecide(keys[1] || keys[0] || 'R2')
-                      setDecisionError(null)
                       if (onSelectProject) onSelectProject(proj.projectId)
                     }}
                     className="cursor-pointer transition-colors hover:bg-canvas"
@@ -331,106 +327,19 @@ export function ProjectProgressMatrix({
               </div>
             )}
 
-            {/* Reviewer Action Simulation (Mock/Dev) or Read-Only Governance Notice */}
-            {env.reviewGatesMockEnabled ? (
-              <div className="rounded-lg border border-status-warning-border bg-status-warning-bg/50 p-3.5 space-y-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center rounded-md bg-status-warning-bg px-2 py-0.5 text-xs font-bold text-status-warning-text">
-                    Mô phỏng Sandbox
-                  </span>
-                  <strong className="block text-xs font-bold text-ink">
-                    Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)
-                  </strong>
-                </div>
-                <p className="text-xs text-status-warning-text">
-                  Chỉ dùng trong môi trường thử nghiệm Frontend (Sandbox). Không có giá trị phê duyệt học vụ chính thức.
-                </p>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-soft">Chọn cổng</label>
-                    <select
-                      value={selectedGateToDecide}
-                      onChange={e => setSelectedGateToDecide(e.target.value)}
-                      className="mt-1 min-h-10 w-full rounded-lg border border-hairline bg-card px-2 py-1.5 text-xs font-medium text-ink"
-                    >
-                      {Object.keys(inspectingProject.gateStatuses).map(c => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-soft">Kết luận</label>
-                    <select
-                      value={decisionChoice}
-                      onChange={e => setDecisionChoice(e.target.value as 'PASSED' | 'REVISION_REQUIRED' | 'IN_REVIEW')}
-                      className="mt-1 min-h-10 w-full rounded-lg border border-hairline bg-card px-2 py-1.5 text-xs font-medium text-ink"
-                    >
-                      <option value="PASSED">Đạt</option>
-                      <option value="REVISION_REQUIRED">Cần chỉnh sửa</option>
-                      <option value="IN_REVIEW">Đang thẩm định</option>
-                    </select>
-                  </div>
-                </div>
-
-                {decisionError && (
-                  <div role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-2.5 text-xs text-status-error-text">
-                    <strong className="block font-bold">Lỗi cập nhật quyết định:</strong>
-                    <span>{decisionError}</span>
-                    {decisionError.includes('409') && (
-                      <p className="mt-1 text-xs text-status-error-text italic">
-                        Dữ liệu đã có thay đổi mới từ người dùng khác. Vui lòng kiểm tra lại trước khi gửi.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  disabled={updatingDecision}
-                  onClick={async () => {
-                    try {
-                      setUpdatingDecision(true)
-                      setDecisionError(null)
-                      await onUpdateDecision(inspectingProject.projectId, selectedGateToDecide, decisionChoice)
-                      setInspectingProject(prev =>
-                        prev
-                          ? {
-                              ...prev,
-                              gateStatuses: {
-                                ...prev.gateStatuses,
-                                [selectedGateToDecide]: decisionChoice,
-                              },
-                            }
-                          : null,
-                      )
-                    } catch (err: unknown) {
-                      const msg = err instanceof Error ? err.message : 'Không thể cập nhật quyết định thẩm định.'
-                      setDecisionError(msg)
-                    } finally {
-                      setUpdatingDecision(false)
-                    }
-                  }}
-                  className="min-h-10 w-full rounded-lg bg-primary py-2 text-xs font-bold text-white shadow-2xs hover:bg-primary-hover disabled:opacity-50"
-                >
-                  {updatingDecision ? 'Đang cập nhật...' : 'Cập nhật quyết định Reviewer'}
-                </button>
+            {/* Governance Coordination Drawer (TK-W2-08): Reviewer Assignment, 2-Dept Consensus & Lead Override */}
+            <div className="rounded-lg border border-hairline bg-canvas p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-ink-muted">visibility</span>
+                <strong className="block text-xs font-bold text-ink">
+                  Giám sát &amp; Điều phối Tiến trình Thẩm định
+                </strong>
               </div>
-            ) : (
-              <div className="rounded-lg border border-hairline bg-canvas p-3.5 space-y-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm text-ink-muted">visibility</span>
-                  <strong className="block text-xs font-bold text-ink">
-                    Giám sát Tiến trình Thẩm định
-                  </strong>
-                </div>
-                <p className="text-xs text-ink-soft">
-                  Giao diện này dành riêng cho việc giám sát tiến độ của Khoa / Bộ môn. Quyết định thẩm định chính thức chỉ được thực hiện bởi người thẩm định được phân công thông qua Hàng đợi thẩm định.
-                </p>
-              </div>
-            )}
+              <p className="text-xs text-ink-soft">
+                Khoa phân công 2 phản biện cố định, theo dõi đồng thuận liên ngành và thực hiện Hòa giải/Mở lại cổng (chỉ Khoa Chủ trì) ngay bên dưới.
+              </p>
+            </div>
+            <GateCoordinationDrawer project={inspectingProject} onChanged={onRefreshMatrix} />
 
             {inspectingProject.mode === 'INTERDISCIPLINARY' && onSelectHybridProject && (
               <button

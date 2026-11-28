@@ -104,6 +104,7 @@ export interface MeetingCollaboration {
   notesLockedAt: string | null
   notesLockedBy: number | null
   canLockNotes: boolean
+  canUnlockNotes?: boolean
   myRsvp: MeetingRsvp | null
   emailDeliveries: MeetingEmailDelivery[]
   hasMoreEmailDeliveries: boolean

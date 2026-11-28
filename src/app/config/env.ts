@@ -93,6 +93,4 @@ export const env = {
   /** Gates Jira-style sprint/backlog/story-point/label UI until the backend sprint contract ships; default off. */
   jiraSprintEnabled: import.meta.env.VITE_ENABLE_JIRA_SPRINT?.trim().toLowerCase() === 'true',
   meetingCollaborationEnabled,
-  /** Real API by default; development mocks require explicit opt-in and never run in production. */
-  reviewGatesMockEnabled: !import.meta.env.PROD && import.meta.env.VITE_USE_MOCK_REVIEW_GATES?.trim().toLowerCase() === 'true',
 } as const

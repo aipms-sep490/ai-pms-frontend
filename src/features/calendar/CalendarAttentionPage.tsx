@@ -30,6 +30,8 @@ const sourceLabels: Record<CalendarProjectionItem['sourceType'], string> = {
   FINAL_SUBMISSION: 'Bàn giao cuối kỳ',
   EVALUATION_ASSIGNMENT: 'Phân công đánh giá',
   PROGRESS_REPORT: 'Báo cáo tiến độ',
+  REVIEW_GATE: 'Thẩm định cổng G1–G3',
+  DEFENSE_SESSION: 'Phiên bảo vệ',
 }
 
 const sourceIcons: Record<CalendarProjectionItem['sourceType'], string> = {
@@ -40,6 +42,8 @@ const sourceIcons: Record<CalendarProjectionItem['sourceType'], string> = {
   FINAL_SUBMISSION: 'publish',
   EVALUATION_ASSIGNMENT: 'grading',
   PROGRESS_REPORT: 'description',
+  REVIEW_GATE: 'fact_check',
+  DEFENSE_SESSION: 'school',
 }
 
 function sourceAccentClass(sourceType: CalendarProjectionItem['sourceType']): string {
@@ -178,9 +182,26 @@ function sourceStateText(data: CalendarAttentionData): string | null {
   return affected.length ? `${affected.length} nguồn chưa đầy đủ. Những nguồn khác vẫn được hiển thị.` : null
 }
 
+type AttentionHatFilter = 'ALL' | 'SUPERVISION' | 'GATE_REVIEW' | 'EVALUATION' | 'DEFENSE'
+type AttentionSeverityFilter = 'ALL' | 'HIGH' | 'NORMAL'
+
+function matchesAttentionHat(code: string, hat: AttentionHatFilter): boolean {
+  if (hat === 'ALL') return true
+  if (hat === 'SUPERVISION') return ['PROGRESS_REVIEW', 'SUPERVISOR_REQUEST', 'MEETING_SIGN_OFF', 'TASK_BLOCKED_48H', 'FINAL_LOCK_APPROVAL'].includes(code)
+  if (hat === 'GATE_REVIEW') return ['GATE_REVIEW_ASSIGNMENT', 'REVIEW_GATE'].includes(code)
+  if (hat === 'EVALUATION') return code === 'EVALUATION_ASSIGNMENT'
+  if (hat === 'DEFENSE') return code === 'DEFENSE_COMMITTEE'
+  return true
+}
+
 export function CalendarAttentionPage() {
   const access = useWorkspaceAccess()
   const { session } = useAuthSession()
+  const isDualDeptLecturer = access.identityRoles.includes('DEPARTMENT_STAFF') && access.identityRoles.includes('LECTURER')
+  const [roleContextOverride, setRoleContextOverride] = useState<'department' | 'lecturer' | null>(null)
+  const effectiveRole = isDualDeptLecturer && roleContextOverride ? roleContextOverride : access.identityRole
+  const [hatFilter, setHatFilter] = useState<AttentionHatFilter>('ALL')
+  const [severityFilter, setSeverityFilter] = useState<AttentionSeverityFilter>('ALL')
   const [data, setData] = useState<CalendarAttentionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewMode>('agenda')
@@ -199,7 +220,7 @@ export function CalendarAttentionPage() {
     const request = ++generation.current
     setLoading(true)
     const next = await loadCalendarAttention({
-      role: access.identityRole,
+      role: effectiveRole,
       semesterId: access.selectedSemesterId,
       accessToken: session?.accessToken,
       departmentIds: access.departmentIds,
@@ -218,7 +239,7 @@ export function CalendarAttentionPage() {
         }
       }
     }
-  }, [access.identityRole, access.selectedSemesterId, session?.accessToken, access.departmentIds, access.departments, todayKey])
+  }, [effectiveRole, access.selectedSemesterId, session?.accessToken, access.departmentIds, access.departments, todayKey])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -266,7 +287,15 @@ export function CalendarAttentionPage() {
   }, [baseItems, search, sortBy, sourceFilter, statusFilter])
 
   const agendaPagination = useClientPagination(items, 10)
-  const attentionItems = useMemo(() => data?.attention ?? [], [data?.attention])
+  const attentionItems = useMemo(
+    () =>
+      (data?.attention ?? []).filter(item => {
+        if (severityFilter !== 'ALL' && (item.severity ?? 'NORMAL') !== severityFilter) return false
+        if (effectiveRole === 'lecturer' && !matchesAttentionHat(item.code, hatFilter)) return false
+        return true
+      }),
+    [data?.attention, effectiveRole, hatFilter, severityFilter],
+  )
   const attentionPagination = useClientPagination(attentionItems, 10)
 
   const grouped = useMemo(
@@ -362,14 +391,34 @@ export function CalendarAttentionPage() {
           <h1 id="calendar-heading">Lịch tổng hợp &amp; điểm cần chú ý</h1>
           <p>Tổng hợp các mốc thời gian trong phạm vi bạn được xem. Lịch giúp theo dõi công việc nhưng không thay thế thông báo.</p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon="refresh"
-          onClick={() => void refresh()}
-          disabled={loading}
-          aria-label="Tải lại lịch và điểm cần chú ý"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {isDualDeptLecturer && (
+            <div className="calendar-segmented" role="group" aria-label="Chuyển ngữ cảnh kiêm nhiệm Bộ môn và Giảng viên">
+              <button
+                type="button"
+                aria-pressed={effectiveRole === 'department'}
+                onClick={() => { setRoleContextOverride('department'); setHatFilter('ALL') }}
+              >
+                Chế độ Bộ môn
+              </button>
+              <button
+                type="button"
+                aria-pressed={effectiveRole === 'lecturer'}
+                onClick={() => { setRoleContextOverride('lecturer'); setHatFilter('ALL') }}
+              >
+                Chế độ Giảng viên
+              </button>
+            </div>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="refresh"
+            onClick={() => void refresh()}
+            disabled={loading}
+            aria-label="Tải lại lịch và điểm cần chú ý"
+          />
+        </div>
       </header>
 
       {loading && <PageLoading label="Đang tải lịch tổng hợp" />}
@@ -625,20 +674,59 @@ export function CalendarAttentionPage() {
               <div className="attention-panel__heading">
                 <div>
                   <h2 id="attention-heading">Điểm cần chú ý</h2>
-                  <p>Những việc ưu tiên cao và mốc đồ án quá hạn.</p>
+                  <p>Việc ưu tiên cao và việc chờ xử lý trong phạm vi phân công của bạn.</p>
                 </div>
                 <span
                   className="attention-panel__count"
                   role="status"
                   aria-atomic="true"
-                  aria-label={attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}
+                  aria-label={attentionKnown ? `${attentionItems.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}
                 >
-                  <span aria-hidden="true">{attentionKnown ? data.attention.length : '—'}</span>
+                  <span aria-hidden="true">{attentionKnown ? attentionItems.length : '—'}</span>
                   <span className="sr-only">
-                    {attentionKnown ? `${data.attention.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}
+                    {attentionKnown ? `${attentionItems.length} điểm cần chú ý` : 'Chưa xác định số việc cần làm'}
                   </span>
                 </span>
               </div>
+
+              {(data.attention.length > 0) && (
+                <div className="px-4 pb-2 space-y-2">
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lọc theo mức ưu tiên">
+                    {([['ALL', 'Tất cả'], ['HIGH', 'Ưu tiên cao'], ['NORMAL', 'Thông thường']] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={severityFilter === key}
+                        onClick={() => setSeverityFilter(key)}
+                        className={`rounded-md border px-2 py-1 text-xs font-semibold ${severityFilter === key ? 'border-primary bg-primary-subtle text-primary' : 'border-hairline bg-canvas text-ink-muted hover:text-ink'}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {effectiveRole === 'lecturer' && (
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lọc theo vai trò giảng viên">
+                      {([
+                        ['ALL', 'Cả 5 mũ'],
+                        ['SUPERVISION', 'Hướng dẫn / Mentor'],
+                        ['GATE_REVIEW', 'Phản biện Gate'],
+                        ['EVALUATION', 'Chấm điểm 80%'],
+                        ['DEFENSE', 'Hội đồng'],
+                      ] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-pressed={hatFilter === key}
+                          onClick={() => setHatFilter(key)}
+                          className={`rounded-md border px-2 py-1 text-xs font-semibold ${hatFilter === key ? 'border-primary bg-primary-subtle text-primary' : 'border-hairline bg-canvas text-ink-muted hover:text-ink'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {attentionErrors.length > 0 && (
                 <div role="alert" className="mx-4 my-3 space-y-2 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">

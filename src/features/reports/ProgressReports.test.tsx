@@ -580,23 +580,37 @@ describe('Progress reports workflow', () => {
     expect(await screen.findByText(/Báo cáo nộp sau hạn sẽ được ghi nhận là nộp muộn/)).toBeTruthy()
   })
 
-  it('requires all six canonical sections before submission while preserving partial drafts', async () => {
-    const canonicalDraft: ReportDetail = {
+  it('requires core canonical sections before submission while allowing optional blockers/risks (TK-W2-01)', async () => {
+    const missingCoreDraft: ReportDetail = {
       ...draft,
       issuesAndRisks: null,
-      inProgressWork: 'Đang dựng giao diện',
+      inProgressWork: '',
       blockers: '',
-      risks: 'Rủi ro trễ tiến độ',
+      risks: '',
       nextActions: 'Viết test',
     }
-    api.getProgressReport.mockResolvedValue(canonicalDraft)
+    api.getProgressReport.mockResolvedValueOnce(missingCoreDraft)
     mount()
 
     const submit = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
-    expect(screen.getByText(/Còn thiếu: Vướng mắc/)).toBeTruthy()
+    expect(screen.getByText(/Còn thiếu: Công việc đang thực hiện/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Lưu thay đổi' })).toBeTruthy()
     expect(api.submitProgressReport).not.toHaveBeenCalled()
+
+    // With 4 core fields filled and blockers/risks empty, submission is enabled
+    cleanup()
+    api.getProgressReport.mockResolvedValueOnce({
+      ...draft,
+      issuesAndRisks: null,
+      inProgressWork: 'Đang dựng giao diện',
+      blockers: '',
+      risks: '',
+      nextActions: 'Viết test',
+    })
+    mount()
+    const submitEnabled = (await screen.findByRole('button', { name: 'Nộp cho GVHD' })) as HTMLButtonElement
+    expect(submitEnabled.disabled).toBe(false)
   })
 
   it('does not submit a complete legacy draft without its reporting cycle', async () => {

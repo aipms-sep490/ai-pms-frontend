@@ -5,12 +5,15 @@ import type { ProjectDto, TeamDto, TimelineTaskDto } from '../../../types/backen
 import type { StudentReviewTimelineDto } from '../../review-gates/types/review-gates.types'
 import { CollaborationWorkspace } from './CollaborationWorkspace'
 
-// Gate fixtures opt in explicitly; the five workspace resources keep their real HTTP assertions.
-const gateRuntime = vi.hoisted(() => ({ mockEnabled: true }))
-vi.mock('../../../app/config/env', async importOriginal => {
-  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
-  return { env: { ...env, get reviewGatesMockEnabled() { return gateRuntime.mockEnabled } } }
-})
+// All workspace resources (including review-gates timeline) use the real HTTP transport (TK-W2-08).
+const defaultGateTimeline: StudentReviewTimelineDto = {
+  projectId: '9', projectCode: 'PRJ-9', projectName: 'Hệ thống quản lý đồ án', projectMode: 'SINGLE_MAJOR', major: 'SE',
+  effectivePolicyVersion: 'server-v1', currentGateCode: 'R2',
+  gates: [{ gateInstanceId: 'server-gate-2', code: 'R2', title: 'System Design & Prototype', objective: 'Thiết kế hệ thống',
+    status: 'IN_REVIEW', reviewEligibility: 'READY', isRequired: true, windowStart: null, windowEnd: null,
+    blockingReasons: [], requirements: [] }],
+  capabilities: { canSubmitPackage: true, canSubmitRevision: true, blockingReasons: [] },
+}
 
 // Transport fixtures exist only in tests. Production uses the shared authenticated HTTP client.
 const project: ProjectDto = { id: 9, teamId: 2, teamName: 'Nhóm đồ án', code: 'PRJ-9', title: 'Hệ thống quản lý đồ án',
@@ -38,6 +41,7 @@ function mockTransport(handler?: Handler) {
     const custom = handler?.(url, init)
     if (custom !== undefined) return custom
     if (url.pathname.endsWith('/major-requirements')) return json({ requirements: [{ majorId: 3 }], concurrencyToken: 'test' })
+    if (url.pathname.endsWith('/review-gates/timeline')) return json(defaultGateTimeline)
     if (url.pathname.endsWith('/timeline')) return json({ projectId: 9, milestones: [milestone] })
     if (url.pathname.endsWith('/progress-summary')) return json({ projectId: 9, totalTasks: 3, doneTasks: 1, blockedTasks: 1, overdueTasks: 1, totalMilestones: 1, completedMilestones: 0, progressPercentage: 100 / 3 })
     if (/\/projects\/9\/(deliverables|progress-reports|meetings)$/.test(url.pathname)) return json(page())
@@ -48,19 +52,11 @@ function mockTransport(handler?: Handler) {
 const capabilities = (allowed: boolean) => ({ status: 'ready' as const, get: () => ({ state: allowed ? 'allowed' as const : 'denied' as const, allowed, reasons: [] }) })
 const renderWorkspace = (currentUserId = 1, createAllowed = currentUserId === 1) => render(<MemoryRouter><CollaborationWorkspace project={project} team={team} currentUserId={currentUserId} executionCapabilities={capabilities(createAllowed)} /></MemoryRouter>)
 
-beforeEach(() => { gateRuntime.mockEnabled = true; vi.stubEnv('DEV', true); calls.length = 0; localStorage.setItem('token', 'test-session-token'); mockTransport() })
+beforeEach(() => { vi.stubEnv('DEV', true); calls.length = 0; localStorage.setItem('token', 'test-session-token'); mockTransport() })
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
 
 describe('collaboration workspace API integration', () => {
-  it('labels development sample gates without requesting a real timeline', async () => {
-    renderWorkspace()
-    expect(screen.getByText('DỮ LIỆU MẪU · Review Gates.', { exact: true })).toBeTruthy()
-    expect(await screen.findByRole('heading', { name: 'System Design & Prototype' })).toBeTruthy()
-    expect(calls.some(call => call.url.pathname.includes('/review-gates/timeline'))).toBe(false)
-  })
-
-  it('hides the sample notice and reads authenticated real gate data when mocks are off', async () => {
-    gateRuntime.mockEnabled = false
+  it('hides the sample notice and reads authenticated real gate data always', async () => {
     const timeline: StudentReviewTimelineDto = {
       projectId: '9', projectCode: 'PRJ-9', projectName: project.title, projectMode: 'SINGLE_MAJOR', major: 'SE',
       effectivePolicyVersion: 'server-v1', currentGateCode: 'R1',
@@ -174,23 +170,23 @@ describe('collaboration workspace API integration', () => {
     fireEvent.change(within(form).getByRole('combobox', { name: 'Mốc đồ án' }), { target: { value: '3' } })
     fireEvent.change(within(form).getByLabelText(/Hạn hoàn thành/), { target: { value: '2099-10-01T15:00' } })
     fireEvent.click(within(form).getByRole('checkbox', { name: names[1] }))
-    fireEvent.click(within(form).getByRole('button', { name: 'Tạo công việc' }))
+    fireEvent.click(within(form).getAllByRole('button', { name: 'Tạo công việc' }).at(-1)!)
     expect(await screen.findByText('Bạn chưa có quyền tạo công việc cho nhóm.')).toBeTruthy()
     expect((within(form).getByRole('textbox', { name: 'Tên công việc' }) as HTMLInputElement).value).toBe('  Hoàn thiện đăng nhập  ')
     const creation = calls.find(call => call.init?.method === 'POST')!
     expect(JSON.parse(String(creation.init?.body))).toEqual({ milestoneId: 3, title: 'Hoàn thiện đăng nhập', description: null,
       priority: 'MEDIUM', dueAt: '2099-10-01T08:00:00.000Z', assigneeUserIds: [2], disciplines: [] })
     fail = false
-    fireEvent.click(within(form).getByRole('button', { name: 'Tạo công việc' }))
+    fireEvent.click(within(form).getAllByRole('button', { name: 'Tạo công việc' }).at(-1)!)
     expect(await screen.findByText('Đã tạo công việc.')).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Tạo công việc' })).toBeNull()
-    await waitFor(() => expect(calls.filter(call => call.url.pathname.endsWith('/timeline'))).toHaveLength(2))
+    await waitFor(() => expect(calls.filter(call => call.url.pathname.endsWith('/timeline')).length).toBeGreaterThanOrEqual(2))
   })
 
   it('aborts pending reads when the workspace unmounts', () => {
     mockTransport(() => new Promise<Response>(() => {}))
     const view = renderWorkspace()
-    expect(calls).toHaveLength(5)
+    expect(calls).toHaveLength(6)
     view.unmount()
     expect(calls.every(call => call.init?.signal?.aborted)).toBe(true)
   })

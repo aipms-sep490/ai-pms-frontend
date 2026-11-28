@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CalendarAttentionPage } from './CalendarAttentionPage'
 import { loadCalendarAttention } from './calendar-data'
 
-const access = vi.hoisted(() => ({ identityRole: 'student', selectedSemesterId: 1, departmentIds: [] as number[], departments: [] as { id: number; name: string }[] }))
+const access = vi.hoisted(() => ({
+  identityRole: 'student' as 'student' | 'lecturer' | 'department' | 'admin',
+  identityRoles: ['STUDENT'] as string[],
+  selectedSemesterId: 1,
+  departmentIds: [] as number[],
+  departments: [] as { id: number; name: string }[],
+}))
 vi.mock('../../app/context/workspace-access', () => ({ useWorkspaceAccess: () => access }))
 vi.mock('../auth/context/useAuthSession', () => ({ useAuthSession: () => ({ session: { accessToken: 'token' } }) }))
 vi.mock('./calendar-data', () => ({ loadCalendarAttention: vi.fn() }))
@@ -24,7 +30,14 @@ const data = {
 
 describe('CalendarAttentionPage', () => {
   afterEach(cleanup)
-  beforeEach(() => { loader.mockClear(); loader.mockResolvedValue(data); access.identityRole = 'student'; access.departmentIds = []; access.departments = [] })
+  beforeEach(() => {
+    loader.mockClear()
+    loader.mockResolvedValue(data)
+    access.identityRole = 'student'
+    access.identityRoles = ['STUDENT']
+    access.departmentIds = []
+    access.departments = []
+  })
 
   it('renders independent calendar and attention facts with a partial-data notice', async () => {
     render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
@@ -40,7 +53,30 @@ describe('CalendarAttentionPage', () => {
     expect(screen.getByRole('button', { name: 'Danh sách' }).getAttribute('aria-pressed')).toBe('true')
     expect(screen.queryByRole('button', { name: /Tạo|Duyệt|Gửi phản hồi|Lưu/ })).toBeNull()
   })
-  it('discloses filtered open work without calling it urgent or a load failure', async () => {
+  it('shows NORMAL open actions directly in attention with severity and lecturer 5-hat filters (TK-W2-14)', async () => {
+    access.identityRole = 'lecturer'
+    access.identityRoles = ['DEPARTMENT_STAFF', 'LECTURER']
+    access.departmentIds = [1]
+    access.departments = [{ id: 1, name: 'CNTT' }]
+    loader.mockResolvedValue({
+      calendar: [],
+      attention: [
+        { code: 'GATE_REVIEW_ASSIGNMENT', source: 'REVIEW_GATE', sourceId: 10, title: 'Chấm phản biện G1', description: 'Đồ án Alpha', status: 'PENDING', severity: 'NORMAL', presentationPriority: 10, deepLink: '/review/gate-assignments' },
+        { code: 'DEFENSE_COMMITTEE', source: 'DEFENSE_SESSION', sourceId: 20, title: 'Phiên bảo vệ', description: 'Đã xác nhận', status: 'CONFIRMED', severity: 'HIGH', presentationPriority: 5, deepLink: '/evaluator/workspace' },
+      ],
+      otherOpenActionsCount: 0,
+      sources: [{ id: 'triage-queue', label: 'Việc cần xử lý', state: 'ready' }],
+    })
+    render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
+    expect(await screen.findByText('Chấm phản biện G1')).toBeTruthy()
+    expect(screen.getAllByText('Phiên bảo vệ').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('button', { name: 'Chế độ Bộ môn' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Chế độ Giảng viên' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Phản biện Gate' }))
+    expect(screen.getByText('Chấm phản biện G1')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /Phiên bảo vệ/ })).toBeNull()
+  })
+  it('discloses legacy overflow message only if caller supplies otherOpenActionsCount', async () => {
     loader.mockResolvedValue({ calendar: [], attention: [], otherOpenActionsCount: 12, sources: [{ id: 'next-actions', label: 'Việc cần làm', state: 'ready' }] })
     render(<MemoryRouter><CalendarAttentionPage /></MemoryRouter>)
     expect(await screen.findByText('Còn 12 việc đang mở không thuộc nhóm ưu tiên cao.')).toBeTruthy()

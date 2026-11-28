@@ -13,6 +13,7 @@ import { academicError, type AcademicError } from '../academic-error'
 import { AcademicField } from '../components/AcademicField'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
 import { dateTimeLabel, localDateTime, toUtcDateTime } from '../../execution/execution-utils'
+import { BulkReportingCycleGeneratorModal } from '../../reports/BulkReportingCycleGeneratorModal'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
 import './academic-governance.css'
 import './academic-governance-polish.css'
@@ -34,6 +35,7 @@ export function AcademicGovernancePage() {
   const [selectedSemesterCode, setSelectedSemesterCode] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<GovernanceSort>('newest')
   const [editor, setEditor] = useState<Editor | null>(null)
+  const [bulkCyclePeriod, setBulkCyclePeriod] = useState<ProjectPeriod | null>(null)
   const [operationError, setOperationError] = useState<AcademicError | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const governance = useAcademicGovernance({ search })
@@ -240,6 +242,11 @@ export function AcademicGovernancePage() {
               {governance.canManage ? 'Chỉnh sửa cấu trúc' : 'Điều chỉnh ngày đợt'}
             </Button>
           )}
+          {period.periodType === 'EXECUTION' && (governance.canUpdatePeriodDates ?? governance.canManage) && !['CLOSED', 'ARCHIVED'].includes(period.status) && (
+            <Button size="sm" variant="secondary" onClick={() => setBulkCyclePeriod(period)}>
+              Sinh chu kỳ báo cáo
+            </Button>
+          )}
         </div><Status label={`giai đoạn ${period.name}`} status={period.status} busy={governance.submitting} canManage={governance.canManage} onChange={status => changeStatus('period', period.id, status, period.status)} /></div>
 
       </article>)}</div>
@@ -259,6 +266,15 @@ export function AcademicGovernancePage() {
     </section>
     {confirmationDialog}
     {editor?.kind === 'semester' ? <SemesterForm record={editor.record} organizations={governance.organizations} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={saveSemester}/> : null}{editor?.kind === 'period' ? <ProjectPeriodForm record={editor.record} semesters={governance.semesters} error={operationError} submitting={governance.submitting} onCancel={() => setEditor(null)} onSubmit={savePeriod}/> : null}
+    {bulkCyclePeriod && (
+      <BulkReportingCycleGeneratorModal
+        open
+        periodId={bulkCyclePeriod.id}
+        periodName={bulkCyclePeriod.name}
+        onClose={() => setBulkCyclePeriod(null)}
+        onGenerated={(result) => setOperationSuccess(`Đã sinh ${result.cyclesCreated} chu kỳ báo cáo cho ${result.projectsProcessed} đồ án trong đợt ${bulkCyclePeriod.name}.`)}
+      />
+    )}
   </WorkspacePage>
 }
 

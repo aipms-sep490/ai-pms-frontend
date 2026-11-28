@@ -64,7 +64,7 @@ describe('SupervisorProjectWorkspacePage', () => {
     operational.useSupervisorOperationalSummary.mockReturnValue(state({ evaluator: ready(true) }))
     review.useSupervisorProgressReview.mockReturnValue({ attention: ready({ overdueTasks: [], blockedTasks: [] }), reload: vi.fn() })
     render(<MemoryRouter><SupervisorProjectWorkspacePage /></MemoryRouter>)
-    expect(screen.getByRole('link', { name: /Đánh giá/ }).getAttribute('href')).toBe('/evaluator/evaluations')
+    expect(screen.getByRole('link', { name: /Đánh giá/ }).getAttribute('href')).toBe('/evaluator/workspace')
   })
 
 })

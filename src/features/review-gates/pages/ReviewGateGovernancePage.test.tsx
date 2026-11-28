@@ -8,9 +8,26 @@ import { AcademicWorkflowContext, type AcademicWorkflowContextValue } from '../.
 const urgent = vi.hoisted(() => ({ getDepartmentUrgentActions: vi.fn() }))
 vi.mock('../../calendar/action-aggregators-api', () => urgent)
 
-vi.mock('../../../app/config/env', async importOriginal => {
-  const { env } = await importOriginal<typeof import('../../../app/config/env')>()
-  return { env: { ...env, reviewGatesMockEnabled: true } }
+vi.mock('../api/review-gates-api', async () => {
+  const { reviewGatesMockAdapter: adapter } = await import('../api/review-gates-mock-adapter')
+  return {
+    getReviewGateTemplates: () => adapter.getTemplates(),
+    getReviewGateTemplate: (id: string) => adapter.getTemplateById(id),
+    saveReviewGateTemplate: (template: Parameters<typeof adapter.saveTemplate>[0]) => adapter.saveTemplate(template),
+    publishReviewGateTemplate: (id: string, concurrencyToken?: string) => adapter.publishTemplate(id, concurrencyToken),
+    deleteReviewGateTemplate: (id: string) => adapter.deleteTemplate(id),
+    getProjectReviewMatrix: (mode?: string) => adapter.getMonitoringMatrix(mode),
+    updateGateDecision: (projectId: string, gateCode: string, newStatus: Parameters<typeof adapter.updateProjectGateDecision>[2]) =>
+      adapter.updateProjectGateDecision(projectId, gateCode, newStatus),
+    updateHybridScopeDecision: (projectId: string, scope: string, newStatus: Parameters<typeof adapter.updateHybridScopeDecision>[2]) =>
+      adapter.updateHybridScopeDecision(projectId, scope, newStatus),
+    getDefenseReadiness: (projectId: string) => adapter.getDefenseReadiness(projectId),
+    getReviewGateOverrideCapability: () => Promise.resolve({ canOverrideGate: false }),
+    getStudentReviewTimeline: (projectId?: string) => adapter.getStudentReviewTimeline(projectId),
+    getGateAssignments: () => Promise.resolve([]),
+    getGateReviewerCandidates: () => Promise.resolve({ items: [], totalCount: 0, page: 1, pageSize: 30 }),
+    getGateRoundScopeConsensus: () => Promise.resolve(null),
+  }
 })
 
 describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () => {
@@ -44,7 +61,6 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     expect(await screen.findByText('Cấu hình & Giám sát Tiến trình Đồ án')).toBeTruthy()
     expect(screen.getByText('IT Capstone – Review 1–4')).toBeTruthy()
     expect(screen.getByText('Integrated Capstone – IT/MKT/Design')).toBeTruthy()
-    expect(screen.getByText('Fall 2026 · SEP490')).toBeTruthy()
   })
 
   it('switches to Builder tab, renders R1..R4 gates and adds a new gate', async () => {
@@ -83,6 +99,8 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
 
     expect(screen.getByRole('heading', { name: 'Thêm yêu cầu mới' })).toBeTruthy()
 
+    const codeInput = screen.getByLabelText(/Mã yêu cầu/)
+    fireEvent.change(codeInput, { target: { value: 'R1-POSTMAN' } })
     const titleInput = screen.getByLabelText(/Tên yêu cầu \/ Tiêu chuẩn đầu ra/)
     fireEvent.change(titleInput, { target: { value: 'API Documentation Postman Collection' } })
 
@@ -219,11 +237,7 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
     expect(screen.getByText('BẢN NHÁP')).toBeTruthy()
   })
 
-  it('dynamically displays gate columns in matrix and rolls back on decision conflict', async () => {
-    vi.spyOn(reviewGatesMockAdapter, 'updateProjectGateDecision').mockRejectedValueOnce(
-      new Error('409: Phiên bản bản ghi tiến trình dự án đã thay đổi.'),
-    )
-
+  it('blocks direct legacy decision bypass when inspecting a project and delegates governance to GateCoordinationDrawer (TK-W2-08)', async () => {
     render(
       <MemoryRouter>
         <ReviewGateGovernancePage />
@@ -241,15 +255,8 @@ describe('ReviewGateGovernancePage (Academic Review Gates Vertical Slice)', () =
 
     // Click on IT-01 to open inspection drawer
     fireEvent.click(screen.getByText('Campus Support Platform'))
-    expect(await screen.findByText('Ghi nhận kết luận thẩm định (Reviewer Scoped Decision)')).toBeTruthy()
-
-    // Submit decision in drawer
-    const submitDecisionBtn = screen.getByRole('button', { name: 'Cập nhật quyết định Reviewer' })
-    fireEvent.click(submitDecisionBtn)
-
-    // Check conflict error is displayed
-    const conflictMsgs = await screen.findAllByText(/409: Phiên bản bản ghi tiến trình/)
-    expect(conflictMsgs.length).toBeGreaterThanOrEqual(1)
+    expect(await screen.findByText('Trạng thái các đợt cổng kiểm duyệt')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Cập nhật quyết định Reviewer' })).toBeNull()
   })
 
   it('opens directly on the progress matrix tab when navigated to /department/projects/progress-matrix', async () => {

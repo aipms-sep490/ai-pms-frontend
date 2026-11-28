@@ -37,11 +37,11 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
   const [script, setScript] = useState<GateSessionScript>(initialScript)
   const [activeTab, setActiveTab] = useState<'AGENDA' | 'ATTENDANCE' | 'QA_LOG' | 'REMEDIATION' | 'VERDICT'>('AGENDA')
   const [newQuestion, setNewQuestion] = useState('')
-  const [newAsker, setNewAsker] = useState('TS. Phạm Quốc Dũng')
-  const [newAnswerer, setNewAnswerer] = useState('Nguyễn Văn A')
+  const [newAsker, setNewAsker] = useState('')
+  const [newAnswerer, setNewAnswerer] = useState('')
   const [newEval, setNewEval] = useState<'SATISFACTORY' | 'ACCEPTABLE' | 'NEEDS_REVISION'>('SATISFACTORY')
   const [newRemediationTitle, setNewRemediationTitle] = useState('')
-  const [newRemediationAssignee, setNewRemediationAssignee] = useState('Nguyễn Văn A')
+  const [newRemediationAssignee, setNewRemediationAssignee] = useState('')
   const [isSaved, setIsSaved] = useState(false)
 
   if (!isOpen) return null
@@ -637,19 +637,28 @@ export const GateSessionScriptModal: React.FC<GateSessionScriptModalProps> = ({
                 </div>
               </div>
 
-              {/* Digital Sign-off Confirmation */}
+              {/* Optional Sign-off Record (Non-Blocking per TK-W2-12) */}
               <div className="rounded-xl border border-hairline bg-canvas/40 p-4 space-y-3">
-                <span className="font-bold text-ink text-xs uppercase tracking-wider">Xác nhận chữ ký điện tử</span>
+                <div>
+                  <span className="font-bold text-ink text-xs uppercase tracking-wider">Xác nhận biên bản phiên (Tùy chọn)</span>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    Kịch bản phiên không chặn quyền xác minh minh chứng hay chốt quyết định của phản biện cổng.
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-lg border border-hairline bg-card p-3">
                     <span className="text-xs text-ink-muted">Thư ký hội đồng ghi biên bản:</span>
-                    <p className="font-bold text-ink mt-0.5">{script.signedBySecretary || 'ThS. Nguyễn Mai Phương'}</p>
-                    <span className="text-xs text-status-success-text font-medium">✓ Đã ký điện tử</span>
+                    <p className="font-bold text-ink mt-0.5">{script.signedBySecretary || 'Chưa xác nhận'}</p>
+                    <span className={`text-xs font-medium ${script.signedBySecretary ? 'text-status-success-text' : 'text-ink-muted'}`}>
+                      {script.signedBySecretary ? '✓ Đã xác nhận từ máy chủ' : 'Chưa ký (tùy chọn)'}
+                    </span>
                   </div>
                   <div className="rounded-lg border border-hairline bg-card p-3">
-                    <span className="text-xs text-ink-muted">Chủ tịch hội đồng phê duyệt:</span>
-                    <p className="font-bold text-ink mt-0.5">{script.signedByChair || 'TS. Phạm Quốc Dũng'}</p>
-                    <span className="text-xs text-status-success-text font-medium">✓ Đã ký điện tử</span>
+                    <span className="text-xs text-ink-muted">Chủ tọa hội đồng phê duyệt:</span>
+                    <p className="font-bold text-ink mt-0.5">{script.signedByChair || 'Chưa xác nhận'}</p>
+                    <span className={`text-xs font-medium ${script.signedByChair ? 'text-status-success-text' : 'text-ink-muted'}`}>
+                      {script.signedByChair ? '✓ Đã xác nhận từ máy chủ' : 'Chưa ký (tùy chọn)'}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { env } from '../../../app/config/env'
 import { displayLabel } from '../../../components/ui/display-label'
 import type {
   GateRequirement,
@@ -59,9 +58,9 @@ export function GateRequirementDrawer({
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!title.trim()) return
-    const needsMajor = scope === 'MAJOR_SPECIFIC' || scope === 'INDIVIDUAL'
+    const needsMajor = scope === 'MAJOR_SPECIFIC'
     const isValidId = (value: string) => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0
-    if (!env.reviewGatesMockEnabled && (!code.trim() || (needsMajor && !isValidId(majorId)) || (scope === 'INDIVIDUAL' && !isValidId(studentId)))) {
+    if (!code.trim() || (needsMajor && !isValidId(majorId)) || (scope === 'INDIVIDUAL' && studentId.trim() !== '' && !isValidId(studentId))) {
       setError('Nhập mã yêu cầu và mã ngành/sinh viên đích hợp lệ theo phạm vi đã chọn.')
       return
     }
@@ -115,7 +114,7 @@ export function GateRequirementDrawer({
           <div className="space-y-4">
             <div>
               <label htmlFor="req-code" className="block text-xs font-semibold text-ink-soft">Mã yêu cầu *</label>
-              <input id="req-code" required={!env.reviewGatesMockEnabled} value={code} onChange={e => setCode(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
+              <input id="req-code" required value={code} onChange={e => setCode(e.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 py-2 text-sm text-ink" />
             </div>
             {error && <p role="alert" className="text-xs text-status-error-text">{error}</p>}
             <div>

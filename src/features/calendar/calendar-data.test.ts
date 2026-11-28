@@ -117,18 +117,18 @@ describe('calendar and aggregator reads', () => {
     expect(data.sources.find(x => x.id === 'project-resources')?.state).toBe('unavailable')
     expect(api.getMeetings).not.toHaveBeenCalled()
   })
-  it.each(['student', 'lecturer', 'department'] as const)('keeps only HIGH items in %s attention and discloses other open work', async role => {
+  it.each(['student', 'lecturer', 'department'] as const)('keeps both HIGH and NORMAL items visible in %s attention with otherOpenActionsCount=0 (TK-W2-14)', async role => {
     const api = apis()
     const response = { asOfUtc: '2026-10-22T08:00:00Z', totalCount: 3, hasMore: false, items: [{ kind: 'TASK', id: 1, projectId: 7, title: 'Đúng hạn', status: 'TODO', severity: 'NORMAL', dueAt: null, deepLink: null }, { kind: 'TASK', id: 2, projectId: 7, title: 'Quá hạn', status: 'TODO', severity: 'HIGH', dueAt: '2026-10-01', deepLink: null }, { kind: 'REVIEW_GATE', id: 3, projectId: 7, title: 'Gate bị chặn', status: 'BLOCKED', severity: 'HIGH', dueAt: null, deepLink: null }] }
     api.getStudentNextActions.mockResolvedValue(response)
     api.getSupervisorTriageQueue.mockResolvedValue(response)
     api.getDepartmentUrgentActions.mockResolvedValue({ ...response, departmentId: 1 })
     const data = await loadCalendarAttention({ role, semesterId: null, departmentIds: [1] }, api)
-    expect(data.attention.map(x => x.title).sort()).toEqual(['Quá hạn', 'Gate bị chặn'].sort())
-    expect(data.otherOpenActionsCount).toBe(1)
+    expect(data.attention.map(x => x.title).sort()).toEqual(['Đúng hạn', 'Quá hạn', 'Gate bị chặn'].sort())
+    expect(data.otherOpenActionsCount).toBe(0)
     expect(data.sources.find(x => x.id === (role === 'student' ? 'next-actions' : role === 'lecturer' ? 'triage-queue' : 'urgent-actions-1'))?.state).toBe('ready')
   })
-  it.each(['student', 'lecturer', 'department'] as const)('discloses backend truncation for %s without treating loaded NORMAL items as the total', async role => {
+  it.each(['student', 'lecturer', 'department'] as const)('discloses backend truncation for %s while keeping loaded NORMAL items visible (TK-W2-14)', async role => {
     const api = apis()
     const response = { asOfUtc: '2026-10-22T08:00:00Z', totalCount: 73, hasMore: true, items: [
       { kind: 'TASK', id: 1, projectId: 7, title: 'Việc đang mở', status: 'TODO', severity: 'NORMAL', dueAt: null, deepLink: null },
@@ -138,8 +138,8 @@ describe('calendar and aggregator reads', () => {
     api.getSupervisorTriageQueue.mockResolvedValue(response)
     api.getDepartmentUrgentActions.mockResolvedValue({ ...response, departmentId: 4 })
     const result = await loadCalendarAttention({ role, semesterId: null, departmentIds: [4] }, api)
-    expect(result.otherOpenActionsCount).toBe(1)
-    expect(result.attention).toHaveLength(1)
+    expect(result.otherOpenActionsCount).toBe(0)
+    expect(result.attention).toHaveLength(2)
     expect(result.sources.find(source => source.id === (role === 'student' ? 'next-actions' : role === 'lecturer' ? 'triage-queue' : 'urgent-actions-4'))).toMatchObject({ state: 'partial', message: 'Hiển thị 2 trong tổng số 73 việc.' })
   })
   it('does not disclose truncation when the backend returned the complete list', async () => {
@@ -149,14 +149,15 @@ describe('calendar and aggregator reads', () => {
     const source = result.sources.find(item => item.id === 'next-actions')
     expect(source?.state).toBe('ready')
     expect(source?.message ?? '').not.toMatch(/chưa cung cấp tổng số|Hiển thị .*trong tổng số|chưa đầy đủ/)
-    expect(result.otherOpenActionsCount).toBe(1)
+    expect(result.attention).toHaveLength(1)
+    expect(result.otherOpenActionsCount).toBe(0)
   })
-  it('preserves both unsupported deadline disclosures without pretending to read removed sources', async () => {
+  it('preserves unsupported report deadline disclosure and shows lecturer EVALUATION_ASSIGNMENT on calendar when present (TK-W2-14)', async () => {
     const api = apis()
     const student = await loadCalendarAttention({ role: 'student', semesterId: null }, api)
     const lecturer = await loadCalendarAttention({ role: 'lecturer', semesterId: null }, api)
     expect(student.sources).toContainEqual(expect.objectContaining({ id: 'progress-report-deadline', state: 'unsupported', message: 'Kỳ báo cáo hiện chưa kèm hạn nộp cụ thể.' }))
-    expect(lecturer.sources).toContainEqual(expect.objectContaining({ id: 'evaluation-assignments', state: 'unsupported', message: 'Phân công đánh giá hiện chưa có mốc hạn để hiển thị trên lịch.' }))
+    expect(lecturer.sources.some(x => x.id === 'evaluation-assignments')).toBe(false)
     expect(lecturer.sources.some(x => x.id === 'supervisor-dashboard')).toBe(false)
     expect(student.sources.some(x => x.id === 'meetings')).toBe(false)
   })

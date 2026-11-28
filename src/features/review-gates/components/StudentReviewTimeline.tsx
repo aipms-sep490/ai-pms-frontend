@@ -6,7 +6,6 @@ import { ReviewSubmissionModal, type ReviewSubmissionPayload } from './ReviewSub
 import { EvidenceDownloadButton } from './EvidenceDownloadButton'
 import { DefenseReadinessChecker } from './DefenseReadinessChecker'
 import { Modal } from '../../../components/ui/Modal'
-import { env } from '../../../app/config/env'
 import { evidenceArtifactLabel } from '../utils/evidence-link'
 import { gateStatusLabels, requirementTypeLabel } from '../utils/review-gate-labels'
 import { displayLabel } from '../../../components/ui/display-label'
@@ -47,10 +46,49 @@ function defenseReadinessLabel(status?: string | null, isReady?: boolean | null)
   return 'CHƯA ĐƯỢC ĐÁNH GIÁ'
 }
 
+export function canUploadGateRequirement(
+  req: StudentGateRequirement,
+  ctx: {
+    isAuthenticated: boolean
+    isLeader: boolean
+    currentUserId?: number | null
+    currentUserMajorId?: number | null
+    gateStatus?: GateStatus
+    isCurrentGate?: boolean
+  },
+): { allowed: boolean; reason: string | null } {
+  if (!ctx.isAuthenticated) {
+    return { allowed: false, reason: 'Chưa đăng nhập' }
+  }
+  if (ctx.gateStatus === 'PASSED' || ctx.gateStatus === 'FAILED') {
+    return { allowed: false, reason: 'Cổng đã khóa bất biến' }
+  }
+  if (ctx.gateStatus === 'LOCKED' || ctx.isCurrentGate === false) {
+    return { allowed: false, reason: 'Cổng chưa mở hoặc đã qua đợt' }
+  }
+  if (req.scope === 'INDIVIDUAL') {
+    if (ctx.currentUserId != null && req.targetStudentId != null && Number(req.targetStudentId) === Number(ctx.currentUserId)) {
+      return { allowed: true, reason: null }
+    }
+    return { allowed: false, reason: 'Do sinh viên đích tự tải' }
+  }
+  if (req.scope === 'MAJOR_SPECIFIC') {
+    if (ctx.isLeader) return { allowed: true, reason: null }
+    if (req.majorId != null && ctx.currentUserMajorId != null && Number(req.majorId) === Number(ctx.currentUserMajorId)) {
+      return { allowed: true, reason: null }
+    }
+    return { allowed: false, reason: 'Chỉ SV cùng chuyên ngành hoặc Trưởng nhóm' }
+  }
+  if (ctx.isLeader) return { allowed: true, reason: null }
+  return { allowed: false, reason: 'Chỉ Trưởng nhóm' }
+}
+
 interface StudentReviewTimelineProps {
   timeline: StudentReviewTimelineDto
   isLeader: boolean
   isAuthenticated?: boolean
+  currentUserId?: number | null
+  currentUserMajorId?: number | null
   onToggleRole?: () => void
   onSubmitRevision: (gateCode: string, requirementId: string, payload: ReviewSubmissionPayload) => Promise<void>
   onSubmitForReview?: (gateCode: string) => Promise<void>
@@ -72,6 +110,8 @@ export function StudentReviewTimeline({
   timeline,
   isLeader,
   isAuthenticated = true,
+  currentUserId = null,
+  currentUserMajorId = null,
   onToggleRole,
   onSubmitRevision,
   onSubmitForReview,
@@ -128,14 +168,18 @@ export function StudentReviewTimeline({
   // Server-authoritative values (no client calculation or fallback heuristics)
   const academicProgress = timeline.academicProgress
   const isDefenseReady = readiness?.isReady ?? timeline.isDefenseReady
+  const isGateLocked = selectedGate?.status === 'PASSED' || selectedGate?.status === 'FAILED'
+  const isCurrentGate = Boolean(selectedGate && selectedGate.code === timeline.currentGateCode)
   const canSubmitSelectedGate = Boolean(isAuthenticated && isLeader && selectedGate
-    && selectedGate.code === timeline.currentGateCode && selectedGate.status !== 'LOCKED' && selectedGate.status !== 'PASSED'
+    && isCurrentGate && selectedGate.status !== 'LOCKED' && !isGateLocked
     && (selectedGate.status === 'REVISION_REQUIRED' ? timeline.capabilities.canSubmitRevision : timeline.capabilities.canSubmitPackage))
 
   const getStatusBadge = (status: GateStatus) => {
     switch (status) {
       case 'PASSED':
-        return <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">✓ ĐÃ ĐẠT</span>
+        return <span className="rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">✓ ĐÃ ĐẠT · KHÓA</span>
+      case 'FAILED':
+        return <span className="rounded-full bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-status-error-text border border-status-error-border">✕ KHÔNG ĐẠT · KHÓA</span>
       case 'REVISION_REQUIRED':
         return <span className="rounded-full bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-status-error-text border border-status-error-border">! CẦN CHỈNH SỬA</span>
       case 'IN_REVIEW':
@@ -167,7 +211,7 @@ export function StudentReviewTimeline({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <h2 className="text-sm font-bold text-ink">{timeline.projectName}</h2>
-            {env.reviewGatesMockEnabled && (
+            {timeline.effectivePolicyVersion && (
               <span className="inline-flex items-center whitespace-nowrap rounded-full bg-status-success-bg px-2.5 py-0.5 text-xs font-bold text-status-success-text border border-status-success-border">
                 Chính sách: v{timeline.effectivePolicyVersion} (Đã ban hành)
               </span>
@@ -641,61 +685,58 @@ export function StudentReviewTimeline({
                                 <span className="material-symbols-outlined text-sm" aria-hidden="true">check</span>
                                 Đã chấp thuận
                               </span>
-                            ) : isLeader ? (
-                              (() => {
-                                const isRevision = selectedGate.status === 'REVISION_REQUIRED' || req.verificationStatus === 'REJECTED'
-                                const canSubmitThis = canSubmitSelectedGate
-                                const blockingReason = timeline.capabilities?.blockingReasons?.[0]
+                            ) : (() => {
+                              const isRevision = selectedGate.status === 'REVISION_REQUIRED' || req.verificationStatus === 'REJECTED'
+                              const uploadCheck = canUploadGateRequirement(req, {
+                                isAuthenticated,
+                                isLeader,
+                                currentUserId,
+                                currentUserMajorId,
+                                gateStatus: selectedGate.status,
+                                isCurrentGate,
+                              })
+                              const capabilityAllowed = req.scope === 'COMMON'
+                                ? canSubmitSelectedGate
+                                : uploadCheck.allowed && !isGateLocked && selectedGate.status !== 'LOCKED'
+                              const canUploadThis = uploadCheck.allowed && capabilityAllowed
+                              const reasonLabel = uploadCheck.reason || timeline.capabilities?.blockingReasons?.[0]
 
-                                if (!canSubmitThis) {
-                                  return (
-                                    <div className="flex flex-col items-end gap-0.5">
-                                      <button
-                                        type="button"
-                                        disabled
-                                        aria-disabled="true"
-                                        title={blockingReason || 'Hồ sơ hiện bị khóa nộp'}
-                                        className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-ink-muted"
-                                      >
-                                        {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                                      </button>
-                                      <span className="max-w-[180px] truncate text-right text-xs text-status-error-text italic" title={blockingReason}>
-                                        {blockingReason || 'Bị chặn nộp'}
-                                      </span>
-                                    </div>
-                                  )
-                                }
-
+                              if (!canUploadThis) {
                                 return (
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveReqForSubmission(req)}
-                                    className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
-                                      isRevision
-                                        ? 'bg-status-error-text text-white shadow-xs hover:opacity-90 focus:ring-status-error-text'
-                                        : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
-                                    }`}
-                                  >
-                                    {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
-                                  </button>
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <button
+                                      type="button"
+                                      disabled
+                                      aria-disabled="true"
+                                      aria-describedby={`member-only-notice-${req.id}`}
+                                      title={reasonLabel || 'Hồ sơ hiện bị khóa nộp'}
+                                      className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-ink-muted"
+                                    >
+                                      {isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                    </button>
+                                    <span id={`member-only-notice-${req.id}`} className="max-w-[200px] truncate text-right text-xs text-ink-muted italic" title={reasonLabel || undefined}>
+                                      {reasonLabel || 'Bị chặn nộp'}
+                                    </span>
+                                  </div>
                                 )
-                              })()
-                            ) : (
-                              <div className="flex flex-col items-end gap-0.5">
+                              }
+
+                              return (
                                 <button
                                   type="button"
-                                  disabled
-                                  aria-disabled="true"
-                                  aria-describedby={`member-only-notice-${req.id}`}
-                                  className="cursor-not-allowed rounded-lg bg-canvas px-3 py-1.5 text-xs font-semibold text-ink-muted"
+                                  onClick={() => setActiveReqForSubmission(req)}
+                                  className={`min-h-11 rounded-lg px-3 py-1.5 text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-1 ${
+                                    isRevision
+                                      ? 'bg-status-error-text text-white shadow-xs hover:opacity-90 focus:ring-status-error-text'
+                                      : 'bg-primary text-white shadow-xs hover:bg-primary-hover focus:ring-primary'
+                                  }`}
                                 >
-                                  {req.verificationStatus === 'REJECTED' ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu'}
+                                  {req.scope === 'INDIVIDUAL'
+                                    ? (isRevision ? 'Tải bản sửa cá nhân' : 'Tải bản nháp cá nhân')
+                                    : (isRevision ? 'Nộp bản sửa' : req.latestArtifact ? 'Nộp lại' : 'Nộp tài liệu')}
                                 </button>
-                                <span id={`member-only-notice-${req.id}`} className="text-xs text-ink-muted italic">
-                                  {isAuthenticated ? 'Chỉ Trưởng nhóm' : 'Chưa đăng nhập'}
-                                </span>
-                              </div>
-                            )}
+                              )
+                            })()}
                           </td>
                         </tr>
                       )
@@ -704,7 +745,7 @@ export function StudentReviewTimeline({
                 </Table>
               </div>
 
-              {onSubmitForReview && selectedGate.status !== 'PASSED' && (
+              {onSubmitForReview && !isGateLocked && (
                 <div className="space-y-2 border-t border-hairline pt-3">
                   <button type="button" disabled={!canSubmitSelectedGate || submittingGate || selectedGate.requirements.some(req => req.isMandatory && !req.latestArtifact)}
                     className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary-hover disabled:bg-hairline disabled:text-ink-muted cursor-pointer"
@@ -813,7 +854,16 @@ export function StudentReviewTimeline({
         requirement={submissionRequirement}
         gateCode={selectedGate?.code || ''}
         isLeader={isLeader}
-        canSubmit={canSubmitSelectedGate}
+        canSubmit={submissionRequirement
+          ? canUploadGateRequirement(submissionRequirement, {
+              isAuthenticated,
+              isLeader,
+              currentUserId,
+              currentUserMajorId,
+              gateStatus: selectedGate?.status,
+              isCurrentGate,
+            }).allowed
+          : canSubmitSelectedGate}
         blockingMessage={timeline.capabilities?.blockingReasons?.[0]}
         revisionRequired={selectedGate?.status === 'REVISION_REQUIRED'}
         onReload={onReload}

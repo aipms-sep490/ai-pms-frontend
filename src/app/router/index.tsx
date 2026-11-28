@@ -16,7 +16,7 @@ import { ChatPage } from '../../features/chat/ChatPage'
 import { DepartmentDocumentsPage } from '../../features/department-documents/DepartmentDocumentsPage'
 import {
   MilestoneTemplatesPage, WorkflowPreviewPage, ProfileVerificationsPage, LecturerWorkspacePage, SupervisorProfilePage,
-  SupervisorProjectWorkspacePage, SupervisorProgressReviewPage, SupervisorFinalSubmissionPage, WeeklyAssessmentsPage,
+  SupervisorProjectWorkspacePage, SupervisorProgressReviewPage, SupervisorFinalSubmissionPage, WeeklyAssessmentsPage, IndividualProcessScoringPage,
   MentorProjectWorkspacePage, MentorWorkspacePage, OverviewPage, ActiveProjectWorkspacePage, TaskBoardPage, TaskDetailPage,
   ProgressReportsPage, MeetingsPage, CreateMeetingPage, MeetingDetailPage, MeetingVideoRoomPage, ProgressReportDetailPage,
   ProjectLifecyclePage, MilestoneDetailPage, GanttPage, TeamManagementPage, TopicCataloguePage, ProjectRegistrationFormPage,
@@ -137,6 +137,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
             { path: 'supervisor/projects/:projectId/contributions', element: <ProjectContributionsPage /> },
             { path: 'supervisor/projects/:projectId/final-submission', element: <SupervisorFinalSubmissionPage /> },
             { path: 'supervisor/projects/:projectId/review-gates', element: <StudentReviewTimelinePage /> },
+            { path: 'supervisor/projects/:projectId/individual-process', element: <IndividualProcessScoringPage /> },
             ...(env.weeklyAssessmentEnabled ? [{ path: 'supervisor/projects/:projectId/weekly-assessments', element: <WeeklyAssessmentsPage /> }] : []),
             ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [{ path: 'supervisor/projects/:projectId/ai', element: <ProjectAiPage /> }] : []),
             ...(env.gatesEnabled ? [{ path: 'supervisor/projects/:projectId/checkpoints', element: <ProjectGatesPage /> }] : []),
@@ -152,6 +153,7 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId/video', element: <MeetingVideoRoomPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/meetings/:meetingId', element: <MeetingDetailPage /> },
             { path: 'mentor/projects/:projectId/majors/:majorId/evidence', element: <ProjectEvidenceLedgerPage /> },
+            { path: 'mentor/projects/:projectId/majors/:majorId/mentor-notes', element: <IndividualProcessScoringPage /> },
             ...(env.gatesEnabled ? [{ path: 'mentor/projects/:projectId/majors/:majorId/checkpoints', element: <ProjectGatesPage /> }] : []),
           ] },
           { path: 'evaluator/evaluations', element: <EvaluatorAssignmentsPage /> },
@@ -161,6 +163,11 @@ export const appRouter = createBrowserRouter([{ element: <RouteFrame />, errorEl
           { element: <EvaluatorAssignmentRoute />, children: [
             { path: 'evaluator/assignments/:assignmentId', element: <EvaluatorAssignmentDetailPage /> },
           ] },
+        ],
+      },
+      {
+        element: <RoleRoute allowed={['lecturer', 'department']} />,
+        children: [
           { path: 'review/gate-assignments', element: <AssignedGateReviewPage /> },
         ],
       },

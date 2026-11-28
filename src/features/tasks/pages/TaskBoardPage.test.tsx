@@ -6,6 +6,7 @@ import { TaskBoardPage } from './TaskBoardPage'
 
 const api = vi.hoisted(() => ({
   getProjectTasks: vi.fn(),
+  getTaskBoardSummary: vi.fn(),
   getProjectMilestones: vi.fn(),
   createTask: vi.fn(),
   updateTaskStatus: vi.fn(),
@@ -52,6 +53,7 @@ function renderBoard(manage: boolean, url = '/project/tasks', allowed = manage, 
 
 beforeEach(() => {
   api.getProjectTasks.mockResolvedValue(empty)
+  api.getTaskBoardSummary.mockResolvedValue([])
   api.getProjectMilestones.mockResolvedValue([{ id: 3, title: 'Khởi động', status: 'PLANNED' }])
   api.getTask.mockResolvedValue(item)
   api.getTaskHistory.mockResolvedValue([])
