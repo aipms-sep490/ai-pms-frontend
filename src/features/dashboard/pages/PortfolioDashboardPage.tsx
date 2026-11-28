@@ -2,6 +2,7 @@ import { Button } from '../../../components/ui/Button'
 import { displayLabel } from '../../../components/ui/display-label'
 import { FilterToolbar } from '../../../components/ui/FilterToolbar'
 import { Pagination } from '../../../components/ui/Pagination'
+import { humanizeWorkflowReason } from '../../../components/ui/workflow-action-gate'
 import { StatTileRow } from '../../../components/ui/StatTileRow'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
@@ -100,7 +101,9 @@ export function PortfolioDashboardPage() {
       if (current !== version.current) return
       const archiveAction = actionsResult.actions.find(item => item.code === 'archive_project')
       if (!archiveAction?.allowed) {
-        setError(archiveAction?.reasons?.length ? `Chưa thể lưu trữ ${project.code}: ${archiveAction.reasons.join(' ')}` : `Hệ thống không cho phép lưu trữ ${project.code} ở trạng thái hiện tại.`)
+        setError(archiveAction?.reasons?.length
+          ? `Chưa thể lưu trữ ${project.code}: ${archiveAction.reasons.map(humanizeWorkflowReason).join(' ')}`
+          : `Hệ thống không cho phép lưu trữ ${project.code} ở trạng thái hiện tại.`)
         return
       }
       const decision = await requestConfirmation({

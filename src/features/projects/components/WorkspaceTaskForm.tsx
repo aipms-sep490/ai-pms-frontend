@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { services } from '../../../services/service-gateway'
-import { HttpError } from '../../../services/http/http-client'
+import { executionError } from '../../execution/execution-utils'
 import type { TeamMemberDto, MilestoneDto, ProjectDto } from '../../../types/backend'
 import { useProjectDisciplineScope } from '../hooks/useProjectDisciplineScope'
 import type { AssistantDraft } from '../../ai/academic-ai-api'
@@ -9,8 +9,19 @@ import { toMeetingInput } from '../../meetings/meeting-utils'
 import '../pages/collaboration-workspace.css'
 import './workspace-task-form.css'
 
+type TaskMilestoneOption = Pick<MilestoneDto, 'id' | 'title'> & {
+  startDate?: string | null
+  dueDate?: string | null
+}
+
+function formatCalendarDateVn(isoDate?: string | null): string | null {
+  if (!isoDate) return null
+  const parts = isoDate.slice(0, 10).split('-')
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : null
+}
+
 export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCreated, initialDraft }: {
-  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: Pick<MilestoneDto, 'id' | 'title'>[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
+  initialDraft?: Pick<AssistantDraft, 'title' | 'description' | 'task'>; project: ProjectDto; milestones: TaskMilestoneOption[]; members: TeamMemberDto[]; onCancel: () => void; onCreated: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -27,6 +38,18 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
   }
   const showDisciplineFields = scope.ready && (scope.interdisciplinary || scope.majors.length > 1)
   const milestone = milestoneChoice ?? String(uniqueNameMatch(milestones, initialDraft?.task?.milestoneTitle, m => m.title)?.id ?? '')
+  const selectedMilestone = milestones.find(item => String(item.id) === milestone)
+  const milestoneMinDate = selectedMilestone?.startDate?.slice(0, 10)
+  const milestoneMaxDate = selectedMilestone?.dueDate?.slice(0, 10)
+  const milestoneStartVn = formatCalendarDateVn(milestoneMinDate)
+  const milestoneDueVn = formatCalendarDateVn(milestoneMaxDate)
+  const milestoneWindowText = milestoneStartVn && milestoneDueVn
+    ? `${milestoneStartVn} – ${milestoneDueVn}`
+    : milestoneStartVn
+      ? `từ ${milestoneStartVn}`
+      : milestoneDueVn
+        ? `đến ${milestoneDueVn}`
+        : null
   const matchedAssignees = (initialDraft?.task?.assigneeNames ?? []).map(name => uniqueNameMatch(members, name, m => m.fullName)).filter(m => !!m)
   const unresolved = !!initialDraft?.task && ((!!initialDraft.task.milestoneTitle && !uniqueNameMatch(milestones, initialDraft.task.milestoneTitle, m => m.title)) || matchedAssignees.length !== (initialDraft.task.assigneeNames?.length ?? 0) || (!!initialDraft.task.primaryMajorName && !uniqueNameMatch(scope.majors, initialDraft.task.primaryMajorName, m => m.majorName)))
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -57,9 +80,7 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
       })
       onCreated()
     } catch (reason) {
-      setError(reason instanceof HttpError && reason.status === 403 ? 'Bạn chưa có quyền tạo công việc cho nhóm.'
-        : reason instanceof HttpError && reason.status === 409 ? 'Thông tin đồ án đã thay đổi. Cập nhật trang rồi thử lại.'
-        : 'Chưa tạo được công việc. Kiểm tra thông tin rồi thử lại.')
+      setError(executionError(reason, 'tạo công việc'))
     } finally { pending.current = false; setBusy(false) }
   }
   return <section className="cw-panel cw-create" aria-labelledby="create-task-heading">
@@ -75,14 +96,23 @@ export function WorkspaceTaskForm({ project, milestones, members, onCancel, onCr
         <label className="cw-full-width">Tên công việc<input autoFocus name="title" defaultValue={initialDraft?.title} required maxLength={255} placeholder="Ví dụ: Hoàn thiện màn hình đăng nhập" /></label>
         <label>Mốc đồ án<select name="milestoneId" required value={milestone} onChange={event => setMilestoneChoice(event.target.value)}><option value="" disabled>Chọn mốc</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <label><span>Hạn hoàn thành <span className="cw-optional">(không bắt buộc)</span></span>
-          <input name="dueAt" type="datetime-local" value={dueAtInput} onChange={event => setDueAtInput(event.target.value)} />
+          <input
+            name="dueAt"
+            type="datetime-local"
+            min={milestoneMinDate ? `${milestoneMinDate}T00:00` : undefined}
+            max={milestoneMaxDate ? `${milestoneMaxDate}T23:59` : undefined}
+            value={dueAtInput}
+            onChange={event => setDueAtInput(event.target.value)}
+          />
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(0)}>Hôm nay</button>
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(3)}>+3 ngày</button>
             <button type="button" className="rounded-md border border-hairline bg-canvas px-2 py-0.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary" onClick={() => setQuickDue(7)}>+7 ngày</button>
             {dueAtInput && <button type="button" className="rounded-md px-1.5 py-0.5 text-xs font-medium text-ink-muted hover:text-ink" onClick={() => setDueAtInput('')}>Xóa hạn</button>}
           </div>
-          <span className="cw-field-hint">Giờ Việt Nam (UTC+7)</span>
+          <span className="cw-field-hint">
+            Giờ Việt Nam (UTC+7){milestoneWindowText ? ` · Khung thời gian mốc: ${milestoneWindowText}` : ''}
+          </span>
         </label>
         <label>Mức ưu tiên<select name="priority" defaultValue={initialDraft?.task?.priority ?? 'MEDIUM'}><option value="LOW">Thấp</option><option value="MEDIUM">Bình thường</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></label>
         {showDisciplineFields && <>

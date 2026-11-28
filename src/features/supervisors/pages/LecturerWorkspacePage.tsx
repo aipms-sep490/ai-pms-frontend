@@ -381,9 +381,14 @@ export function LecturerWorkspacePage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    {assignments.map(item => <span key={item.id} className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${item.isPrimary ? 'border-primary/20 bg-primary-subtle text-primary' : 'border-tag-se/25 bg-tag-se-bg text-tag-se'}`}>
-                      {item.isPrimary ? 'Hướng dẫn chính' : item.assignmentType === 'DISCIPLINE_MENTOR' ? 'Hướng dẫn chuyên ngành' : 'Đồng hướng dẫn'}{item.endedAt ? ' · Đã kết thúc' : ''}
-                    </span>)}
+                    {assignments.map(item => {
+                      const mentorMajorName = item.assignmentType === 'DISCIPLINE_MENTOR' && item.majorId
+                        ? project?.majors?.find(major => major.majorId === item.majorId)?.majorName
+                        : undefined
+                      return <span key={item.id} className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${item.isPrimary ? 'border-primary/20 bg-primary-subtle text-primary' : 'border-tag-se/25 bg-tag-se-bg text-tag-se'}`}>
+                        {item.isPrimary ? 'Hướng dẫn chính' : item.assignmentType === 'DISCIPLINE_MENTOR' ? (mentorMajorName ? `Hướng dẫn chuyên ngành · ${mentorMajorName}` : 'Hướng dẫn chuyên ngành') : 'Đồng hướng dẫn'}{item.endedAt ? ' · Đã kết thúc' : ''}
+                      </span>
+                    })}
                     {project?.code && <span className="font-mono text-xs text-ink-muted">· {project.code}</span>}
                   </div>
                   <h3 className="break-words font-semibold text-ink text-lg">{project?.title ?? 'Đồ án được phân công'}</h3>

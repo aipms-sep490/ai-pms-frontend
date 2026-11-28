@@ -6,6 +6,7 @@ import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { Modal } from '../../../components/ui/Modal'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { services } from '../../../services/service-gateway'
+import type { ProjectExecutionWindowDto } from '../../../services/api/milestones.api'
 import type { MilestoneDto, TimelineMilestoneDto } from '../../../types/backend'
 import { executionError, milestoneLabels } from '../../execution/execution-utils'
 import { ExProgress } from '../../execution/execution-ui'
@@ -21,8 +22,14 @@ function milestoneStatusTone(status: string) {
   return 'neutral' as const
 }
 
+function formatIsoDateVn(isoDate: string): string {
+  const parts = isoDate.slice(0, 10).split('-')
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : isoDate
+}
+
 export function MilestoneScheduleDrawer({
   milestone,
+  executionWindow,
   routeBase,
   canEdit,
   canCreateTask,
@@ -33,6 +40,7 @@ export function MilestoneScheduleDrawer({
   onCreateTaskInMilestone,
 }: {
   milestone: TimelineMilestoneDto
+  executionWindow?: ProjectExecutionWindowDto | null
   routeBase: string
   canEdit: boolean
   canCreateTask: boolean
@@ -87,12 +95,26 @@ export function MilestoneScheduleDrawer({
   const overdueCount = milestone.tasks.filter((t) => isOverdue(t, observedAt)).length
   const blockedCount = milestone.tasks.filter((t) => t.status === 'BLOCKED').length
 
+  const winStart = executionWindow?.startDate?.slice(0, 10)
+  const winEnd = executionWindow?.endDate?.slice(0, 10)
+  const winRangeLabel = winStart && winEnd ? `${formatIsoDateVn(winStart)} – ${formatIsoDateVn(winEnd)}` : null
+
   const handleSave = async (event: FormEvent) => {
     event.preventDefault()
     if (!canEdit || !detail) return
     if (startDate && dueDate && dueDate < startDate) {
       setError('Hạn hoàn thành phải bằng hoặc sau ngày bắt đầu.')
       return
+    }
+    if (winStart && winEnd) {
+      if (startDate && (startDate < winStart || startDate > winEnd)) {
+        setError(`Ngày bắt đầu mốc phải nằm trong khung đợt thực hiện (${winRangeLabel}).`)
+        return
+      }
+      if (dueDate && (dueDate < winStart || dueDate > winEnd)) {
+        setError(`Hạn hoàn thành của mốc phải nằm trong khung đợt thực hiện (${winRangeLabel}).`)
+        return
+      }
     }
     setSaving(true)
     setError('')
@@ -189,12 +211,21 @@ export function MilestoneScheduleDrawer({
               </div>
             </div>
 
+            {winRangeLabel && (
+              <p className="rounded-lg border border-hairline bg-card px-3 py-2 text-xs leading-relaxed text-ink-soft">
+                <strong className="text-ink">Khung đợt thực hiện{executionWindow?.name ? ` (${executionWindow.name})` : ''}:</strong>{' '}
+                <span className="font-semibold text-primary">{winRangeLabel}</span>
+              </p>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-xs font-semibold text-ink-soft">
                 Ngày bắt đầu
                 <input
                   type="date"
                   value={startDate}
+                  min={winStart}
+                  max={winEnd}
                   disabled={saving || loadingDetail}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="min-h-10 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus:border-primary focus:outline-none"
@@ -205,7 +236,8 @@ export function MilestoneScheduleDrawer({
                 <input
                   type="date"
                   value={dueDate}
-                  min={startDate || undefined}
+                  min={startDate || winStart}
+                  max={winEnd}
                   disabled={saving || loadingDetail}
                   onChange={(e) => setDueDate(e.target.value)}
                   className="min-h-10 rounded-lg border border-hairline bg-card px-3 text-sm font-normal text-ink focus:border-primary focus:outline-none"

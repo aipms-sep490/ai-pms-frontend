@@ -52,3 +52,18 @@ it('explains the server scope denial without granting an action', async () => {
   await screen.findByText('Phân công này nằm ngoài phạm vi khoa được phép xử lý.')
   expect(screen.queryByRole('button', { name: 'Kết thúc phân công' })).toBeNull()
 })
+
+
+it('shows exact Vietnamese role conflict detail when replacement hits SUPERVISOR_ROLE_CONFLICT', async () => {
+  api.replaceSupervisorAssignment.mockRejectedValue(new HttpError('Role conflict', 409, {
+    code: 'SUPERVISOR_ROLE_CONFLICT',
+    detail: 'Giảng viên thay thế đang đảm nhận vai trò GVHD chính trong đồ án này nên không thể đồng thời làm Mentor chuyên ngành.',
+  }))
+  render(<AssignmentManagementPanel projectId={2} />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Chọn người thay thế' }))
+  fireEvent.change(await screen.findByLabelText('Giảng viên thay thế'), { target: { value: '9' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Thay giảng viên' }))
+  fireEvent.change(screen.getByLabelText('Lý do thay đổi'), { target: { value: 'Điều chỉnh phân công' } })
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Thay giảng viên' }))
+  expect((await screen.findByRole('alert')).textContent).toContain('đang đảm nhận vai trò GVHD chính')
+})

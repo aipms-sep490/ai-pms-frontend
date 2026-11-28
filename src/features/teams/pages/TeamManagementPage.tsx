@@ -432,14 +432,16 @@ export function TeamManagementPage() {
       )}
 
       {/* Modals */}
-      <CreateTeamModal
-        isOpen={isCreateModalOpen}
-        semesterName={semester?.name ?? 'Học kỳ hiện tại'}
-        majors={academicMajors}
-        defaultMajorId={profile?.majorId}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateTeam}
-      />
+      {isCreateModalOpen && (
+        <CreateTeamModal
+          isOpen={isCreateModalOpen}
+          semesterName={semester?.name ?? 'Học kỳ hiện tại'}
+          majors={academicMajors}
+          defaultMajorId={profile?.majorId}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreateTeam}
+        />
+      )}
 
       {team && (
         <UpdateTeamModal

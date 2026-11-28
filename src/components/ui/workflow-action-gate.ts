@@ -41,6 +41,12 @@ const WORKFLOW_REASON_LABELS: Record<string, string> = {
   MISSING_EVALUATOR: 'Còn cấu phần chấm chưa được phân công giảng viên chấm.',
   RESULT_NOT_READY: 'Kết quả đánh giá chưa đủ điều kiện để công bố.',
   RESULT_PUBLICATION_FORBIDDEN: 'Tài khoản hiện tại không có quyền công bố kết quả.',
+  ARCHIVE_NOT_ALLOWED: 'Đồ án chưa đáp ứng đủ điều kiện để lưu trữ.',
+  PROJECT_NOT_COMPLETED: 'Chỉ có thể lưu trữ khi đồ án đã ở trạng thái hoàn thành.',
+  FINAL_RESULT_NOT_PUBLISHED: 'Cần công bố kết quả chính thức trước khi lưu trữ đồ án.',
+  UNRESOLVED_APPEALS: 'Đồ án còn đơn phúc khảo chưa xử lý xong nên chưa thể lưu trữ.',
+  OPEN_APPEALS_EXIST: 'Đồ án còn đơn phúc khảo đang mở nên chưa thể lưu trữ.',
+  ARCHIVE_REASON_REQUIRED: 'Cần cung cấp lý do trước khi lưu trữ đồ án.',
 }
 
 const RAW_CODE_PATTERN = /^[A-Z][A-Z0-9_]+(?::.+)?$/
