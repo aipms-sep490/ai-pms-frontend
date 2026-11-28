@@ -23,7 +23,7 @@ jobs:
           - 1433:1433
         env:
           ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: "${{ secrets.CI_MSSQL_SA_PASSWORD }}"
+          MSSQL_SA_PASSWORD: "${{ secrets.CI_MSSQL_SA_PASSWORD || 'CiSmoke9Stages!2026#' }}"
 
     steps:
       - name: Checkout Frontend
@@ -59,8 +59,10 @@ jobs:
         id: db
         shell: pwsh
         working-directory: backend
+        env:
+          SA_PW: ${{ secrets.CI_MSSQL_SA_PASSWORD || 'CiSmoke9Stages!2026#' }}
         run: |
-          $saPw = '${{ secrets.CI_MSSQL_SA_PASSWORD }}'
+          $saPw = $env:SA_PW
           $conn = "Server=localhost,1433;Database=master;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;"
           $env:AIPMS_TEST_SQL_CONNECTION = $conn
           $env:AIPMS_E2E_PASSWORD = [Guid]::NewGuid().ToString('N') + 'Aa1!'
@@ -73,9 +75,11 @@ jobs:
 
       - name: Start Isolated Backend API & Run 9-Stage Playwright Smoke
         shell: pwsh
+        env:
+          SA_PW: ${{ secrets.CI_MSSQL_SA_PASSWORD || 'CiSmoke9Stages!2026#' }}
         run: |
           $env:AIPMS_E2E_PASSWORD = '${{ steps.db.outputs.e2e_pw }}'
-          $saPw = '${{ secrets.CI_MSSQL_SA_PASSWORD }}'
+          $saPw = $env:SA_PW
           $dbName = '${{ steps.db.outputs.db_name }}'
           $apiConn = "Server=localhost,1433;Database=$dbName;User Id=sa;Password=$saPw;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=True;"
           $env:ConnectionStrings__DefaultConnection = $apiConn
