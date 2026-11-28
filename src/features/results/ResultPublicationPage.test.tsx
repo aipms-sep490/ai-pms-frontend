@@ -111,3 +111,18 @@ it('does not expose publication when server capability verification fails', asyn
   expect(screen.queryByRole('button', { name: 'Công bố kết quả đồ án' })).toBeNull()
   expect(api.publishProjectResult).not.toHaveBeenCalled()
 })
+
+it('shows non-blocking QD-05 warning banner while keeping publication enabled', async () => {
+  api.getResultPreview.mockResolvedValue({
+    ...preview(),
+    warnings: [{
+      code: 'INTERDISCIPLINARY_DEFENSE_COMMON_BELOW_FLOOR',
+      message: 'Cảnh báo QD-05: Điểm Bảo vệ chung (3.50) dưới ngưỡng 4.00 dù tổng Chung đạt 5.15.',
+    }],
+  })
+  page()
+  await screen.findByRole('region', { name: 'Bản xem trước kết quả' })
+  expect(screen.getByText(/Cảnh báo QD-05/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('checkbox'))
+  expect((screen.getByRole('button', { name: 'Công bố kết quả đồ án' }) as HTMLButtonElement).disabled).toBe(false)
+})

@@ -2,13 +2,24 @@ import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../../components/ui/Table'
 import type { RoomDto, RoomSchedulingExclusion } from './room-planner-api'
 
-const SLOTS = [
-  '08:00–09:15',
-  '09:30–10:45',
-  '11:00–12:15',
-  '13:30–14:45',
-  '15:00–16:15',
-  '16:30–17:45',
+const SINGLE_SLOTS_45M = [
+  '08:00–08:45',
+  '08:45–09:30',
+  '09:45–10:30',
+  '10:30–11:15',
+  '13:30–14:15',
+  '14:15–15:00',
+  '15:15–16:00',
+  '16:00–16:45',
+]
+
+const INTER_SLOTS_60M = [
+  '08:00–09:00',
+  '09:15–10:15',
+  '10:15–11:15',
+  '13:30–14:30',
+  '14:45–15:45',
+  '15:45–16:45',
 ]
 
 export interface RoomAllocationSummary {
@@ -47,12 +58,16 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
   const buildings = [...new Set(rooms.map((room) => room.building))].sort()
   const [building, setBuilding] = useState(buildings[0] ?? '')
   const selectedBuilding = buildings.includes(building) ? building : buildings[0] ?? ''
-  const [floor, setFloor] = useState(2)
+  const buildingFloors = [...new Set(rooms.filter((r) => r.building === selectedBuilding).map((r) => r.floor))].sort((a, b) => a - b)
+  const [floor, setFloor] = useState(buildingFloors[0] ?? 2)
+  const selectedFloor = buildingFloors.includes(floor) ? floor : buildingFloors[0] ?? 2
+  const [slotMode, setSlotMode] = useState<'SINGLE_45' | 'INTER_60'>('SINGLE_45')
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'canvas' | 'grid'>('canvas')
+  const SLOTS = slotMode === 'INTER_60' ? INTER_SLOTS_60M : SINGLE_SLOTS_45M
 
   const visibleRooms = rooms
-    .filter((room) => room.building === selectedBuilding && room.floor === floor)
+    .filter((room) => room.building === selectedBuilding && room.floor === selectedFloor)
     .sort((a, b) => a.code.localeCompare(b.code, 'vi'))
 
   const selectedRoom = visibleRooms.find((room) => room.id === selectedRoomId)
@@ -159,7 +174,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
   return (
     <section
-      aria-label="Danh mục phòng tầng 2 đến 4"
+      aria-label="Danh mục phòng theo tòa và tầng"
       className="rounded-2xl border border-hairline bg-card p-5 shadow-xs"
     >
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-4">
@@ -191,8 +206,8 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
             </select>
           </label>
 
-          <div role="group" aria-label="Chọn tầng" className="flex rounded-lg border border-hairline p-0.5">
-            {[2, 3, 4].map((number) => (
+          <div role="group" aria-label="Chọn tầng" className="flex flex-wrap rounded-lg border border-hairline p-0.5">
+            {buildingFloors.map((number) => (
               <button
                 key={number}
                 type="button"
@@ -200,9 +215,9 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                   setFloor(number)
                   setSelectedRoomId(null)
                 }}
-                aria-pressed={floor === number}
+                aria-pressed={selectedFloor === number}
                 className={`min-h-10 rounded-md px-3 text-xs font-bold transition-colors ${
-                  floor === number
+                  selectedFloor === number
                     ? 'bg-primary text-white shadow-xs'
                     : 'bg-transparent text-ink-muted hover:bg-canvas'
                 }`}
@@ -210,6 +225,29 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 Tầng {number}
               </button>
             ))}
+          </div>
+
+          <div role="group" aria-label="Chế độ ca POL-06" className="flex rounded-lg border border-hairline bg-canvas p-0.5">
+            <button
+              type="button"
+              onClick={() => setSlotMode('SINGLE_45')}
+              aria-pressed={slotMode === 'SINGLE_45'}
+              className={`min-h-10 rounded-md px-2.5 text-xs font-bold transition-colors ${
+                slotMode === 'SINGLE_45' ? 'bg-card text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Đơn ngành 45p · 8 ca
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlotMode('INTER_60')}
+              aria-pressed={slotMode === 'INTER_60'}
+              className={`min-h-10 rounded-md px-2.5 text-xs font-bold transition-colors ${
+                slotMode === 'INTER_60' ? 'bg-card text-primary shadow-xs' : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Liên ngành 60p · 6 ca
+            </button>
           </div>
 
           <div className="flex rounded-lg border border-hairline bg-canvas p-0.5">
@@ -239,14 +277,14 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
       <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,2.3fr)_minmax(19rem,1fr)]">
         {viewMode === 'canvas' ? (
           <div className="rounded-2xl border border-hairline bg-canvas/40 p-4">
-            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {floor} · {visibleRooms.length} phòng trong danh mục</p>
+            <p className="mb-3 text-xs font-semibold text-ink-muted">Tòa {selectedBuilding} · Tầng {selectedFloor} · {visibleRooms.length} phòng trong danh mục</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {visibleRooms.map(renderRoomCard)}
             </div>
 
             {visibleRooms.length === 0 && (
               <p role="status" className="mt-3 rounded-lg bg-card p-4 text-center text-sm text-ink-muted">
-                Chưa có phòng tầng {floor} của tòa {selectedBuilding} trong danh mục.
+                Chưa có phòng tầng {selectedFloor} của tòa {selectedBuilding} trong danh mục.
               </p>
             )}
           </div>
@@ -254,11 +292,15 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
           <div className="overflow-x-auto rounded-2xl border border-hairline bg-card p-3">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-bold text-ink">
-                Lưới thời khóa biểu tầng {floor} · Ngày {formatVietnamDate(selectedDate)}
+                Lưới thời khóa biểu tầng {selectedFloor} · Ngày {formatVietnamDate(selectedDate)}
               </h3>
-              <span className="text-xs text-ink-muted">6 ca hành chính (75 phút/ca)</span>
+              <span className="text-xs text-ink-muted">
+                {slotMode === 'INTER_60'
+                  ? 'POL-06 Liên ngành: 6 ca · 60 phút/ca (nghỉ 15p giữa buổi)'
+                  : 'POL-06 Đơn ngành: 8 ca · 45 phút/ca (nghỉ 15p giữa buổi)'}
+              </span>
             </div>
-            <Table aria-label={`Lưới thời khóa biểu tầng ${floor}`}>
+            <Table aria-label={`Lưới thời khóa biểu tầng ${selectedFloor}`}>
               <TableHead>
                 <TableRow head>
                   <TableHeaderCell className="sticky left-0 bg-table-header-bg">Phòng</TableHeaderCell>
@@ -357,7 +399,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
         <aside className="rounded-2xl border border-hairline bg-card p-4 shadow-xs">
           <div className="border-b border-hairline pb-3">
-            <h3 className="text-base font-bold text-ink">Danh sách phòng · Tầng {floor}</h3>
+            <h3 className="text-base font-bold text-ink">Danh sách phòng · Tầng {selectedFloor}</h3>
             <p className="text-xs text-ink-muted">{visibleRooms.length} phòng trong danh mục</p>
           </div>
 
@@ -394,7 +436,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
                 <div>
                   <h4 className="text-base font-bold text-ink">Phòng {selectedRoom.code}</h4>
                   <p className="text-xs text-ink-muted">
-                    {selectedRoom.building} · Tầng {floor} · {selectedRoom.capacity} chỗ
+                    {selectedRoom.building} · Tầng {selectedFloor} · {selectedRoom.capacity} chỗ
                   </p>
                 </div>
                 <span
@@ -430,7 +472,7 @@ export function RoomFloorPlan({ rooms, selectedDate, exclusions, onChange, alloc
 
                   <div className="mt-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-ink">Lịch 6 ca ngày {formatVietnamDate(selectedDate)}</span>
+                      <span className="text-xs font-bold text-ink">Lịch {SLOTS.length} ca ngày {formatVietnamDate(selectedDate)}</span>
                       <span className="text-xs text-ink-muted">Chi tiết nhóm &amp; khóa ca</span>
                     </div>
 

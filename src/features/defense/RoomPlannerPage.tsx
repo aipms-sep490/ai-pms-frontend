@@ -15,6 +15,7 @@ import { DefenseChangeRequestsPanel } from './DefenseChangeRequestsPanel'
 import { Gate3ScheduleChangePanel } from './Gate3ScheduleChangePanel'
 import { RoomCatalogPanel } from './RoomCatalogPanel'
 import { PeriodCalendarPanel } from './PeriodCalendarPanel'
+import { listStandbyPool, standbySwapEvaluator, type StandbyPoolMember } from './defense-v4-api'
 import { displayLabel } from '../../components/ui/display-label'
 import { HttpError } from '../../services/http/http-client'
 import {
@@ -188,7 +189,44 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
     setExclusions((current) => current.filter((item) => item.date === null || (item.date >= start && item.date <= end)))
     setPreview(null); setConfirmPartial(false); setSuccess('')
   }
-  const activeRooms = rooms.filter((room) => room.status === 'ACTIVE' && [2, 3, 4].includes(room.floor))
+  const activeRooms = rooms.filter((room) => room.status === 'ACTIVE')
+  const [standbyPool, setStandbyPool] = useState<StandbyPoolMember[]>([])
+  const [swapSessionId, setSwapSessionId] = useState('')
+  const [swapReplacedId, setSwapReplacedId] = useState('')
+  const [swapReplacementId, setSwapReplacementId] = useState('')
+  const [swapReason, setSwapReason] = useState('')
+  const [swapBusy, setSwapBusy] = useState(false)
+  const [swapNotice, setSwapNotice] = useState('')
+  const [swapError, setSwapError] = useState('')
+
+  useEffect(() => {
+    if (!Number.isSafeInteger(periodId) || periodId < 1 || targetGate !== 'R4') return
+    let active = true
+    void listStandbyPool(periodId)
+      .then(list => { if (active) setStandbyPool(list) })
+      .catch(() => { if (active) setStandbyPool([]) })
+    return () => { active = false }
+  }, [periodId, targetGate])
+
+  const handleStandbySwap = async () => {
+    const sId = Number(swapSessionId), oldId = Number(swapReplacedId), newId = Number(swapReplacementId)
+    if (!sId || !oldId || !newId || swapReason.trim().length < 5) {
+      setSwapError('Nhập đầy đủ phiên bảo vệ, ID giám khảo cần thay, giám khảo Standby và lý do (≥ 5 ký tự).')
+      return
+    }
+    setSwapBusy(true); setSwapError(''); setSwapNotice('')
+    try {
+      const res = await standbySwapEvaluator(sId, { replacedUserId: oldId, replacementUserId: newId, reason: swapReason.trim() })
+      setSwapNotice(`Đã hoán đổi giám khảo cho phiên #${res.defenseSessionId}: thu hồi ${res.revokedAssignmentsCount} và cấp mới ${res.createdAssignmentsCount} phân công chấm.`)
+      setSwapReason('')
+      refreshPublished()
+    } catch (reason) {
+      setSwapError(plannerError(reason, 'Không thể hoán đổi giám khảo dự bị. Kiểm tra xung đột D17 hoặc lịch trùng.'))
+    } finally {
+      setSwapBusy(false)
+    }
+  }
+
   const earliestDate = nextDayVietnam()
   const validRange = startDate >= earliestDate && startDate <= endDate
     && Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`) <= 31 * 86400000
@@ -202,7 +240,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
         startDate,
         endDate,
         roomIds: activeRooms.map((room) => room.id),
-        maxSlotsPerDay: 6,
+        maxSlotsPerDay: targetGate === 'R4' ? 8 : 6,
         exclusions,
       }
       const result = targetGate === 'R3'
@@ -297,13 +335,13 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
       title={`Phòng & lập lịch ${targetGate === 'R3' ? 'Gate 3 (Thẩm định chuyên môn)' : 'Gate 4 (Hội đồng bảo vệ)'}`}
       eyebrow="Điều phối phòng và lịch trình"
       description={periodMeta
-        ? `${periodMeta.code} · ${periodMeta.name} — Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức.`
-        : 'Chọn tầng 2–4, loại phòng hoặc ca khỏi lần tự xếp này, rồi xem trước và duyệt công bố lịch chính thức.'}
+        ? `${periodMeta.code} · ${periodMeta.name} — Chọn phòng mọi tầng đang hoạt động (ca 45p/60p theo POL-06), loại trừ ca nếu cần, rồi xem trước và duyệt công bố.`
+        : 'Chọn phòng mọi tầng đang hoạt động (ca 45p/60p theo POL-06), loại trừ ca nếu cần, rồi xem trước và duyệt công bố.'}
     >
       <fieldset disabled={busy} className="min-w-0 space-y-5">
         <StatTileRow
           tiles={[
-            { icon: 'meeting_room', label: 'Phòng hoạt động (Tầng 2–4)', value: loading ? null : activeRooms.length, hero: true, caption: `Trên tổng ${rooms.length} phòng trong danh mục.` },
+            { icon: 'meeting_room', label: 'Phòng hoạt động (Mọi tầng)', value: loading ? null : activeRooms.length, hero: true, caption: `Trên tổng ${rooms.length} phòng trong danh mục.` },
             { icon: 'event_available', label: `Lịch ${targetGate} đã công bố`, value: publishedLoading ? null : published.length, tone: 'success', caption: 'Các phiên đã xác nhận chính thức.' },
             { icon: 'block', label: 'Khung giờ / Phòng loại trừ', value: exclusions.length, tone: exclusions.length > 0 ? 'warning' : 'neutral', caption: 'Áp dụng cho lượt tự xếp hiện tại.' },
             { icon: 'date_range', label: 'Cửa sổ lập lịch', value: `${formatVietnamDate(startDate)} – ${formatVietnamDate(endDate)}`, tone: 'info', caption: validRange ? 'Khoảng ngày hợp lệ (≤ 31 ngày).' : 'Cần điều chỉnh khoảng ngày hợp lệ.' },
@@ -437,7 +475,7 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 </p>
               )}
               <p className="mt-3 text-sm text-ink-muted">
-                {activeRooms.length} phòng hoạt động ở tầng 2–4 · {exclusions.length} mục loại trừ chỉ áp dụng cho lần xếp lịch này.
+                {activeRooms.length} phòng hoạt động trên mọi tầng (chuẩn POL-06: 45p đơn ngành / 60p liên ngành) · {exclusions.length} mục loại trừ chỉ áp dụng cho lần xếp lịch này.
               </p>
             </div>
 
@@ -591,6 +629,57 @@ function RoomPlannerWorkspace({ periodId }: { periodId: number }) {
                 onChanged={refreshPublished} onClose={() => setEditingGate3(null)}
               /></div>}
             </section>
+            {targetGate === 'R4' && (
+              <section className="rounded-2xl border border-hairline bg-card p-4 shadow-xs space-y-3" aria-label="Standby Pool và Hoán đổi 1 chạm">
+                <div>
+                  <h2 className="text-base font-bold text-ink">Standby Pool &amp; Hoán đổi giám khảo 1 chạm (POL-06)</h2>
+                  <p className="text-xs text-ink-muted">
+                    Hoán đổi giám khảo bận đột xuất bằng giảng viên dự phòng cùng chuyên ngành trong kỳ (tự động kiểm D17 và thu hồi/cấp lại phân công Defense chưa chốt).
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <input
+                    aria-label="ID phiên bảo vệ cần hoán đổi"
+                    className="min-h-11 rounded-lg border border-hairline bg-canvas px-3 text-xs text-ink"
+                    placeholder="ID phiên bảo vệ"
+                    value={swapSessionId}
+                    onChange={e => setSwapSessionId(e.target.value)}
+                  />
+                  <input
+                    aria-label="ID giám khảo cần thay thế"
+                    className="min-h-11 rounded-lg border border-hairline bg-canvas px-3 text-xs text-ink"
+                    placeholder="ID giám khảo cần thay"
+                    value={swapReplacedId}
+                    onChange={e => setSwapReplacedId(e.target.value)}
+                  />
+                  <select
+                    aria-label="Chọn giám khảo Standby dự phòng"
+                    className="min-h-11 rounded-lg border border-hairline bg-canvas px-3 text-xs text-ink"
+                    value={swapReplacementId}
+                    onChange={e => setSwapReplacementId(e.target.value)}
+                  >
+                    <option value="">Chọn GK Standby ({standbyPool.length})…</option>
+                    {standbyPool.map(member => (
+                      <option key={member.id} value={member.userId}>
+                        {member.fullName} (Ngành #{member.majorId})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Lý do hoán đổi Standby"
+                    className="min-h-11 rounded-lg border border-hairline bg-canvas px-3 text-xs text-ink"
+                    placeholder="Lý do (≥ 5 ký tự)"
+                    value={swapReason}
+                    onChange={e => setSwapReason(e.target.value)}
+                  />
+                </div>
+                {swapError && <p role="alert" className="text-xs text-status-error-text">{swapError}</p>}
+                {swapNotice && <p role="status" className="text-xs text-status-success-text">{swapNotice}</p>}
+                <Button size="sm" variant="secondary" disabled={swapBusy} onClick={() => void handleStandbySwap()}>
+                  {swapBusy ? 'Đang hoán đổi…' : 'Hoán đổi giám khảo Standby'}
+                </Button>
+              </section>
+            )}
             {targetGate === 'R4' && <DefenseChangeRequestsPanel periodId={periodId} rooms={rooms} onScheduleChanged={refreshPublished} />}
           </div>
         )}

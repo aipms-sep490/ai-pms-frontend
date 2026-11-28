@@ -50,15 +50,18 @@ export function ColdTemplateManagementPage() {
   const currentDepartment = academicContext?.academic?.departments?.[0]
   const { session } = useAuthSession()
   const [availableMajors, setMajors] = useState<Array<{ id: number; name: string; code: string }>>([])
+  const [allOrgMajors, setAllOrgMajors] = useState<Array<{ id: number; name: string; code: string }>>([])
   const [availablePeriods, setPeriods] = useState<Array<{ id: number; name: string; code: string; periodType: string }>>([])
-  const [availableProjects, setProjects] = useState<Array<{ id: number; title: string; code: string }>>([])
+  const [availableProjects, setProjects] = useState<Array<{ id: number; title: string; code: string; majors?: Array<{ majorId: number; majorCode?: string; majorName?: string }> }>>([])
   const [catalogError, setCatalogError] = useState('')
   useEffect(() => {
     let active = true
     if (!session) return
     void Promise.all([getAcademicHierarchy(session.accessToken, { search: '', includeInactive: false }), readAllPages(page => getProjectPeriods(session.accessToken, { search: '' }, undefined, page)), readAllPages(page => getProjects({ page, pageSize: 100 }))]).then(([hierarchy, periods, projects]) => {
       if (!active) return
-      setMajors(hierarchy.flatMap(o => o.departments).filter(d => !currentDepartment || d.department.id === currentDepartment.id).flatMap(d => d.majors))
+      const allDepts = hierarchy.flatMap(o => o.departments)
+      setAllOrgMajors(allDepts.flatMap(d => d.majors))
+      setMajors(allDepts.filter(d => !currentDepartment || d.department.id === currentDepartment.id).flatMap(d => d.majors))
       setPeriods(periods.filter(p => p.periodType === 'EVALUATION' || p.periodType === 'FINAL_SUBMISSION'))
       setProjects(projects)
     }).catch(() => { if (active) setCatalogError('Chưa tải được danh sách ngành và kỳ. Hãy tải lại trang.') })
@@ -85,6 +88,7 @@ export function ColdTemplateManagementPage() {
 
   // Apply template to project state
   const [applyProjectId, setApplyProjectId] = useState('')
+  const [applyProjectMajorIds, setApplyProjectMajorIds] = useState<number[]>([])
   const [students, setStudents] = useState<Array<{ userId: number; fullName: string }>>([])
   const [applyPeriodId, setApplyPeriodId] = useState('')
   const [applyDeadline, setApplyDeadline] = useState('')
@@ -97,22 +101,31 @@ export function ColdTemplateManagementPage() {
   const [templateSortBy, setTemplateSortBy] = useState<'version_desc' | 'name_asc' | 'reports_desc'>('version_desc')
 
   useEffect(() => {
-    if (!applyProjectId || !session) return
+    if (!applyProjectId || !session) { setApplyProjectMajorIds([]); return }
     let active = true
+    const matchedProj = availableProjects.find(p => p.id === Number(applyProjectId))
+    const initialMajors = matchedProj?.majors?.map(m => m.majorId) ?? []
+    setApplyProjectMajorIds(initialMajors)
     void getReviewDetail(Number(applyProjectId), session.accessToken).then(review => {
-      if (active) setStudents(review.latestSubmission?.evidence.members ?? [])
+      if (!active) return
+      setStudents(review.latestSubmission?.evidence.members ?? [])
+      const reviewMajors = review.latestSubmission?.evidence.scope?.requirements?.map((r: { majorId: number }) => r.majorId) ?? []
+      if (reviewMajors.length > 0) setApplyProjectMajorIds(Array.from(new Set([...initialMajors, ...reviewMajors])))
     }).catch(() => { if (active) setApplyError('Chưa tải được danh sách sinh viên của đồ án. Hãy chọn lại đồ án.') })
     return () => { active = false }
-  }, [applyProjectId, session])
+  }, [applyProjectId, availableProjects, session])
 
-  // Auto-load common & scoped templates for the selected Apply period so users don't have to manually search Step 1 first.
+  // Auto-load COMMON & cross-department MAJOR_SPECIFIC templates for the selected Apply period & project majors (TK-W3-05).
   useEffect(() => {
     const period = Number(applyPeriodId)
     if (!period || !session) return
     let active = true
-    const majorTargets: Array<number | null> = [null, ...availableMajors.slice(0, 5).map(m => m.id)]
+    const targetMajorIds = applyProjectMajorIds.length > 0
+      ? applyProjectMajorIds
+      : (allOrgMajors.length > 0 ? allOrgMajors.map(m => m.id) : availableMajors.map(m => m.id))
+    const uniqueMajorTargets: Array<number | null> = [null, ...Array.from(new Set(targetMajorIds))]
     void Promise.all(
-      majorTargets.map(m => Promise.resolve(getColdTemplates(m, period, 1, 50)).catch(() => null)),
+      uniqueMajorTargets.map(m => Promise.resolve(getColdTemplates(m, period, 1, 50)).catch(() => null)),
     ).then(results => {
       if (!active) return
       const loaded = results.flatMap(res => res?.items ?? [])
@@ -124,7 +137,7 @@ export function ColdTemplateManagementPage() {
       })
     })
     return () => { active = false }
-  }, [applyPeriodId, availableMajors, session])
+  }, [applyPeriodId, applyProjectMajorIds, allOrgMajors, availableMajors, session])
 
   const filteredTemplates = useMemo(() => {
     if (!templates) return null

@@ -1,6 +1,6 @@
 import { displayLabel } from '../../components/ui/display-label'
 import { WorkspacePage } from '../../components/ui/WorkspacePage'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useStudentJourney } from '../../app/context'
 import { getDeliverables, getDeliverableVersions } from '../../services/api/deliverables.api'
@@ -12,8 +12,12 @@ import { ActionVerdict } from '../../components/ui/ActionVerdict'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { PageLoading } from '../../components/ui/PageLoading'
 import { StatTileRow } from '../../components/ui/StatTileRow'
+import { useActionConfirmation } from '../../components/ui/useActionConfirmation'
 import { services } from '../../services/service-gateway'
 import type { Deliverable, DeliverableVersion } from '../deliverables/deliverable-types'
+import { getPreDefenseLockStatus, requestFinalLock, type PreDefenseLockStatusDto } from '../review-gates/api/project-checklists-api'
+import { ProjectChecklistPanel } from '../review-gates/components/ProjectChecklistPanel'
+import { PreDefenseLockPanel } from './PreDefenseLockPanel'
 import * as api from './final-submission-api'
 import type { FinalChecklist, FinalDraft, FinalPeriod, FinalRequirements, LockedFinalSubmission } from './final-submission-api'
 import { SubmissionPreflightPanel } from '../ai-suite/SubmissionPreflightPanel'
@@ -78,6 +82,10 @@ const blockerLabels: Record<string, string> = {
   VERSION_NOT_IN_PROJECT: 'Có phiên bản sản phẩm không thuộc đồ án',
   EMPTY_PACKAGE: 'Gói bàn giao chưa chọn phiên bản sản phẩm',
   DUPLICATE_DELIVERABLE_VERSION: 'Một hạng mục đang có nhiều phiên bản trong gói',
+  GATE_3_NOT_PASSED: 'Cổng Gate 3 (và các cổng chặn bảo vệ) chưa đạt PASSED',
+  FINAL_LOCK_PENDING: 'Hồ sơ đang chờ GVHD chính ký khóa — tạm khóa chỉnh sửa bản nháp',
+  COLD_PACKAGE_INCOMPLETE: 'Hồ sơ chấm nguội (Cold) chưa nộp đủ các đầu mục bắt buộc',
+  LEGACY_ONE_STEP_FINAL_LOCK_DISABLED: 'Hệ thống áp dụng quy trình khóa 2 bước (Trưởng nhóm gửi duyệt → GVHD chính ký khóa)',
 }
 const describeBlocker = (code: string, deliverables: Deliverable[] = []) => {
   const [kind, id] = code.split(':', 2)
@@ -97,10 +105,12 @@ export function StudentFinalSubmissionPage() {
 }
 
 function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { projectId: number; projectStatus: string; onSubmitted: () => Promise<void> }) {
+  const { requestConfirmation, confirmationDialog } = useActionConfirmation()
   const [periods, setPeriods] = useState<FinalPeriod[]>([])
   const [draft, setDraft] = useState<FinalDraft | null>(null)
   const [checklist, setChecklist] = useState<FinalChecklist | null>(null)
   const [locked, setLocked] = useState<LockedFinalSubmission | null>(null)
+  const [lockStatus, setLockStatus] = useState<PreDefenseLockStatusDto | null>(null)
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [versions, setVersions] = useState<DeliverableVersion[]>([])
   const [loadingVersions, setLoadingVersions] = useState(false)
@@ -114,20 +124,23 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setLoaded(false)
-    setDraft(null); setChecklist(null); setLocked(null); setDeliverables([])
+    setDraft(null); setChecklist(null); setLocked(null); setLockStatus(null); setDeliverables([])
     try {
-      const [periodOptions, nextDraft, nextChecklist, nextLocked, nextDeliverables] = await Promise.all([
+      const [periodOptions, nextDraft, nextChecklist, nextLocked, nextDeliverables, nextLockStatus] = await Promise.all([
         allPeriods(projectId), api.getFinalDraft(projectId), api.getFinalChecklist(projectId),
         api.getLockedFinalSubmission(projectId), allDeliverables(projectId),
+        getPreDefenseLockStatus(projectId).catch(() => null),
       ])
       setPeriods(periodOptions)
       setDraft(nextDraft)
       setChecklist(nextChecklist)
       setLocked(nextLocked)
+      setLockStatus(nextLockStatus)
       setDeliverables(nextDeliverables)
       setPeriodId(nextDraft?.projectPeriodId ?? periodOptions.find(item => item.canPrepareDraft)?.id ?? null)
       setNotes(nextDraft?.notes ?? '')
@@ -176,14 +189,32 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
       : api.createFinalDraft(projectId, body))
   }
 
-  const canPrepareDraft = projectStatus === 'ACTIVE' && (draft ? draft.canEdit : periods.some(item => item.canPrepareDraft))
-  const canSubmit = projectStatus === 'ACTIVE' && Boolean(checklist?.canSubmit)
+  const lockWorkflowStatus = lockStatus?.lockWorkflowStatus ?? draft?.lockWorkflowStatus ?? 'OPEN'
+  const isPendingSupervisorLock = lockWorkflowStatus === 'PENDING_SUPERVISOR_LOCK'
+  const canPrepareDraft = !isPendingSupervisorLock && projectStatus === 'ACTIVE' && (draft ? draft.canEdit : periods.some(item => item.canPrepareDraft))
+  const canSubmit = !isPendingSupervisorLock && projectStatus === 'ACTIVE' && Boolean(checklist?.canSubmit)
   const submissionReasons = checklist ? [
     ...checklist.blockers.map(code => describeBlocker(code, deliverables)),
+    ...(isPendingSupervisorLock ? [blockerLabels.FINAL_LOCK_PENDING] : []),
     ...(projectStatus !== 'ACTIVE' && !checklist.blockers.includes('PROJECT_NOT_ACTIVE') ? ['Đồ án chưa ở trạng thái đang thực hiện'] : []),
     ...(!checklist.canSubmit && checklist.blockers.length === 0 ? ['Danh mục kiểm tra chưa xác nhận đủ điều kiện nộp bản cuối.'] : []),
     ...(!checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken ? ['Thiếu phiên bản xác nhận của bản nháp hoặc cấu hình. Hãy tải lại trang.'] : []),
   ] : []
+
+  const handleRequestTwoStepLock = async () => {
+    if (!canSubmit || !checklist?.draftConcurrencyToken) return
+    const decision = await requestConfirmation({
+      title: 'Gửi duyệt khóa hồ sơ cho GVHD Chính?',
+      description: 'Sau khi gửi, bản nháp Final Submission sẽ tạm khóa chỉnh sửa (PENDING_SUPERVISOR_LOCK) để GVHD Chính rà soát và ký khóa đồng thời Final + Cold.',
+      confirmLabel: 'Gửi duyệt khóa cho GVHD',
+    })
+    if (decision === null) return
+    setNotice(null)
+    await run(async () => {
+      await requestFinalLock(projectId, checklist.draftConcurrencyToken)
+      setNotice('Đã gửi yêu cầu khóa hồ sơ tới GVHD Chính. Bản nháp hiện ở trạng thái chờ GVHD ký khóa.')
+    }, true)
+  }
 
   const formatVersionBadge = (versionId: number | null, explicitNumber?: number | null) => {
     if (!versionId) return 'chưa chọn'
@@ -196,26 +227,41 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
     className="space-y-5"
     title="Bàn giao cuối đồ án"
     eyebrow="Hoàn tất đồ án"
-    description="Chuẩn bị các phiên bản sản phẩm và gửi gói bàn giao của nhóm."
+    description="Chuẩn bị các phiên bản sản phẩm và gửi yêu cầu khóa 2 bước cho GVHD Chính."
     action={
       <Button variant="secondary" size="sm" icon="refresh" aria-label="Làm mới" disabled={loading || busy} onClick={() => void load()} />
     }
   >
+    {confirmationDialog}
     {error && <p role="alert" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text">{error} <button type="button" className="min-h-11 font-semibold underline" onClick={() => void load()}>Tải lại</button></p>}
+    {notice && <InlineAlert tone="success">{notice}</InlineAlert>}
     {loading && <ListLoading label="Đang tải hồ sơ bàn giao…" />}
-    {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} />}
+    {!loading && loaded && locked && <LockedPackageView projectId={projectId} packageData={locked} lockStatus={lockStatus} />}
     {!loading && loaded && !locked && <>
       <StatTileRow
         tiles={[
-          { icon: 'inventory_2', label: 'Trạng thái bàn giao', value: draft ? 'Đang soạn nháp' : 'Chưa khởi tạo', hero: true, caption: canSubmit ? 'Sẵn sàng khóa và nộp gói cuối.' : 'Hoàn thiện checklist trước khi nộp.' },
+          {
+            icon: 'inventory_2',
+            label: 'Trạng thái bàn giao',
+            value: isPendingSupervisorLock ? 'Chờ GVHD ký khóa' : draft ? 'Đang soạn nháp' : 'Chưa khởi tạo',
+            hero: true,
+            caption: isPendingSupervisorLock
+              ? 'Đã gửi Bước 1; chờ GVHD Chính ký khóa hoặc trả về sửa.'
+              : canSubmit ? 'Sẵn sàng gửi duyệt khóa cho GVHD Chính.' : 'Hoàn thiện checklist trước khi gửi duyệt khóa.',
+          },
           { icon: 'checklist', label: 'Hạng mục đã đủ', value: checklist ? `${checklist.items.filter(i => i.isComplete).length}/${checklist.items.length}` : '—', tone: 'success', caption: 'Theo danh mục yêu cầu bắt buộc.' },
           { icon: 'layers', label: 'Phiên bản đã chọn', value: Object.keys(selectedVersionIds).length, tone: 'info', caption: 'Số sản phẩm đính kèm vào gói cuối.' },
           { icon: 'warning', label: 'Điều kiện chưa đạt', value: submissionReasons.length, tone: submissionReasons.length > 0 ? 'warning' : 'success', caption: submissionReasons.length > 0 ? 'Cần xử lý trước khi khóa gói.' : 'Không còn vướng mắc.' },
         ]}
       />
+      {isPendingSupervisorLock && (
+        <InlineAlert tone="warning">
+          <strong>Đang chờ GVHD Chính ký khóa (PENDING_SUPERVISOR_LOCK):</strong> Trưởng nhóm đã gửi yêu cầu khóa gói bàn giao cuối. Biểu mẫu bản nháp tạm khóa chỉnh sửa cho tới khi GVHD ký khóa chính thức (LOCKED) hoặc trả về để nhóm bổ sung.
+        </InlineAlert>
+      )}
       {(draft?.editBlockers.includes('LEADER_REQUIRED') || checklist?.blockers.includes('LEADER_REQUIRED')) && (
         <div className="rounded-xl border border-primary/20 bg-primary-subtle p-4 text-xs text-primary shadow-2xs">
-          <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và nộp gói bàn giao cuối cùng thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.
+          <strong>Thông báo quyền hạn:</strong> Bạn đang đăng nhập với vai trò Thành viên nhóm. Quyền chuẩn bị bản nháp và gửi duyệt khóa gói bàn giao cuối thuộc về Trưởng nhóm. Bạn vẫn có thể rà soát danh mục và kiểm tra các tệp đính kèm.
         </div>
       )}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)] lg:items-stretch">
@@ -231,14 +277,15 @@ function FinalSubmissionWorkspace({ projectId, projectStatus, onSubmitted }: { p
             <div className="mt-auto pt-2"><Button type="submit" variant="secondary" disabled={busy || !periodId || !canPrepareDraft}>{draft ? 'Lưu bản nháp' : 'Tạo bản nháp'}</Button></div>
           </form>
         </section>
-        {checklist && <section className="workspace-surface workspace-surface-padding flex h-full flex-col"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? formatDate(checklist.deadline) : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className={`material-symbols-outlined text-[18px] ${item.isComplete ? 'text-status-success-text' : 'text-ink-muted'}`} aria-hidden="true">{item.isComplete ? 'check_circle' : 'radio_button_unchecked'}</span><span>{item.title}</span></span><span className="text-xs font-semibold text-ink-muted">{formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</span></li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện nộp bản cuối" blockedLabel="Chưa đủ điều kiện nộp bản cuối" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận khóa gói và nộp bản cuối theo danh mục kiểm tra hiện tại.</span></label><div className="mt-auto pt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => { if (canSubmit) void run(() => api.submitFinalSubmission(projectId, checklist.draftConcurrencyToken!, checklist.requirementsConcurrencyToken!), true) }}>{busy ? 'Đang nộp…' : 'Nộp và khóa gói'}</Button></div></section>}
+        {checklist && <section className="workspace-surface workspace-surface-padding flex h-full flex-col"><h2 className="font-semibold text-ink">Kiểm tra trước khi bàn giao</h2><p className="mt-1 text-sm text-ink-muted">Hạn: {checklist.deadline ? formatDate(checklist.deadline) : 'Chưa có'}</p><ul className="mt-3 space-y-2 text-sm">{checklist.items.map(item => <li key={item.deliverableId} className="workspace-record-row flex items-center justify-between gap-2"><span className="flex items-center gap-2"><span className={`material-symbols-outlined text-[18px] ${item.isComplete ? 'text-status-success-text' : 'text-ink-muted'}`} aria-hidden="true">{item.isComplete ? 'check_circle' : 'radio_button_unchecked'}</span><span>{item.title}</span></span><span className="text-xs font-semibold text-ink-muted">{formatVersionBadge(item.selectedVersionId, item.selectedVersionNumber)}</span></li>)}</ul><div id="final-submission-blockers" className="mt-4"><ActionVerdict actions={[{ code: 'SUBMIT_FINAL_PACKAGE', allowed: canSubmit && Boolean(checklist.draftConcurrencyToken) && Boolean(checklist.requirementsConcurrencyToken), reasons: submissionReasons }]} actionCode="SUBMIT_FINAL_PACKAGE" status="ready" okLabel="Đủ điều kiện gửi duyệt khóa cho GVHD" blockedLabel="Chưa đủ điều kiện gửi duyệt khóa" /></div><label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" checked={confirmed} disabled={!canSubmit || busy} onChange={event => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line-strong text-primary focus:ring-primary" /><span>Tôi xác nhận hồ sơ đầy đủ và gửi yêu cầu khóa 2 bước tới GVHD Chính.</span></label><div className="mt-auto pt-4"><Button type="button" aria-describedby={!canSubmit && checklist.blockers.length > 0 ? "final-submission-blockers" : undefined} disabled={!canSubmit || !confirmed || busy || !checklist.draftConcurrencyToken || !checklist.requirementsConcurrencyToken} onClick={() => void handleRequestTwoStepLock()}>{busy ? 'Đang gửi duyệt…' : 'Gửi duyệt khóa cho GVHD'}</Button></div></section>}
       </div>
+      <ProjectChecklistPanel projectId={projectId} gateCode="G3" hideOnNotFound />
       <SubmissionPreflightPanel projectId={projectId} target="FINAL_SUBMISSION" />
     </>}
   </WorkspacePage>
 }
 
-export function LockedPackageView({ projectId, packageData }: { projectId: number; packageData: LockedFinalSubmission }) {
+export function LockedPackageView({ projectId, packageData, lockStatus }: { projectId: number; packageData: LockedFinalSubmission; lockStatus?: PreDefenseLockStatusDto | null }) {
   const [error, setError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [previewFile, setPreviewFile] = useState<{ id: number; fileName: string; contentType?: string; sizeBytes?: number } | null>(null)
@@ -266,6 +313,16 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
       </div>
       <p className="mt-1.5 text-sm text-ink-soft">Nộp lúc {formatDate(packageData.submittedAt)} · hạn {formatDate(packageData.deadline)} · {packageData.items.length} phiên bản sản phẩm</p>
       <p className="mt-1 text-xs font-medium text-status-success-text">Bản bàn giao đã chốt · Không có thao tác sửa, xóa hoặc nộp lại.</p>
+      {lockStatus?.coldManifestSha256 && (
+        <p className="mt-2 rounded-lg border border-hairline bg-canvas px-3 py-2 font-mono text-xs text-ink-soft break-all">
+          <strong>ColdManifest SHA-256:</strong> {lockStatus.coldManifestSha256}
+        </p>
+      )}
+      {lockStatus?.forceLockReason && (
+        <p className="mt-2 rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning-text">
+          <strong>Khóa cưỡng chế bởi Khoa chủ trì:</strong> {lockStatus.forceLockReason}
+        </p>
+      )}
       {packageData.notes && <p className="mt-3 whitespace-pre-wrap rounded-lg border border-hairline bg-canvas p-3 text-sm text-ink-soft"><strong>Ghi chú:</strong> {packageData.notes}</p>}
       {error && <InlineAlert tone="error" className="mt-3">{error}</InlineAlert>}
       <ul className="mt-3 space-y-3 text-sm">
@@ -337,23 +394,38 @@ export function LockedPackageView({ projectId, packageData }: { projectId: numbe
 }
 
 /** Uses the locked-package endpoint only; Backend authorizes each reader's current scope. */
-export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', backLabel = 'Hồ sơ đồ án' }: { backTo?: string; backLabel?: string }) {
+export function FinalSubmissionViewerPage({
+  backTo = '/projects/lifecycle',
+  backLabel = 'Hồ sơ đồ án',
+  departmentLeadActions = false,
+  scopeNotice,
+  topPanel,
+}: {
+  backTo?: string
+  backLabel?: string
+  departmentLeadActions?: boolean
+  scopeNotice?: string
+  topPanel?: ReactNode
+}) {
   const location = useLocation()
   const assignmentReturn = location.pathname.startsWith('/evaluator/') && typeof location.state?.assignmentReturn === 'string' && /^\/evaluator\/assignments\/[1-9]\d*$/.test(location.state.assignmentReturn) ? location.state.assignmentReturn : null
   const projectId = Number(useParams().projectId)
   const [projectMeta, setProjectMeta] = useState<{ code: string; title: string } | null>(null)
   const [packageData, setPackageData] = useState<LockedFinalSubmission | null>(null)
+  const [lockStatus, setLockStatus] = useState<PreDefenseLockStatusDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
     if (!Number.isInteger(projectId) || projectId < 1) { setError('Mã đồ án không hợp lệ.'); setLoading(false); return }
-    setLoading(true); setError(null); setPackageData(null)
+    setLoading(true); setError(null); setPackageData(null); setLockStatus(null)
     try {
-      const [result, proj] = await Promise.all([
+      const [result, proj, status] = await Promise.all([
         api.getLockedFinalSubmission(projectId),
         services.project?.getProject ? services.project.getProject(projectId).catch(() => null) : Promise.resolve(null),
+        getPreDefenseLockStatus(projectId).catch(() => null),
       ])
       setPackageData(result)
+      setLockStatus(status)
       if (proj) setProjectMeta({ code: proj.code, title: proj.title })
     } catch (reason) { setError(message(reason)) }
     finally { setLoading(false) }
@@ -368,6 +440,11 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
       backLabel={assignmentReturn ? 'Quay lại chấm điểm' : backLabel}
       description={projectMeta ? `${projectMeta.title} · Nội dung và tệp trong bản bàn giao đã chốt.` : 'Nội dung và tệp trong bản bàn giao đã chốt.'}
     >
+      {scopeNotice && <InlineAlert tone="info">{scopeNotice}</InlineAlert>}
+      {topPanel}
+      {departmentLeadActions && Number.isInteger(projectId) && projectId > 0 && (
+        <PreDefenseLockPanel projectId={projectId} mode="department" onChanged={() => void load()} />
+      )}
       {loading && <ListLoading label="Đang tải gói bàn giao đã khóa…" />}
       {error && (
         <InlineAlert
@@ -384,7 +461,7 @@ export function FinalSubmissionViewerPage({ backTo = '/projects/lifecycle', back
           <p className="mt-1 text-sm text-ink-muted">Đồ án chưa chốt gói bàn giao cuối kỳ.</p>
         </section>
       )}
-      {!loading && packageData && <LockedPackageView projectId={projectId} packageData={packageData} />}
+      {!loading && packageData && <LockedPackageView projectId={projectId} packageData={packageData} lockStatus={lockStatus} />}
     </WorkspacePage>
   )
 }

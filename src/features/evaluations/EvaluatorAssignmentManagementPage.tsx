@@ -17,22 +17,29 @@ import { useAuthSession } from '../auth/context/useAuthSession'
 import { getProjectPeriods } from '../academic/api/governance-api'
 import type { ProjectPeriod } from '../academic/types/governance.types'
 import { getProject } from '../../services/api/projects.api'
-import { assignEvaluator, getEligibleEvaluators, getEvaluationSchemes, getProjectEvaluationAssignments, revokeEvaluator, type EligibleEvaluator } from '../../services/api/evaluations.api'
+import { assignEvaluator, getEligibleEvaluators, getEvaluationSchemes, getProjectEvaluationAssignments, replaceEvaluator, revokeEvaluator, type EligibleEvaluator } from '../../services/api/evaluations.api'
 import { evaluationStageLabel, type EvaluationAssignment, type EvaluationScheme, type EvaluationSchemeComponent, type EvaluatorRole } from './evaluation-types'
 import { HttpError } from '../../services/http/http-client'
 import { Button } from '../../components/ui/Button'
+import { InlineAlert } from '../../components/ui/InlineAlert'
 import { ListLoading } from '../../components/ui/ListLoading'
 import { ResourcePermissionNotice } from '../../components/ui/ResourcePermissionNotice'
 import { useProjectCapabilities } from '../capabilities/useProjectCapabilities'
 
 type AssignmentStatusFilter = 'ALL' | 'ACTIVE' | 'REVOKED'
-type AssignmentFormErrors = { evaluatorId?: string; periodId?: string; componentId?: string; studentId?: string; revokeReason?: string }
+type AssignmentFormErrors = { evaluatorId?: string; periodId?: string; componentId?: string; studentId?: string; revokeReason?: string; replaceEvaluatorId?: string; replaceReason?: string }
 
 function assignmentError(reason: unknown, fallback: string) {
   if (reason instanceof HttpError) {
     const code = reason.problem?.code ?? reason.problem?.errorCode
+    if (code === 'DEFENSE_COMMITTEE_REQUIRED') {
+      return 'Cần thành lập và xác nhận (CONFIRMED) Hội đồng bảo vệ trước khi tải danh sách ứng viên hoặc phân công chấm nguội/bảo vệ.'
+    }
     if (code === 'EVALUATOR_ROLE_CONFLICT') {
-      return 'Xung đột vai trò D17 (EVALUATOR_ROLE_CONFLICT): Giảng viên hướng dẫn chính không thể được phân công chấm phản biện hoặc hội đồng cho cùng đồ án.'
+      return 'Xung đột vai trò D17 (EVALUATOR_ROLE_CONFLICT): Giảng viên hướng dẫn chính hoặc Mentor chuyên ngành không thể được phân công chấm phản biện hoặc hội đồng cho cùng đồ án.'
+    }
+    if (code === 'FINALIZED_ASSIGNMENT') {
+      return 'Phân công này đã có phiếu chấm chốt điểm (FINALIZED) hoặc kết quả đã công bố nên không thể thu hồi hay thay thế.'
     }
     if (code === 'ASSIGNMENT_REVOKED') {
       return 'Phân công này đã bị thu hồi hoặc hết hạn (ASSIGNMENT_REVOKED).'
@@ -78,6 +85,13 @@ export function EvaluatorAssignmentManagementPage() {
   const [evaluationType, setEvaluationType] = useState<EvaluatorRole>('LECTURER')
   const [revokeTarget, setRevokeTarget] = useState<EvaluationAssignment | null>(null)
   const [revokeReason, setRevokeReason] = useState('')
+  const [replaceTarget, setReplaceTarget] = useState<EvaluationAssignment | null>(null)
+  const [replaceEvaluatorId, setReplaceEvaluatorId] = useState('')
+  const [replaceReason, setReplaceReason] = useState('')
+  const [replaceUpdateCommittee, setReplaceUpdateCommittee] = useState(true)
+  const [replaceCandidates, setReplaceCandidates] = useState<EligibleEvaluator[]>([])
+  const [replaceCandidatesLoading, setReplaceCandidatesLoading] = useState(false)
+  const [committeeRequired, setCommitteeRequired] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<AssignmentFormErrors>({})
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -136,13 +150,44 @@ export function EvaluatorAssignmentManagementPage() {
       return
     }
     const controller = new AbortController()
-    setCandidatesLoading(true); setEligibleEvaluators([]); setEvaluatorId('')
+    setCandidatesLoading(true); setEligibleEvaluators([]); setEvaluatorId(''); setCommitteeRequired(false)
     Promise.all((selectedComponent.scope === 'INDIVIDUAL' ? selectedStudentIds : [null]).map(target => readAllPages(page => getEligibleEvaluators(projectId, period, { componentId: selectedComponent.id, scope: selectedComponent.scope, majorId: selectedComponent.majorId, studentId: target }, page, 100, controller.signal)))).then(groups => ({ items: (groups[0] ?? []).filter(candidate => groups.every(group => group.some(other => other.userId === candidate.userId && candidate.evaluationTypes.every(type => other.evaluationTypes.includes(type))))) }))
       .then(page => { if (!controller.signal.aborted) { setEligibleEvaluators(page.items); setEvaluatorNames(current => ({ ...current, ...Object.fromEntries(page.items.map(item => [item.userId, item.displayName])) })) } })
-      .catch(reason => { if (!controller.signal.aborted) setError(assignmentError(reason, 'Không thể tải danh sách người chấm hợp lệ cho đợt này.')) })
+      .catch(reason => {
+        if (!controller.signal.aborted) {
+          const code = reason instanceof HttpError ? (reason.problem?.code ?? reason.problem?.errorCode) : undefined
+          if (code === 'DEFENSE_COMMITTEE_REQUIRED') setCommitteeRequired(true)
+          setError(assignmentError(reason, 'Không thể tải danh sách người chấm hợp lệ cho đợt này.'))
+        }
+      })
       .finally(() => { if (!controller.signal.aborted) setCandidatesLoading(false) })
     return () => controller.abort()
   }, [canManage, periodId, periods, projectId, selectedComponent, studentId, targetReady])
+
+  useEffect(() => {
+    if (!replaceTarget || !replaceTarget.componentId || replaceTarget.scope === 'UNKNOWN') {
+      setReplaceCandidates([]); setReplaceCandidatesLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    setReplaceCandidatesLoading(true)
+    readAllPages(page => getEligibleEvaluators(
+      projectId,
+      replaceTarget.projectPeriodId,
+      { componentId: replaceTarget.componentId!, scope: replaceTarget.scope as 'COMMON' | 'MAJOR_SPECIFIC' | 'INDIVIDUAL', majorId: replaceTarget.majorId, studentId: replaceTarget.studentId },
+      page,
+      100,
+      controller.signal,
+    ))
+      .then(list => {
+        if (!controller.signal.aborted) {
+          setReplaceCandidates(list.filter(c => c.userId !== replaceTarget.evaluatorId))
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) setReplaceCandidates([]) })
+      .finally(() => { if (!controller.signal.aborted) setReplaceCandidatesLoading(false) })
+    return () => controller.abort()
+  }, [projectId, replaceTarget])
 
   const run = async (operation: () => Promise<unknown>, fallback: string, success: string) => {
     if (!canManage || mutationLock.current) return
@@ -152,6 +197,7 @@ export function EvaluatorAssignmentManagementPage() {
       await operation()
       capabilities.retry()
       setRevokeTarget(null); setRevokeReason('')
+      setReplaceTarget(null); setReplaceEvaluatorId(''); setReplaceReason('')
       await load()
       setNotice(success)
     } catch (reason) {
@@ -159,7 +205,8 @@ export function EvaluatorAssignmentManagementPage() {
       if (reason instanceof HttpError && reason.status === 409) {
         await load()
         const code = reason.problem?.code ?? reason.problem?.errorCode
-        if (code === 'EVALUATOR_ROLE_CONFLICT') {
+        if (code === 'DEFENSE_COMMITTEE_REQUIRED') setCommitteeRequired(true)
+        if (code === 'EVALUATOR_ROLE_CONFLICT' || code === 'DEFENSE_COMMITTEE_REQUIRED' || code === 'FINALIZED_ASSIGNMENT') {
           setError(assignmentError(reason, fallback))
         } else {
           setError('Phân công, bộ tiêu chí hoặc điều kiện đánh giá đã thay đổi. Dữ liệu mới đã được tải lại; hãy kiểm tra trước khi thao tác tiếp.')
@@ -206,6 +253,32 @@ export function EvaluatorAssignmentManagementPage() {
     if (!reason) { setFieldErrors(current => ({ ...current, revokeReason: 'Nêu lý do thu hồi để tiếp tục.' })); return }
     setFieldErrors(current => ({ ...current, revokeReason: undefined }))
     void run(() => revokeEvaluator(revokeTarget.id, revokeTarget.concurrencyToken, reason), 'Không thể thu hồi phân công. Hãy kiểm tra lại trạng thái và thử lại.', 'Đã thu hồi phân công. Danh sách bên dưới đã được tải lại từ máy chủ.')
+  }
+
+  const submitReplace = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!canManage || !replaceTarget) return
+    const replacementId = Number(replaceEvaluatorId)
+    const reason = replaceReason.trim()
+    const nextErrors: AssignmentFormErrors = {}
+    if (!Number.isInteger(replacementId) || replacementId < 1 || replacementId === replaceTarget.evaluatorId) {
+      nextErrors.replaceEvaluatorId = 'Chọn giảng viên thay thế hợp lệ khác với người chấm hiện tại.'
+    }
+    if (!reason) {
+      nextErrors.replaceReason = 'Nêu lý do thay thế giám khảo để ghi vết kiểm toán.'
+    }
+    setFieldErrors(current => ({ ...current, ...nextErrors }))
+    if (nextErrors.replaceEvaluatorId || nextErrors.replaceReason) return
+    void run(
+      () => replaceEvaluator(replaceTarget.id, {
+        replacementEvaluatorId: replacementId,
+        concurrencyToken: replaceTarget.concurrencyToken,
+        reason,
+        updateCommitteeIfNeeded: replaceUpdateCommittee,
+      }),
+      'Không thể thay thế giám khảo. Kiểm tra quy tắc D17 hoặc trạng thái chốt điểm.',
+      'Đã thu hồi phân công cũ và gán giám khảo thay thế trong cùng một giao dịch.',
+    )
   }
 
   const eligiblePeriods = periods.filter(item => item.status === 'ACTIVE')
@@ -262,6 +335,14 @@ export function EvaluatorAssignmentManagementPage() {
     <ResourcePermissionNotice loading={capabilities.loading} error={capabilities.error} allowed={canManage} reason={capabilities.reasonLabel('manage_evaluators')} onRetry={capabilities.retry} />
 
     {error && <div ref={errorSummary} tabIndex={-1} role="alert" aria-labelledby="assignment-error-title" className="rounded-lg border border-status-error-border bg-status-error-bg p-4 text-sm text-status-error-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><p id="assignment-error-title" className="font-semibold">Chưa thể hoàn tất thao tác</p><p className="mt-1">{error}</p><button type="button" className="mt-2 min-h-11 font-semibold underline underline-offset-4" onClick={() => void load()}>Tải lại dữ liệu</button></div>}
+    {committeeRequired && !paths.admin && (
+      <InlineAlert
+        tone="warning"
+        action={<Link to={`/department/projects/${projectId}/defense`} className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover">Mở Hội đồng bảo vệ →</Link>}
+      >
+        <strong>Chưa xác nhận Hội đồng bảo vệ (DEFENSE_COMMITTEE_REQUIRED):</strong> Vui lòng lập và xác nhận (CONFIRMED) Hội đồng trước khi phân công chấm nguội/bảo vệ. Không cần xếp lịch phòng khi chia phòng đang tắt (POL-06).
+      </InlineAlert>
+    )}
     {notice && (
       <div role="status" className="flex items-center gap-2.5 rounded-xl border border-hairline border-l-4 border-l-status-success-text bg-card p-4 text-sm text-ink shadow-xs">
         <span className="material-symbols-outlined text-[18px] text-status-success-text" aria-hidden="true">check_circle</span>
@@ -364,16 +445,37 @@ export function EvaluatorAssignmentManagementPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <StatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'} label={item.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã thu hồi'} />
+                          {item.hasFinalizedEvaluation && (
+                            <StatusBadge tone="info" label="Đã chốt điểm (không thể thu hồi)" />
+                          )}
                           {canManage && item.status === 'ACTIVE' && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={busy}
-                              className="text-status-error-text hover:bg-status-error-bg"
-                              onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
-                            >
-                              Thu hồi
-                            </Button>
+                            <>
+                              {item.componentId != null && item.scope !== 'UNKNOWN' && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={busy || Boolean(item.hasFinalizedEvaluation)}
+                                  onClick={() => {
+                                    setReplaceTarget(item)
+                                    setReplaceEvaluatorId('')
+                                    setReplaceReason('')
+                                    setReplaceUpdateCommittee(true)
+                                    setFieldErrors(current => ({ ...current, replaceEvaluatorId: undefined, replaceReason: undefined }))
+                                  }}
+                                >
+                                  Thay thế
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={busy || Boolean(item.hasFinalizedEvaluation)}
+                                className="text-status-error-text hover:bg-status-error-bg"
+                                onClick={() => { setRevokeTarget(item); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}
+                              >
+                                Thu hồi
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -486,6 +588,87 @@ export function EvaluatorAssignmentManagementPage() {
           <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
             <Button type="button" variant="secondary" disabled={busy} onClick={() => { setRevokeTarget(null); setRevokeReason(''); setFieldErrors(current => ({ ...current, revokeReason: undefined })) }}>Hủy</Button>
             <Button type="submit" variant="danger" disabled={busy}>{busy ? 'Đang thu hồi…' : 'Xác nhận thu hồi'}</Button>
+          </div>
+        </form>
+      </Modal>
+    )}
+
+    {replaceTarget && (
+      <Modal
+        open
+        title="Thu hồi & Thay thế giám khảo"
+        busy={busy}
+        onClose={() => { setReplaceTarget(null); setReplaceEvaluatorId(''); setReplaceReason(''); setFieldErrors(current => ({ ...current, replaceEvaluatorId: undefined, replaceReason: undefined })) }}
+      >
+        <form onSubmit={submitReplace} className="space-y-4">
+          <p className="text-sm text-ink-soft">
+            Thay thế <strong className="text-ink">{evaluatorNames[replaceTarget.evaluatorId] ?? `GV #${replaceTarget.evaluatorId}`}</strong> ở thành phần <strong className="text-ink">{componentById.get(replaceTarget.componentId ?? 0)?.name ?? displayLabel(replaceTarget.scope)}</strong> trong 1 giao dịch nguyên tử (giữ nguyên các phiếu đã chốt của giám khảo khác và kiểm tra xung đột D17).
+          </p>
+          <label className="block text-sm font-medium text-ink-soft" htmlFor={`replace-evaluator-${replaceTarget.id}`}>
+            Giảng viên thay thế
+            {replaceCandidates.length > 0 ? (
+              <select
+                id={`replace-evaluator-${replaceTarget.id}`}
+                aria-invalid={Boolean(fieldErrors.replaceEvaluatorId)}
+                className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+                value={replaceEvaluatorId}
+                disabled={busy || replaceCandidatesLoading}
+                onChange={e => { setReplaceEvaluatorId(e.target.value); setFieldErrors(c => ({ ...c, replaceEvaluatorId: undefined })) }}
+              >
+                <option value="">{replaceCandidatesLoading ? 'Đang tải ứng viên…' : 'Chọn giảng viên thay thế hợp lệ'}</option>
+                {replaceCandidates.map(cand => (
+                  <option key={cand.userId} value={cand.userId}>
+                    {cand.displayName} · {cand.departmentName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                id={`replace-evaluator-${replaceTarget.id}`}
+                aria-invalid={Boolean(fieldErrors.replaceEvaluatorId)}
+                className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+                value={replaceEvaluatorId}
+                disabled={busy || replaceCandidatesLoading}
+                onChange={e => { setReplaceEvaluatorId(e.target.value); setFieldErrors(c => ({ ...c, replaceEvaluatorId: undefined })) }}
+              >
+                <option value="">{replaceCandidatesLoading ? 'Đang tải ứng viên…' : 'Chọn giảng viên trong hệ thống'}</option>
+                {Object.entries(evaluatorNames)
+                  .filter(([id]) => Number(id) !== replaceTarget.evaluatorId)
+                  .map(([id, fullName]) => (
+                    <option key={id} value={id}>{fullName}</option>
+                  ))}
+              </select>
+            )}
+            {fieldErrors.replaceEvaluatorId && <span className="mt-1 block text-xs text-status-error-text">{fieldErrors.replaceEvaluatorId}</span>}
+          </label>
+          <label className="block text-sm font-medium text-ink-soft" htmlFor={`replace-reason-${replaceTarget.id}`}>
+            Lý do thay thế (bắt buộc)
+            <input
+              id={`replace-reason-${replaceTarget.id}`}
+              aria-invalid={Boolean(fieldErrors.replaceReason)}
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-hairline bg-card px-3 font-normal text-ink"
+              value={replaceReason}
+              onChange={e => { setReplaceReason(e.target.value); setFieldErrors(c => ({ ...c, replaceReason: undefined })) }}
+              placeholder="Ví dụ: Giám khảo bận đột xuất / ốm..."
+              disabled={busy}
+            />
+            {fieldErrors.replaceReason && <span className="mt-1 block text-xs text-status-error-text">{fieldErrors.replaceReason}</span>}
+          </label>
+          {(replaceTarget.stage === 'COLD' || replaceTarget.stage === 'DEFENSE') && (
+            <label className="flex items-start gap-2 text-xs text-ink-soft">
+              <input
+                type="checkbox"
+                checked={replaceUpdateCommittee}
+                disabled={busy}
+                onChange={e => setReplaceUpdateCommittee(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-hairline text-primary"
+              />
+              <span>Tự động bổ sung giảng viên thay thế vào Hội đồng bảo vệ đang hiệu lực nếu chưa có mặt (không làm thay đổi các phiếu Cold đã chốt).</span>
+            </label>
+          )}
+          <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => { setReplaceTarget(null); setReplaceEvaluatorId(''); setReplaceReason('') }}>Hủy</Button>
+            <Button type="submit" disabled={busy}>{busy ? 'Đang thay thế…' : 'Xác nhận thay thế'}</Button>
           </div>
         </form>
       </Modal>

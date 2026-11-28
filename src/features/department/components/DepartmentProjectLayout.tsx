@@ -24,6 +24,7 @@ export function DepartmentProjectLayout() {
     ['Thẩm định', `/department/projects/review/${projectId}`],
     ['Điều phối và hướng dẫn', `/department/projects/${projectId}/governance`],
     ['Phương án đánh giá', `/department/projects/${projectId}/evaluation-schemes`],
+    ['Hội đồng bảo vệ', `/department/projects/${projectId}/defense`],
     ['Phân công người chấm', `/department/projects/${projectId}/evaluators`],
     ['Kết quả', `/department/projects/${projectId}/result`],
   ] : []
@@ -33,14 +34,13 @@ export function DepartmentProjectLayout() {
     ['Hồ sơ bàn giao', `/department/projects/${projectId}/final-submission`],
     ['Kho tệp', `/department/projects/${projectId}/files`],
     ['Đóng góp', `/department/projects/${projectId}/contributions`],
-    ...(env.defenseScheduleEnabled ? [['Lịch bảo vệ', `/department/projects/${projectId}/defense`] as [string, string]] : []),
     ...(env.aiAdvisoryEnabled || env.aiProgressRiskEnabled ? [['Phân tích rủi ro', `/department/projects/${projectId}/risk`] as [string, string]] : []),
     ...(env.resultCorrectionEnabled ? [['Đính chính & Phúc khảo', `/department/projects/${projectId}/corrections`] as [string, string]] : []),
     ['Hồ sơ lưu trữ', `/department/projects/${projectId}/archive-view`],
   ] : []
 
   const allLinks = [...primaryLinks, ...secondaryLinks]
-  const currentPath = pathname.replace(/\/evaluations$/, '/evaluators')
+  const currentPath = pathname.replace(/\/evaluations$/, '/evaluators').replace(/\/committee$/, '/defense')
   const selected = allLinks.find(([, to]) => to === currentPath)?.[1] ?? ''
   const activeSecondary = secondaryLinks.find(([, to]) => to === currentPath)
 

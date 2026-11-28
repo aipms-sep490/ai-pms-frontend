@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { HttpError } from '../../../services/http/http-client'
 import * as api from '../api/project-checklists-api'
 
 interface ProjectChecklistPanelProps {
   projectId: number
   gateCode: string
   canTailor?: boolean
+  hideOnNotFound?: boolean
 }
 
 const CONSENSUS_LABELS: Record<api.ProjectGateChecklistDto['review3ConsensusStatus'], string> = {
@@ -13,9 +15,10 @@ const CONSENSUS_LABELS: Record<api.ProjectGateChecklistDto['review3ConsensusStat
   DISAGREE: 'Không đồng thuận',
 }
 
-export function ProjectChecklistPanel({ projectId, gateCode, canTailor = false }: ProjectChecklistPanelProps) {
+export function ProjectChecklistPanel({ projectId, gateCode, canTailor = false, hideOnNotFound = false }: ProjectChecklistPanelProps) {
   const [checklist, setChecklist] = useState<api.ProjectGateChecklistDto | null>(null)
   const [diff, setDiff] = useState<api.ChecklistDiffPreviewDto | null>(null)
+  const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -23,11 +26,17 @@ export function ProjectChecklistPanel({ projectId, gateCode, canTailor = false }
     try {
       const data = await api.getProjectGateChecklist(projectId, gateCode)
       setChecklist(data)
+      setNotFound(false)
       setError(null)
     } catch (reason) {
+      if (hideOnNotFound && reason instanceof HttpError && (reason.status === 404 || reason.status === 403)) {
+        setNotFound(true)
+        setError(null)
+        return
+      }
       setError(reason instanceof Error ? reason.message : 'Không thể tải Project Checklist.')
     }
-  }, [projectId, gateCode])
+  }, [projectId, gateCode, hideOnNotFound])
 
   useEffect(() => {
     void load()
@@ -60,6 +69,9 @@ export function ProjectChecklistPanel({ projectId, gateCode, canTailor = false }
     }
   }
 
+  if (notFound && hideOnNotFound) {
+    return null
+  }
   if (error) {
     return <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">{error}</div>
   }

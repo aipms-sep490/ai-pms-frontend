@@ -12,6 +12,7 @@ interface LiveScoringToolbarProps {
   livePreviewScore: number | null
   failingFloor: number
   isFailingFloorAlert: boolean
+  isInterdisciplinaryCommonDefense?: boolean
   autoSaveStatus: AutoSaveStatus
   dirty: boolean
   busy: boolean
@@ -31,6 +32,7 @@ export function LiveScoringToolbar({
   livePreviewScore,
   failingFloor,
   isFailingFloorAlert,
+  isInterdisciplinaryCommonDefense = false,
   autoSaveStatus,
   dirty,
   busy,
@@ -60,8 +62,17 @@ export function LiveScoringToolbar({
             </span>
           ) : null}
           {isFailingFloorAlert ? (
-            <span role="alert" className="rounded-full border border-status-error-border bg-status-error-bg px-2.5 py-0.5 text-xs font-bold text-status-error-text">
-              Cảnh báo điểm liệt (&lt; {formatScore(failingFloor)})
+            <span
+              role="alert"
+              className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                isInterdisciplinaryCommonDefense
+                  ? 'border-status-warning-border bg-status-warning-bg text-status-warning-text'
+                  : 'border-status-error-border bg-status-error-bg text-status-error-text'
+              }`}
+            >
+              {isInterdisciplinaryCommonDefense
+                ? `Điểm Bảo vệ phần Chung < ${formatScore(failingFloor)} — theo POL-01 liên ngành, điều kiện liệt được xét trên tổng khối 40% Chung (30% Cold + 70% Defense). Hội đồng lưu ý rà soát.`
+                : `Cảnh báo điểm liệt (< ${formatScore(failingFloor)})`}
             </span>
           ) : null}
           {remainingCount === 0 ? (

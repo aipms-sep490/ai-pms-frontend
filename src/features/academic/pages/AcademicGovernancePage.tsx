@@ -14,6 +14,8 @@ import { AcademicField } from '../components/AcademicField'
 import { useAcademicGovernance } from '../hooks/useAcademicGovernance'
 import { dateTimeLabel, localDateTime, toUtcDateTime } from '../../execution/execution-utils'
 import { BulkReportingCycleGeneratorModal } from '../../reports/BulkReportingCycleGeneratorModal'
+import { getPeriodDefenseRoomScheduling, updatePeriodDefenseRoomScheduling, type PeriodDefenseRoomSchedulingConfig } from '../../defense/defense-v4-api'
+import { DefenseRoomSchedulerV4Panel } from '../../defense/components/DefenseRoomSchedulerV4Panel'
 import { projectPeriodTypes, type GovernanceStatus, type ProjectPeriod, type ProjectPeriodDraft, type Semester, type SemesterDraft } from '../types/governance.types'
 import './academic-governance.css'
 import './academic-governance-polish.css'
@@ -36,9 +38,22 @@ export function AcademicGovernancePage() {
   const [sortBy, setSortBy] = useState<GovernanceSort>('newest')
   const [editor, setEditor] = useState<Editor | null>(null)
   const [bulkCyclePeriod, setBulkCyclePeriod] = useState<ProjectPeriod | null>(null)
+  const [defenseConfigModal, setDefenseConfigModal] = useState<{ period: ProjectPeriod; config: PeriodDefenseRoomSchedulingConfig } | null>(null)
   const [operationError, setOperationError] = useState<AcademicError | null>(null)
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null)
   const governance = useAcademicGovernance({ search })
+  const openDefenseSchedulingModal = async (period: ProjectPeriod) => {
+    setOperationError(null); setOperationSuccess(null)
+    try {
+      const cfg = await getPeriodDefenseRoomScheduling(period.id)
+      setDefenseConfigModal({ period, config: cfg })
+    } catch {
+      setDefenseConfigModal({
+        period,
+        config: { periodId: period.id, enableDefenseRoomScheduling: false, coldWindowEndAt: null, defenseBufferHours: 12 },
+      })
+    }
+  }
   const openEditor = (next: Editor) => { setOperationError(null); setOperationSuccess(null); setEditor(next) }
   const saveSemester = async (draft: SemesterDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveSemester(draft); setEditor(null); setOperationSuccess('Đã lưu học kỳ và cập nhật danh sách.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
   const savePeriod = async (draft: ProjectPeriodDraft) => { setOperationError(null); setOperationSuccess(null); try { await governance.saveProjectPeriod(draft); setEditor(null); setOperationSuccess('Đã lưu cấu trúc giai đoạn. Chính sách áp dụng được quản lý ở màn hình riêng.') } catch (reason: unknown) { setOperationError(academicError(reason, 'governance')) } }
@@ -236,7 +251,12 @@ export function AcademicGovernancePage() {
         <div className="governance-record-footer"><div className="governance-record-actions">
           <Link to={`/academic/project-periods/${period.id}/policy`} className="workspace-action-link">Các phiên bản chính sách<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           <Link to={`/academic/project-periods/${period.id}/review-gates`} className="workspace-action-link">Cấu hình cổng kiểm duyệt<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
-          {env.defenseScheduleEnabled && env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Phòng & lịch bảo vệ<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
+          {env.roomPlannerEnabled && <Link to={`/academic/project-periods/${period.id}/room-planner`} className="workspace-action-link">Phòng & lịch bảo vệ<span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>}
+          {period.periodType === 'EVALUATION' && governance.canManage && (
+            <Button size="sm" variant="secondary" onClick={() => void openDefenseSchedulingModal(period)}>
+              Chia phòng Defense (Tùy chọn)
+            </Button>
+          )}
           {(governance.canUpdatePeriodDates ?? governance.canManage) && !['CLOSED', 'ARCHIVED'].includes(period.status) && (
             <Button size="sm" variant="secondary" onClick={() => openEditor({ kind: 'period', record: period })}>
               {governance.canManage ? 'Chỉnh sửa cấu trúc' : 'Điều chỉnh ngày đợt'}
@@ -274,6 +294,18 @@ export function AcademicGovernancePage() {
         onClose={() => setBulkCyclePeriod(null)}
         onGenerated={(result) => setOperationSuccess(`Đã sinh ${result.cyclesCreated} chu kỳ báo cáo cho ${result.projectsProcessed} đồ án trong đợt ${bulkCyclePeriod.name}.`)}
       />
+    )}
+    {defenseConfigModal && (
+      <AppModal open title={`Chia phòng Defense · ${defenseConfigModal.period.name}`} onClose={() => setDefenseConfigModal(null)} className="max-w-2xl">
+        <DefenseRoomSchedulerV4Panel
+          config={defenseConfigModal.config}
+          onSaveConfig={async (next) => {
+            const saved = await updatePeriodDefenseRoomScheduling(defenseConfigModal.period.id, next)
+            setDefenseConfigModal({ period: defenseConfigModal.period, config: saved })
+            setOperationSuccess(`Đã lưu cấu hình chia phòng bảo vệ cho đợt ${defenseConfigModal.period.name}.`)
+          }}
+        />
+      </AppModal>
     )}
   </WorkspacePage>
 }

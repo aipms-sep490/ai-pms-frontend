@@ -26,6 +26,9 @@ export interface StandbySwapResult {
   createdAssignmentsCount: number
 }
 
+export const getPeriodDefenseRoomScheduling = (periodId: number) =>
+  httpGet<PeriodDefenseRoomSchedulingConfig>(`/academic/project-periods/${periodId}/defense-room-scheduling`)
+
 export const updatePeriodDefenseRoomScheduling = (
   periodId: number,
   body: { enableDefenseRoomScheduling: boolean; coldWindowEndAt?: string | null; defenseBufferHours?: number },

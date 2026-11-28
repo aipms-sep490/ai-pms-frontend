@@ -1,14 +1,17 @@
+import { useEffect, useState } from 'react'
 import { TeamReflectionPanel } from '../../student-collaboration/TeamReflectionPanel'
 import { Link } from 'react-router-dom'
 import { env } from '../../../app/config/env'
 import { Button } from '../../../components/ui/Button'
 import { HealthPulseBadge } from '../../../components/ui/HealthPulseBadge'
+import { InlineAlert } from '../../../components/ui/InlineAlert'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { WorkspacePage } from '../../../components/ui/WorkspacePage'
 import { ProjectProgressAnalysisPanel } from '../../ai/components/ProjectProgressAnalysisPanel'
 import { useExecutionAccess } from '../../execution/context/ExecutionAccessContext'
 import { formatMeetingTime } from '../../meetings/meeting-utils'
 import { projectStatusLabel } from '../../projects/utils/project-status'
+import { getPreDefenseLockStatus } from '../../review-gates/api/project-checklists-api'
 import { useSupervisorOperationalSummary, type SupervisorOperationalResource } from '../hooks/useSupervisorOperationalSummary'
 import { useSupervisorProgressReview } from '../hooks/useSupervisorProgressReview'
 
@@ -25,6 +28,7 @@ const quickLinks: QuickLinkItem[] = [
   { key: 'evidence', icon: 'verified', title: 'Sổ minh chứng', path: 'evidence' },
   { key: 'contributions', icon: 'analytics', title: 'Đóng góp', path: 'contributions' },
   { key: 'final', icon: 'task_alt', title: 'Bàn giao cuối kỳ', path: 'final-submission' },
+  { key: 'result', icon: 'workspace_premium', title: 'Kết quả công bố', path: 'result' },
 ]
 
 /** Assignment-scoped, evidence-first cockpit. It does not invent a supervisor role or a write capability. */
@@ -32,6 +36,15 @@ export function SupervisorProjectWorkspacePage() {
   const access = useExecutionAccess()
   const operational = useSupervisorOperationalSummary(access.project.id)
   const progress = useSupervisorProgressReview(access.project.id)
+  const [pendingFinalLock, setPendingFinalLock] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void getPreDefenseLockStatus(access.project.id)
+      .then(st => { if (active) setPendingFinalLock(st.lockWorkflowStatus === 'PENDING_SUPERVISOR_LOCK') })
+      .catch(() => { if (active) setPendingFinalLock(false) })
+    return () => { active = false }
+  }, [access.project.id])
   const evaluatorAssigned = operational.evaluator.state === 'ready' && operational.evaluator.data
 
   const availableQuickLinks: QuickLinkItem[] = [
@@ -68,6 +81,14 @@ export function SupervisorProjectWorkspacePage() {
       className="pb-12"
     >
       <div className="space-y-6">
+        {pendingFinalLock && (
+          <InlineAlert
+            tone="warning"
+            action={<Link to={`${access.routeBase}/final-submission`} className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary-hover">Rà soát &amp; Ký khóa</Link>}
+          >
+            <strong>Chờ GVHD Chính ký khóa hồ sơ Tiền-Defense:</strong> Trưởng nhóm đã gửi yêu cầu khóa gói Final &amp; Cold. Hãy kiểm tra và xác nhận ký khóa hoặc trả về chỉnh sửa.
+          </InlineAlert>
+        )}
         <section className="overflow-hidden rounded-xl border border-hairline bg-card shadow-xs" aria-labelledby="supervision-project-summary">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-5 py-4 sm:px-6">
             <div className="min-w-0">

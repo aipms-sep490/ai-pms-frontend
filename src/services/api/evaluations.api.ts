@@ -127,7 +127,38 @@ export interface SaveEvaluationSchemeInput {
   /** Omitted on update retains BE provenance; omitted on create defaults to DEMO. */
   policy?: SchemePolicy
 }
+export interface BulkApplyEvaluationSchemeInput {
+  projectPeriodId: number
+  trackCode: string
+  name?: string | null
+  passThreshold?: number | null
+  policy?: SchemePolicy | null
+  components?: EvaluationSchemeComponentInput[] | null
+  sourceBlueprintId?: number | null
+  sourceSchemeId?: number | null
+  usePublishedBlueprint?: boolean
+  autoPublish?: boolean
+}
+export interface BulkApplyProjectOutcome {
+  projectId: number
+  projectCode: string
+  status: 'APPLIED' | 'SKIPPED' | 'FAILED' | string
+  schemeId?: number | null
+  reason?: string | null
+}
+export interface BulkApplyEvaluationSchemeResult {
+  appliedCount: number
+  skippedCount: number
+  failedCount: number
+  appliedProjectIds: number[]
+  outcomes: BulkApplyProjectOutcome[]
+}
+export interface ReplaceEvaluatorResponse {
+  revokedAssignment: EvaluationAssignment
+  replacementAssignment: EvaluationAssignment
+}
 export const createEvaluationScheme = (body: SaveEvaluationSchemeInput) => httpPost<EvaluationScheme>('/evaluation-schemes', body)
+export const bulkApplyEvaluationSchemes = (body: BulkApplyEvaluationSchemeInput) => httpPost<BulkApplyEvaluationSchemeResult>('/evaluation-schemes/bulk-apply', body)
 export const updateEvaluationScheme = (id: number, body: SaveEvaluationSchemeInput) => httpPut<EvaluationScheme>(`/evaluation-schemes/${id}`, body)
 export const publishEvaluationScheme = (id: number, concurrencyToken: string) => httpPost<EvaluationScheme>(`/evaluation-schemes/${id}/publish`, { concurrencyToken })
 export const createEvaluationSchemeVersion = (id: number, concurrencyToken: string) => httpPost<EvaluationScheme>(`/evaluation-schemes/${id}/versions`, { concurrencyToken })
@@ -135,6 +166,10 @@ export const deleteEvaluationScheme = (id: number, concurrencyToken: string) => 
 export const getEligibleEvaluators = (projectId: number, periodId: number, target: EvaluationTarget, page = 1, pageSize = 100, signal?: AbortSignal) => httpGet<PagedResult<EligibleEvaluator>>(`/projects/${projectId}/eligible-evaluators?${new URLSearchParams({ periodId: String(periodId), componentId: String(target.componentId), scope: target.scope, ...(target.majorId !== null ? { majorId: String(target.majorId) } : {}), ...(target.studentId !== null ? { studentId: String(target.studentId) } : {}), page: String(page), pageSize: String(pageSize) })}`, signal)
 export const assignEvaluator = (projectId: number, body: { evaluatorId: number; projectPeriodId: number; evaluationType: EvaluatorRole } & EvaluationTarget) => httpPost<EvaluationAssignment>(`/projects/${projectId}/evaluation-assignments`, body)
 export const revokeEvaluator = (assignmentId: number, concurrencyToken: string, reason: string) => httpPost<EvaluationAssignment>(`/evaluation-assignments/${assignmentId}/revoke`, { concurrencyToken, reason })
+export const replaceEvaluator = (
+  assignmentId: number,
+  body: { replacementEvaluatorId: number; concurrencyToken: string; reason: string; updateCommitteeIfNeeded?: boolean },
+) => httpPost<ReplaceEvaluatorResponse>(`/evaluation-assignments/${assignmentId}/replace`, body)
 export const createEvaluationDraft = (assignmentId: number) => httpPost<EvaluationDraft>(`/evaluation-assignments/${assignmentId}/evaluation`)
 export const getEvaluationDraft = (evaluationId: number, signal?: AbortSignal) => httpGet<EvaluationDraft>(`/evaluations/${evaluationId}`, signal)
 export const getProjectEvaluations = (projectId: number, signal?: AbortSignal, page = 1) => httpGet<PagedResult<EvaluationDraft>>(`/projects/${projectId}/evaluations?page=${page}&pageSize=100`, signal)
@@ -174,6 +209,7 @@ export interface ProjectScoringWorkbench {
   failingComponentThreshold: number
   roster: ScoringWorkbenchRosterMember[]
   projectLevelAssignments: WorkbenchAssignmentSummary[]
+  calculationFormula?: string | null
 }
 
 export interface BatchFinalizeEvaluationsResponse {

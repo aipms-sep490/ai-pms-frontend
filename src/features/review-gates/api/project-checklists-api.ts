@@ -76,6 +76,11 @@ export interface PreDefenseLockStatusDto {
   lockedBySupervisorId?: number | null
   forceLockedBy?: number | null
   forceLockReason?: string | null
+  lockRequestedBy?: number | null
+  lockRequestedAt?: string | null
+  finalSubmissionId?: number | null
+  coldPackageId?: number | null
+  draftConcurrencyToken?: string | null
 }
 
 export const getProjectGateChecklist = (projectId: number, gateCode: string) =>
@@ -104,11 +109,25 @@ export const getChecklistDiffPreview = (projectId: number, checklistId: number) 
 export const publishProjectChecklist = (projectId: number, checklistId: number) =>
   httpPost<ProjectGateChecklistDto>(`/projects/${projectId}/checklists/${checklistId}/publish`, {})
 
-export const requestFinalLock = (projectId: number) =>
-  httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/request-lock`, {})
+export const getPreDefenseLockStatus = (projectId: number) =>
+  httpGet<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/lock-status`)
 
-export const supervisorDecideFinalLock = (projectId: number, body: { decision: 'LOCK' | 'RETURN_TO_OPEN'; notes?: string }) =>
-  httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/supervisor-lock`, body)
+export const requestFinalLock = (projectId: number, concurrencyToken?: string | null) =>
+  httpPost<PreDefenseLockStatusDto>(
+    `/projects/${projectId}/final-submission/request-lock`,
+    concurrencyToken ? { concurrencyToken } : {},
+  )
 
-export const forceLockFinal = (projectId: number, reason: string) =>
-  httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/force-lock`, { reason })
+export const supervisorDecideFinalLock = (
+  projectId: number,
+  body: { decision: 'LOCK' | 'RETURN_TO_OPEN'; notes?: string; concurrencyToken?: string | null },
+) => httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/supervisor-lock`, body)
+
+export const forceLockFinal = (projectId: number, reason: string, concurrencyToken?: string | null) =>
+  httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/force-lock`, {
+    reason,
+    ...(concurrencyToken ? { concurrencyToken } : {}),
+  })
+
+export const reopenFinalLock = (projectId: number, body: { reason: string; concurrencyToken?: string | null }) =>
+  httpPost<PreDefenseLockStatusDto>(`/projects/${projectId}/final-submission/reopen`, body)
