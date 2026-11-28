@@ -115,11 +115,15 @@ export function MilestoneDetailPage() {
   const canDelete = Boolean(selected) && canUseTaskExecutionAction(access, 'delete_task', actionCapability('delete_milestone'))
   const canQuickCompleteList = canCreate
 
-  const save = (payload: import('../../../services/api/milestones.api').UpdateMilestonePayload) => selected
-    ? mutation.run(() => services.milestone.updateMilestone(selected.id, { ...payload, concurrencyToken: selected.concurrencyToken }), () => { setEditing(false); reload() }, 'Đã lưu mốc đồ án.')
-    : Promise.resolve(false)
+  const save = (payload: Omit<import('../../../services/api/milestones.api').UpdateMilestonePayload, 'concurrencyToken'>) => {
+    const token = selected?.concurrencyToken
+    if (!selected || !token) return Promise.resolve(false)
+    return mutation.run(() => services.milestone.updateMilestone(selected.id, { ...payload, concurrencyToken: token }), () => { setEditing(false); reload() }, 'Đã lưu mốc đồ án.')
+  }
 
   function quickComplete(item: MilestoneDto) {
+    const token = item.concurrencyToken
+    if (!token) return
     void mutation.run(
       () => services.milestone.updateMilestone(item.id, {
         title: item.title,
@@ -128,7 +132,7 @@ export function MilestoneDetailPage() {
         dueDate: item.dueDate ?? null,
         status: 'COMPLETED',
         sortOrder: item.sortOrder,
-        concurrencyToken: item.concurrencyToken,
+        concurrencyToken: token,
       }),
       () => { reload() },
       `Đã chốt hoàn thành mốc “${item.title}”.`,
@@ -334,11 +338,15 @@ export function MilestoneDetailPage() {
                     description="Mốc chưa có công việc sẽ được xóa khỏi kế hoạch. Bạn cần tạo lại nếu muốn sử dụng sau này."
                     busy={mutation.busy}
                     onCancel={() => setDeleting(false)}
-                    onConfirm={() => void mutation.run(
-                      () => services.milestone.deleteMilestone(selected.id, selected.concurrencyToken),
-                      () => { navigate(`${routeBase}/milestones`, { replace: true }); reload() },
-                      'Đã xóa mốc đồ án.',
-                    )}
+                    onConfirm={() => {
+                      const token = selected.concurrencyToken
+                      if (!token) return
+                      void mutation.run(
+                        () => services.milestone.deleteMilestone(selected.id, token),
+                        () => { navigate(`${routeBase}/milestones`, { replace: true }); reload() },
+                        'Đã xóa mốc đồ án.',
+                      )
+                    }}
                   />
                 )}
               </div>
@@ -437,11 +445,14 @@ export function MilestoneDetailPage() {
                 <button
                   className="ex-button ex-button-primary"
                   disabled={mutation.busy}
-                  onClick={() => void mutation.run(
-                    () => services.milestone.reorderMilestones(project.id, order.map((item, sortOrder) => ({ milestoneId: item.id, sortOrder, concurrencyToken: item.concurrencyToken }))),
-                    () => { setOrder(null); reload() },
-                    'Đã lưu thứ tự các mốc.',
-                  )}
+                  onClick={() => {
+                    if (order.some(item => !item.concurrencyToken)) return
+                    void mutation.run(
+                      () => services.milestone.reorderMilestones(project.id, order.map((item, sortOrder) => ({ milestoneId: item.id, sortOrder, concurrencyToken: item.concurrencyToken! }))),
+                      () => { setOrder(null); reload() },
+                      'Đã lưu thứ tự các mốc.',
+                    )
+                  }}
                 >
                   Lưu thứ tự
                 </button>

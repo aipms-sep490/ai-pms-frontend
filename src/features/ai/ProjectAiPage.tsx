@@ -17,12 +17,13 @@ import './assistant-dock.css'
 // AI run history is actor- and scope-hash-scoped server-side. Keying by project+user forces a
 // full remount (not just a prop update) on an identity or project switch, so no stale analysis
 // or history list from a previous actor can linger in local state.
-export function ProjectAiPage() {
+export function ProjectAiPage({ legacyAskEnabled }: { legacyAskEnabled?: boolean } = {}) {
   const access = useExecutionAccess()
-  return <ProjectAiView key={`${access.project.id}:${access.currentUserId}`} />
+  const showLegacyAsk = legacyAskEnabled ?? import.meta.env.VITE_ENABLE_LEGACY_PROJECT_AI_ASK === 'true'
+  return <ProjectAiView key={`${access.project.id}:${access.currentUserId}`} showLegacyAsk={showLegacyAsk} />
 }
 
-function ProjectAiView() {
+function ProjectAiView({ showLegacyAsk }: { showLegacyAsk: boolean }) {
   const [historyRevision, setHistoryRevision] = useState(0)
   const navigate = useNavigate()
   const { project, routeBase, actor, canManageStructure } = useExecutionAccess()
@@ -111,7 +112,7 @@ function ProjectAiView() {
             />
           </div>
         </section>
-      ) : (
+      ) : showLegacyAsk ? (
         <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs">
           <h2 className="font-heading text-lg font-semibold text-ink">Hỏi trợ lý theo đồ án</h2>
           <p className="mt-1 text-sm text-ink-muted">Hãy hỏi về tiến độ, công việc, báo cáo hoặc bước tiếp theo. Kiểm tra chứng cứ trước khi hành động; trợ lý không có quyền thực thi lệnh.</p>
@@ -124,6 +125,11 @@ function ProjectAiView() {
           </form>
           {error && <p role="alert" className="mt-4 rounded-lg border border-status-error-border bg-status-error-bg p-3 text-sm text-status-error-text">{error}</p>}
           {answer && <AssistantAnswer answer={answer} />}
+        </section>
+      ) : (
+        <section className="rounded-xl border border-hairline bg-card p-5 shadow-xs" role="note">
+          <h2 className="font-heading text-base font-semibold text-ink">Trợ lý hỏi đáp theo đồ án đang tắt</h2>
+          <p className="mt-1 text-sm text-ink-muted">Tính năng hỏi đáp AI cũ đã được tắt theo chính sách vận hành an toàn. Vui lòng sử dụng phân tích tiến độ tất định bên trên hoặc Trợ lý Học vụ khi được kích hoạt.</p>
         </section>
       )}
 

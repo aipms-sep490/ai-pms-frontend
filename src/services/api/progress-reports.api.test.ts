@@ -12,13 +12,13 @@ describe('Progress report HTTP contract', () => {
     await reports.getProgressReportPrefill(9, 101)
     await reports.createProgressReport(9, body)
     const { summary, completedWork, plannedWork, issuesAndRisks } = body
-    await reports.updateProgressReport(17, { summary, completedWork, plannedWork, issuesAndRisks })
-    await reports.submitProgressReport(17)
-    await reports.addProgressReportFeedback(17, 'Đã xem')
+    await reports.updateProgressReport(17, { summary, completedWork, plannedWork, issuesAndRisks, concurrencyToken: 'report-v1' })
+    await reports.submitProgressReport(17, 'report-v1')
+    await reports.addProgressReportFeedback(17, 'Đã xem', 'report-v1')
     expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
       ['/api/v1/projects/9/progress-reports?page=2&pageSize=10&status=SUBMITTED&reportType=WEEKLY', 'GET'],
       ['/api/v1/progress-reports/17', 'GET'], ['/api/v1/projects/9/progress-reports/prefill?progressReportPeriodId=101', 'GET'], ['/api/v1/projects/9/progress-reports', 'POST'],
-      ['/api/v1/progress-reports/17', 'PUT'], ['/api/v1/progress-reports/17/submit', 'POST'], ['/api/v1/progress-reports/17/feedback', 'POST'],
+      ['/api/v1/progress-reports/17', 'PUT'], ['/api/v1/progress-reports/17/submit?concurrencyToken=report-v1', 'POST'], ['/api/v1/progress-reports/17/feedback?concurrencyToken=report-v1', 'POST'],
     ])
     expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual(body)
     expect(JSON.parse(fetch.mock.calls[4][1].body)).not.toHaveProperty('periodStart')

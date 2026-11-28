@@ -19,14 +19,18 @@ const CONF_META: Record<string, { label: string; cls: string }> = {
   LOW: { label: 'Cần xác minh', cls: 'ais-pill ais-pill--danger' },
 }
 
+const HIGH_RISK_AI_ENABLED = import.meta.env.VITE_ENABLE_HIGH_RISK_AI === 'true'
+
 export function RubricGradingCopilotPanel({
   assignmentId,
   disabled = false,
+  enabled = HIGH_RISK_AI_ENABLED,
   onApplyCriterionComment,
   onApplyAllComments,
 }: {
   assignmentId: number
   disabled?: boolean
+  enabled?: boolean
   onApplyCriterionComment?: (rubricCriterionId: number, comment: string) => void
   onApplyAllComments?: (suggestions: RubricCriterionSuggestionDto[], overallSummary: string) => void
 }) {
@@ -34,6 +38,8 @@ export function RubricGradingCopilotPanel({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+
+  if (!enabled) return null
 
   const handleRun = async () => {
     setLoading(true)
@@ -228,15 +234,19 @@ const MERIT_META: Record<string, { label: string; cls: string }> = {
 
 export function AppealAssistPanel({
   appealId,
+  enabled = HIGH_RISK_AI_ENABLED,
   onUseDraftResponse,
 }: {
   appealId: number
+  enabled?: boolean
   onUseDraftResponse?: (draftText: string) => void
 }) {
   const [data, setData] = useState<AppealAssistDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
+
+  if (!enabled) return null
 
   const handleAssist = async () => {
     setLoading(true)

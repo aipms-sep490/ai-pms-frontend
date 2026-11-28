@@ -5,6 +5,7 @@ export interface AiSnapshotMetaDto {
   modelVersion: string | null
   generatedAt: string
   createdByName: string | null
+  isSimulatedFallback?: boolean
 }
 
 // #1 Defense Mock Q&A, Answer Evaluation & Gate Script Draft

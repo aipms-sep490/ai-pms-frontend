@@ -15,6 +15,7 @@
     "check-contracts": "node scripts/sync-contracts.mjs check",
     "test:chat": "vitest run src/features/chat",
     "test:chat:e2e": "playwright test --config playwright.chat.config.ts",
+    "test:smoke:e2e": "playwright test --config playwright.smoke.config.ts",
     "preview": "vite preview",
     "route-inventory": "node scripts/route-inventory.mjs",
     "screen-ui-audit": "node scripts/route-inventory.mjs && node scripts/screen-ui-source-audit.mjs"

@@ -15,12 +15,16 @@ const SIGNAL_META: Record<string, { label: string; cls: string }> = {
   PEER_MISMATCH: { label: 'Lệch đánh giá chéo', cls: 'ais-pill ais-pill--warning' },
 }
 
-export function ContributionFairnessPanel({ projectId }: { projectId: number }) {
+const HIGH_RISK_AI_ENABLED = import.meta.env.VITE_ENABLE_HIGH_RISK_AI === 'true'
+
+export function ContributionFairnessPanel({ projectId, enabled = HIGH_RISK_AI_ENABLED }: { projectId: number; enabled?: boolean }) {
   const [data, setData] = useState<ContributionFairnessDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingLatest, setLoadingLatest] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+
+  if (!enabled) return null
 
   const handleAnalyze = async () => {
     setLoading(true)

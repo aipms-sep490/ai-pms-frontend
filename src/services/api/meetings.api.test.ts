@@ -9,30 +9,31 @@ describe('Meetings HTTP contract', () => {
     vi.stubGlobal('fetch', fetch); localStorage.setItem('token', 'meeting-test-token')
     const signal = new AbortController().signal
     const schedule = { title: 'Họp tuần', agenda: null, startAt: '2026-09-23T02:00:00Z', endAt: null, location: null, onlineUrl: null }
+    const ct = 'meeting-v1'
     await api.getMeetings(2, { status: 'SCHEDULED', page: 2, from: schedule.startAt }, signal)
     await api.getMeeting(42, signal)
     await api.createMeeting(2, { ...schedule, participantUserIds: [9, 6] })
-    await api.updateMeeting(42, schedule)
-    await api.addMeetingParticipant(42, 10)
+    await api.updateMeeting(42, { ...schedule, concurrencyToken: ct })
+    await api.addMeetingParticipant(42, 10, ct)
     fetch.mockResolvedValueOnce({ ok: true, status: 204 })
-    await api.removeMeetingParticipant(42, 10)
-    await api.updateMeetingNotes(42, { meetingNotes: 'Kết luận', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }] })
-    await api.completeMeeting(42)
-    await api.addMeetingFeedback(42, 'Bổ sung kiểm thử')
-    await api.cancelMeeting(43)
+    await api.removeMeetingParticipant(42, 10, ct)
+    await api.updateMeetingNotes(42, { meetingNotes: 'Kết luận', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }], concurrencyToken: ct })
+    await api.completeMeeting(42, ct)
+    await api.addMeetingFeedback(42, 'Bổ sung kiểm thử', ct)
+    await api.cancelMeeting(43, ct)
     expect(fetch.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
       ['/api/v1/projects/2/meetings?page=2&pageSize=10&status=SCHEDULED&from=2026-09-23T02%3A00%3A00Z', 'GET'],
       ['/api/v1/meetings/42', 'GET'], ['/api/v1/projects/2/meetings', 'POST'], ['/api/v1/meetings/42', 'PUT'],
-      ['/api/v1/meetings/42/participants', 'POST'], ['/api/v1/meetings/42/participants/10', 'DELETE'],
-      ['/api/v1/meetings/42/notes', 'PUT'], ['/api/v1/meetings/42/complete', 'POST'],
-      ['/api/v1/meetings/42/feedback', 'POST'], ['/api/v1/meetings/43/cancel', 'POST'],
+      ['/api/v1/meetings/42/participants?concurrencyToken=meeting-v1', 'POST'], ['/api/v1/meetings/42/participants/10?concurrencyToken=meeting-v1', 'DELETE'],
+      ['/api/v1/meetings/42/notes', 'PUT'], ['/api/v1/meetings/42/complete?concurrencyToken=meeting-v1', 'POST'],
+      ['/api/v1/meetings/42/feedback?concurrencyToken=meeting-v1', 'POST'], ['/api/v1/meetings/43/cancel?concurrencyToken=meeting-v1', 'POST'],
     ])
     expect(fetch.mock.calls[0][1].signal).toBe(signal)
     expect(fetch.mock.calls[1][1].signal).toBe(signal)
     expect(JSON.parse(fetch.mock.calls[2][1].body).participantUserIds).toEqual([9, 6])
-    expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual(schedule)
+    expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({ ...schedule, concurrencyToken: ct })
     expect(JSON.parse(fetch.mock.calls[4][1].body)).toEqual({ userId: 10, attendanceStatus: 'INVITED' })
-    expect(JSON.parse(fetch.mock.calls[6][1].body)).toEqual({ meetingNotes: 'Kết luận', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }] })
+    expect(JSON.parse(fetch.mock.calls[6][1].body)).toEqual({ meetingNotes: 'Kết luận', attendances: [{ userId: 9, attendanceStatus: 'ATTENDED' }], concurrencyToken: ct })
     expect(fetch.mock.calls[7][1].body).toBeUndefined()
     expect(JSON.parse(fetch.mock.calls[8][1].body)).toEqual({ feedbackText: 'Bổ sung kiểm thử' })
     expect(fetch.mock.calls.every(([, options]) => options.headers.Authorization === 'Bearer meeting-test-token')).toBe(true)
@@ -51,7 +52,7 @@ describe('Meetings HTTP contract', () => {
   it('propagates conflicts without automatically repeating a mutation', async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ title: 'Conflict' }) })
     vi.stubGlobal('fetch', fetch)
-    await expect(api.completeMeeting(42)).rejects.toBeInstanceOf(HttpError)
+    await expect(api.completeMeeting(42, 'meeting-v1')).rejects.toBeInstanceOf(HttpError)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
   it('includes concurrency tokens in every governed meeting mutation', async () => {

@@ -223,7 +223,11 @@ describe('AI Copilot Suite — All 8 Modules', () => {
       meta,
     })
 
-    render(<ContributionFairnessPanel projectId={20} />)
+    // TK-W0-09: Hidden by default unless explicitly enabled
+    const { container: hiddenFairness } = render(<ContributionFairnessPanel projectId={20} />)
+    expect(hiddenFairness.innerHTML).toBe('')
+
+    render(<ContributionFairnessPanel projectId={20} enabled />)
     fireEvent.click(screen.getByRole('button', { name: /AI Phân tích công bằng/i }))
     expect(await screen.findByText(/Chỉ số cân bằng: 78\/100/i)).toBeTruthy()
     expect(screen.getByText(/21 \(70%\)/)).toBeTruthy()
@@ -257,7 +261,11 @@ describe('AI Copilot Suite — All 8 Modules', () => {
       meta,
     })
 
-    render(<RubricGradingCopilotPanel assignmentId={83} onApplyCriterionComment={onApplyComment} onApplyAllComments={onApplyAll} />)
+    // TK-W0-09: Hidden by default unless explicitly enabled
+    const { container: hiddenCopilot } = render(<RubricGradingCopilotPanel assignmentId={83} />)
+    expect(hiddenCopilot.innerHTML).toBe('')
+
+    render(<RubricGradingCopilotPanel assignmentId={83} enabled onApplyCriterionComment={onApplyComment} onApplyAllComments={onApplyAll} />)
     fireEvent.click(screen.getByRole('button', { name: /AI Gợi ý theo Rubric/i }))
     expect(await screen.findByText(/Kiến trúc phân lớp rõ ràng/i)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Điền nhận xét này/i }))
@@ -289,7 +297,11 @@ describe('AI Copilot Suite — All 8 Modules', () => {
       meta,
     })
 
-    render(<AppealAssistPanel appealId={90} onUseDraftResponse={onUseDraft} />)
+    // TK-W0-09: Hidden by default unless explicitly enabled
+    const { container: hiddenAppeal } = render(<AppealAssistPanel appealId={90} />)
+    expect(hiddenAppeal.innerHTML).toBe('')
+
+    render(<AppealAssistPanel appealId={90} enabled onUseDraftResponse={onUseDraft} />)
     fireEvent.click(screen.getByRole('button', { name: /AI Phân tích đơn phúc khảo/i }))
     expect(await screen.findByText(/Hội đồng đã rà soát lại hồ sơ gốc/i)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Chèn vào ô Lý do thẩm định/i }))

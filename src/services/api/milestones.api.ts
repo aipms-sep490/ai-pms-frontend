@@ -12,13 +12,19 @@ export interface CreateMilestonePayload {
 
 export interface UpdateMilestonePayload extends Omit<CreateMilestonePayload, 'projectId'> {
   status: string
-  concurrencyToken?: string
+  concurrencyToken: string
 }
 
 export interface MilestoneReorderItem {
   milestoneId: number
   sortOrder: number
-  concurrencyToken?: string
+  concurrencyToken: string
+}
+
+export interface AddMilestoneDependencyPayload {
+  milestoneId: number
+  dependsOnMilestoneId: number
+  concurrencyToken: string
 }
 
 export interface ProjectExecutionWindowDto {
@@ -35,5 +41,7 @@ export const getProjectMilestoneProgress = (projectId: number, signal?: AbortSig
 export const getProjectExecutionWindow = (projectId: number, signal?: AbortSignal) => httpGet<ProjectExecutionWindowDto | null>(`/milestones/project/${projectId}/execution-window`, signal)
 export const createMilestone = (payload: CreateMilestonePayload) => httpPost<MilestoneDto, CreateMilestonePayload>('/milestones', payload)
 export const updateMilestone = (id: number, payload: UpdateMilestonePayload) => httpPut<MilestoneDto, UpdateMilestonePayload>(`/milestones/${id}`, payload)
-export const deleteMilestone = async (id: number, concurrencyToken?: string) => { await httpDelete(`/milestones/${id}${concurrencyToken ? `?${new URLSearchParams({ concurrencyToken })}` : ''}`) }
+export const deleteMilestone = async (id: number, concurrencyToken: string) => { await httpDelete(`/milestones/${id}?${new URLSearchParams({ concurrencyToken })}`) }
 export const reorderMilestones = async (projectId: number, items: MilestoneReorderItem[]) => { await httpPost(`/milestones/project/${projectId}/reorder`, items) }
+export const addMilestoneDependency = (payload: AddMilestoneDependencyPayload) => httpPost<MilestoneDto, AddMilestoneDependencyPayload>('/milestones/dependency', payload)
+export const removeMilestoneDependency = (id: number, dependsOnMilestoneId: number, concurrencyToken: string) => httpDelete<MilestoneDto>(`/milestones/${id}/dependency/${dependsOnMilestoneId}?${new URLSearchParams({ concurrencyToken })}`)
