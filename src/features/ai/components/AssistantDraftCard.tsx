@@ -5,6 +5,7 @@ import { AssistantProjectSetupCard, AssistantRubricSetupCard } from './Assistant
 import { AssistantReviewGateSetupCard } from './AssistantReviewGateSetupCard'
 import { createTask } from '../../../services/api/tasks.api'
 import { getProjectMilestones } from '../../../services/api/milestones.api'
+import { executionError } from '../../execution/execution-utils'
 import type { MilestoneDto } from '../../../types/backend'
 
 export function AssistantDraftCard({
@@ -128,8 +129,9 @@ export function AssistantDraftCard({
       })
       setCreatedTaskId(created.id)
       setQuickOpen(false)
-    } catch {
-      setQuickError('Chưa tạo được công việc trực tiếp (có thể cần bổ sung thông tin chuyên ngành hoặc phân công). Hãy dùng nút Mở biểu mẫu.')
+    } catch (reason) {
+      const detail = executionError(reason, 'tạo công việc trực tiếp')
+      setQuickError(`${detail} Bạn cũng có thể dùng nút "Mở biểu mẫu" để bổ sung chuyên ngành hoặc điều chỉnh thời gian.`)
     } finally {
       setCreatingTask(false)
     }
